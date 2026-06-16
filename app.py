@@ -39,6 +39,9 @@ from eures_beta_email_templates import (
     get_candidate_invitation_template,
     get_candidate_target_job_label,
 )
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 load_dotenv()
 
@@ -82,6 +85,20 @@ _EURES_VISIT_ANALYTICS_LOCK = threading.Lock()
 
 # Default request cap; questionnaire submissions have a bounded CV-aware allowance.
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
+# Honor X-Forwarded-For from trusted proxies so rate limiting keys on the real client IP.
+# Set PROXY_FIX_X_FOR to the number of proxies in front of the app (0 if directly exposed).
+_proxy_hops = int(os.environ.get('PROXY_FIX_X_FOR', '1') or '0')
+if _proxy_hops > 0:
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=_proxy_hops, x_proto=_proxy_hops, x_host=_proxy_hops)
+
+# Per-IP rate limiting on public endpoints. Defaults to in-memory storage (counted per worker);
+# set RATELIMIT_STORAGE_URI (e.g. redis://...) for exact limits shared across workers.
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=[],
+    storage_uri=os.environ.get('RATELIMIT_STORAGE_URI', 'memory://'),
+)
 
 GRIST_BASE_URL = os.environ.get('GRIST_BASE_URL', 'https://grist.numerique.gouv.fr').rstrip('/')
 APP_MODE = os.environ.get('APP_MODE', 'eures-beta').strip().lower() or 'eures-beta'
@@ -8829,6 +8846,7 @@ def find_duplicate_finess(config: dict, current_uuid: str, finess_values: set, h
 
 
 @app.route('/api/forms/<form_id>/record', methods=['GET'])
+@limiter.limit("60 per minute")
 def get_record(form_id: str):
     """Fetch a record by UUID or table-specific identifier."""
     proxied = maybe_proxy_eures_request(form_id)
@@ -9038,6 +9056,7 @@ def create_eures_employer_referral(form_id: str):
 
 
 @app.route('/api/forms/<form_id>/record', methods=['POST'])
+@limiter.limit("30 per minute")
 def save_record(form_id: str):
     """Create or update a record."""
     proxied = maybe_proxy_eures_request(form_id)
@@ -9271,6 +9290,7 @@ def save_record(form_id: str):
 
 
 @app.route('/api/forms/<form_id>/export-readable-xlsx', methods=['POST'])
+@limiter.limit("20 per minute")
 def export_readable_xlsx(form_id: str):
     """Generate a human-readable Excel export from a form payload without changing Grist storage."""
     proxied = maybe_proxy_eures_request(form_id)
@@ -9295,6 +9315,7 @@ def export_readable_xlsx(form_id: str):
 
 
 @app.route('/api/forms/<form_id>/check-finess', methods=['POST'])
+@limiter.limit("20 per minute")
 def check_finess(form_id: str):
     """Check whether FINESS values already exist in another questionnaire."""
     proxied = maybe_proxy_eures_request(form_id)
@@ -9332,6 +9353,7 @@ def check_finess(form_id: str):
 
 
 @app.route('/api/forms/<form_id>/recover-by-email', methods=['POST'])
+@limiter.limit("10 per minute")
 def recover_by_email(form_id: str):
     """Recover a questionnaire UUID from validation email (+ optional FINESS)."""
     proxied = maybe_proxy_eures_request(form_id)
