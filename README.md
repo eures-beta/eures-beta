@@ -1,48 +1,124 @@
-# EURES beta app
+# EURES Beta
 
-Projet dédié au déploiement de `eures-beta` sur Scalingo.
+Application web de la bêta EURES, destinée à recueillir les informations des candidats et les besoins des employeurs, et à accompagner leur mise en relation.
 
-## Contenu
+Ce dépôt contient l’application historique **Flask + Grist**. Il ne constitue pas encore le futur socle Match Europe Django + PostgreSQL.
 
-- serveur Flask pour les routes `/forms/eures-beta/*`
-- API `/api/forms/eures-beta/record`
-- API `/api/forms/eures-beta/public-stats`
-- interface admin `/admin/eures-beta/`
-- interface suivi projet `/admin/eures-beta/suivi`
+## Ce que contient le dépôt
 
-## Variables d'environnement
+- Formulaires EURES : `/forms/eures-beta/*`.
+- API d’enregistrement : `/api/forms/eures-beta/record`.
+- Statistiques publiques : `/api/forms/eures-beta/public-stats`.
+- Administration : `/admin/eures-beta/`.
+- Suivi projet : `/admin/eures-beta/suivi`.
+- Interfaces en français, anglais et allemand.
+- Connexion à Grist, envoi d’e-mails via Brevo et traduction automatique optionnelle via OpenAI.
 
-Copier `.env.example` vers `.env` puis renseigner :
+Une fonctionnalité en cours de développement n’est pas considérée comme disponible en production du seul fait de sa présence dans une branche.
 
-- `GRIST_API_KEY`
-- `GRIST_DOC_EURES_BETA`
-- `GRIST_TABLE_EURES_BETA_CANDIDATE`
-- `GRIST_TABLE_EURES_BETA_EMPLOYER`
-- `GRIST_TABLE_EURES_BETA_STATS`
-- `GRIST_TABLE_EURES_BETA_TRACKING` (optionnel, défaut `Suivi_Projet`)
-- `ADMIN_USERNAME_EURES_BETA`
-- `ADMIN_PASSWORD_EURES_BETA`
-- `ADMIN_AUTH_MODE_EURES_BETA` (`basic` ou `magic_link`)
-- `ADMIN_ALLOWED_EMAILS_EURES_BETA` (emails autorisés, séparés par des virgules)
-- `ADMIN_MAGIC_LINK_TTL_SECONDS_EURES_BETA`
-- `ADMIN_MAGIC_LINK_RATE_LIMIT_SECONDS_EURES_BETA`
-- `BREVO_API_KEY`
-- `BREVO_FROM_EMAIL`
-- `BREVO_FROM_NAME`
-- `OPENAI_API_KEY` (optionnel, pour la traduction automatique des textes libres)
-- `OPENAI_TEXT_MODEL` (optionnel, défaut `gpt-4.1-mini`)
+## Où se trouve la version de référence ?
 
-## Lancer en local
+Le dépôt commun est [eures-beta/eures-beta](https://github.com/eures-beta/eures-beta).
+
+- **GitHub / `main`** : version commune après intégration et validation.
+- **Copies locales** : environnements de travail, chacun dans un dossier ou un worktree séparé.
+- **Production** : version précise déployée et vérifiée, qui peut être antérieure à `main`.
+
+Le dépôt comporte une configuration de déploiement pour Scalingo. Le serveur dédié France Travail est la cible évoquée pour la production ; son rôle effectif et sa procédure de déploiement restent à confirmer avant de documenter une migration réalisée.
+
+## Circuit du code jusqu’à la production
+
+```mermaid
+flowchart TD
+    M["GitHub : main validé"] -->|Actualiser| O["Oly : branche dédiée"]
+    M -->|Actualiser| V["Vermeer : branche dédiée"]
+    O --> PO["Pull request Oly"]
+    V --> PV["Pull request Vermeer"]
+    PO --> R["Relecture et vérifications"]
+    PV --> R
+    R -->|Intégration| M
+    M --> D["Version choisie et déploiement autorisé"]
+    D --> P["Production : hébergement à confirmer"]
+    P --> C["Vérifier le commit et les parcours réels"]
+```
+
+## Travailler ensemble
+
+Les règles suivantes constituent le fonctionnement proposé. Leur application automatique dépendra des protections configurées sur GitHub.
+
+1. Vérifier le dépôt, la branche et les modifications locales avant de commencer. Préserver tout travail existant.
+2. Actualiser `main` depuis GitHub, puis créer une branche dédiée à un seul chantier, par exemple `docs/readme-collaboration`.
+3. Réaliser les changements et les vérifications adaptées.
+4. Créer un commit, publier la branche et ouvrir une **pull request (PR)** vers `main`.
+5. Faire relire la PR par une autre personne. Décrire les changements, les vérifications et les limites connues.
+6. Intégrer la PR après validation, puis actualiser les copies locales de `main`.
+
+Éviter de coder directement sur `main`. Deux intervenants ne doivent pas modifier simultanément le même dossier de travail. Si deux branches modifient les mêmes lignes, résoudre les conflits et vérifier le résultat avant intégration.
+
+### Que signifie « être ISO » ?
+
+Une copie locale de `main` est synchronisée avec GitHub lorsque son commit est identique à celui de `main` distant et qu’elle ne contient aucun changement de travail en attente.
+
+Les branches en chantier peuvent différer : c’est normal. Les fichiers ignorés, comme `.env`, restent propres à chaque environnement.
+
+L’égalité entre GitHub et la production se vérifie séparément, en comparant le commit ou l’identifiant de version effectivement déployé. Elle ne signifie pas que les données ou les secrets sont identiques.
+
+## Installer et lancer en local
+
+Prérequis : Git et `uv`. Le projet demande Python 3.10 minimum ; `.python-version` indique Python 3.13.
+
+```bash
+git clone https://github.com/eures-beta/eures-beta.git
+cd eures-beta
+uv sync --locked
+cp .env.example .env
+```
+
+Renseigner `.env` avec une configuration de développement autorisée. Le chargement de ce fichier est assuré par l’application.
+
+**Attention : les formulaires et l’administration peuvent écrire dans Grist et envoyer des e-mails.** Utiliser un document et des accès de test dédiés. Ne pas reprendre les accès de production pour un essai local sans autorisation explicite.
 
 ```bash
 uv run flask --app app.py run -p 5005
 ```
 
-## Tests
+L’application est accessible sur `http://localhost:5005/forms/eures-beta/`.
+
+### Configuration
+
+Le fichier `.env.example` fournit les premiers paramètres. Les principaux groupes sont :
+
+- **Grist** : `GRIST_API_KEY`, `GRIST_BASE_URL`, `GRIST_DOC_EURES_BETA` et noms des tables candidates, employeurs, statistiques et suivi projet.
+- **Administration** : identifiants, mode d’authentification, liste des e-mails autorisés et durée de validité des liens de connexion.
+- **Brevo** : clé API, adresse et nom de l’expéditeur.
+- **OpenAI, optionnel** : `OPENAI_API_KEY` et `OPENAI_TEXT_MODEL` pour la traduction automatique.
+
+Ne jamais publier de clés API, de mots de passe, de fichiers `.env` ou de données personnelles dans le dépôt, une PR ou ses pièces jointes.
+
+## Vérifier les changements
+
+La commande de tests documentée pour le socle actuel est :
 
 ```bash
 uv run python -m unittest tests.test_public_stats tests.test_eures_beta_only_mode tests.test_tracking_module
 ```
+
+Ajouter les vérifications adaptées aux modules modifiés. Pour une PR portant uniquement sur le README, vérifier le contenu, les liens et le rendu GitHub ; un déploiement de l’application n’est pas nécessaire.
+
+## Mettre en production
+
+L’intégration d’une PR et le déploiement sont deux opérations distinctes. Avant toute activation d’un déploiement automatique, vérifier les workflows et les intégrations déjà configurés.
+
+Pour chaque déploiement :
+
+1. Identifier le commit validé à déployer et l’environnement cible.
+2. Obtenir l’autorisation de déploiement et préparer le retour à la version précédente.
+3. Vérifier les paramètres, les dépendances et les éventuelles migrations de données.
+4. Déployer cette version avec la procédure de l’hébergeur.
+5. Vérifier la version réellement servie et les parcours concernés, y compris l’administration si elle est modifiée.
+6. Consigner le commit, la date, l’environnement et le résultat des contrôles.
+
+La procédure spécifique au serveur dédié France Travail doit être complétée après vérification de son fonctionnement. Une migration de base de données peut nécessiter une procédure de retour arrière distincte de celle du code.
 
 ## Suivi projet EURES
 
