@@ -4,6 +4,14 @@ Application web de la bêta EURES, destinée à recueillir les informations des 
 
 Ce dépôt contient l’application historique **Flask + Grist**. Il ne constitue pas encore le futur socle Match Europe Django + PostgreSQL.
 
+## Un projet développé avec l’IA, ouvert aux non-développeurs
+
+Le projet est développé selon une démarche de **vibe coding** : des outils d’intelligence artificielle aident à produire et à modifier le code à partir de besoins exprimés en langage naturel. Des personnes qui ne sont pas développeuses participent à la définition des besoins, aux essais, à la documentation et à l’évolution du service.
+
+Ce README s’adresse donc à des lecteurs ayant des niveaux d’expérience technique différents. Il explique volontairement des notions de base et détaille certaines étapes qui peuvent sembler évidentes, voire très élémentaires, à un développeur expérimenté. Ce choix permet à chacun de comprendre le fonctionnement du projet et de contribuer sans devoir déjà maîtriser Git, les pull requests ou le déploiement.
+
+Le recours à l’IA et l’accessibilité de la documentation ne dispensent pas de vérifier le code, de tester les changements et de faire relire les contributions avant leur intégration. Les décisions fonctionnelles et techniques restent sous la responsabilité des personnes qui portent le projet.
+
 ## Ce que contient le dépôt
 
 - Formulaires EURES : `/forms/eures-beta/*`.
