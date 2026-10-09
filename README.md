@@ -39,9 +39,9 @@ Le dépôt comporte une configuration de déploiement pour Scalingo. Le serveur 
 ```mermaid
 flowchart TD
     M["GitHub : main validé"] -->|Actualiser| O["Oly : branche dédiée"]
-    M -->|Actualiser| V["Vermeer : branche dédiée"]
+    M -->|Actualiser| V["dejafait : branche dédiée"]
     O --> PO["Pull request Oly"]
-    V --> PV["Pull request Vermeer"]
+    V --> PV["Pull request dejafait"]
     PO --> R["Relecture et vérifications"]
     PV --> R
     R -->|Intégration| M
