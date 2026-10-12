@@ -2,99 +2,36 @@ const FORM_ID = "eures-beta";
 const BASE_PATH = `/forms/${FORM_ID}`;
 const LANGS = ["fr", "en", "de"];
 const DEFAULT_LANG = "fr";
-const PUBLIC_PROJECT_NAME = "Match Europe";
-
-const privacyCopy = {
-  fr: {
-    navLabel: "Protection des données",
-    eyebrow: "Information sur vos données personnelles",
-    title: "Comment Match Europe utilise vos informations",
-    lead: "Match Europe est une expérimentation du réseau EURES portée avec France Travail. Cette notice décrit les traitements actuellement prévus pour les questionnaires, le matching et le test limité de WhatsApp Business.",
-    draft: "Version du 3 août 2026. Le traitement est placé sous la responsabilité de France Travail dans le cadre de l’expérimentation Match Europe. Eric Barthélémy est le point de contact unique pendant cette phase.",
-    sections: [
-      ["Pourquoi utilisons-nous vos données ?", ["Comprendre le projet professionnel ou le besoin de recrutement.", "Identifier des correspondances possibles entre candidats et employeurs.", "Proposer et suivre une mise en relation avec intervention humaine.", "Évaluer l’utilité de l’expérimentation à partir d’indicateurs agrégés."]],
-      ["Quelles informations sont concernées ?", ["Les réponses aux questionnaires candidat ou employeur.", "Les coordonnées nécessaires pour vous recontacter.", "Les informations professionnelles utiles au matching.", "La preuve de vos choix, les dates de contact et l’issue de la mise en relation."]],
-      ["Qui peut y accéder ?", ["Les personnes habilitées de l’équipe Match Europe et, lorsque cela est nécessaire à une mise en relation, les partenaires EURES concernés.", "Un employeur ou un candidat ne reçoit que les informations nécessaires à la mise en relation proposée.", "Les données ne sont pas publiées et les statistiques publiques sont agrégées."]],
-      ["Participation volontaire", ["Vous pouvez refuser de participer ou demander l’arrêt des échanges.", "Le refus de WhatsApp n’empêche pas l’utilisation d’un autre canal, notamment le courriel ou le téléphone.", "Aucune décision de recrutement n’est prise automatiquement par Match Europe."]],
-      ["Test limité de WhatsApp Business", ["WhatsApp n’est proposé qu’après l’identification d’un matching et après l’accord distinct du candidat et de l’employeur.", "Dans un groupe, les autres participants voient votre numéro, votre nom ou pseudonyme, votre photo selon vos réglages et les messages que vous publiez.", "Il ne faut transmettre aucun document d’identité, donnée de santé, mot de passe ou autre information sensible dans le groupe.", "Match Europe conserve dans EURES beta la preuve de l’accord et l’issue du matching, mais ne recopie pas la conversation WhatsApp.", "WhatsApp est un service de Meta soumis à ses propres conditions et traitements de données. Les messages peuvent rester sur les appareils des participants jusqu’à leur suppression."]],
-      ["Durée et sécurité", ["Les données opérationnelles sont conservées pendant 12 mois après le dernier contact, puis supprimées ou anonymisées lorsqu’elles ne sont plus nécessaires.", "Les accès sont limités aux personnes habilitées et les comptes professionnels sont protégés par une authentification renforcée.", "Un incident de données ou un usage détourné entraîne la suspension du test concerné."]],
-      ["Vos droits et contact", ["Vous pouvez demander l’accès, la rectification ou l’effacement de vos données, retirer votre accord ou vous opposer à certains usages lorsque la réglementation le permet.", "Eric Barthélémy est le point de contact unique pendant cette phase. Pour exercer vos droits ou poser une question : matcheurope.00040@francetravail.fr.", "Vous pouvez également introduire une réclamation auprès de l’autorité de protection des données compétente, notamment la CNIL en France."]]
-    ],
-    back: "Retour à l’accueil",
-    separateConsent: "L’utilisation éventuelle de WhatsApp fera l’objet d’un accord distinct au moment d’une mise en relation."
-  },
-  en: {
-    navLabel: "Data protection",
-    eyebrow: "Information about your personal data",
-    title: "How Match Europe uses your information",
-    lead: "Match Europe is an EURES network experiment conducted with France Travail. This notice describes the processing currently planned for questionnaires, matching and the limited WhatsApp Business test.",
-    draft: "Version dated 3 August 2026. France Travail is responsible for the processing carried out as part of the Match Europe experiment. Eric Barthélémy is the sole contact point during this phase.",
-    sections: [
-      ["Why do we use your data?", ["Understand a professional mobility project or recruitment need.", "Identify possible matches between candidates and employers.", "Offer and monitor a human-supervised introduction.", "Assess the experiment using aggregated indicators."]],
-      ["What information is involved?", ["Answers to the candidate or employer questionnaire.", "Contact details needed to contact you again.", "Professional information relevant to matching.", "Evidence of your choices, contact dates and the outcome of an introduction."]],
-      ["Who can access it?", ["Authorised members of the Match Europe team and, where needed for an introduction, the relevant EURES partners.", "An employer or candidate receives only the information needed for the proposed introduction.", "Personal data is not published; public statistics are aggregated."]],
-      ["Voluntary participation", ["You may refuse to participate or ask for contact to stop.", "Refusing WhatsApp does not prevent the use of another channel such as email or telephone.", "Match Europe does not make automated recruitment decisions."]],
-      ["Limited WhatsApp Business test", ["WhatsApp is offered only after a match has been identified and after separate agreement from the candidate and employer.", "In a group, other participants can see your number, name or username, profile picture depending on your settings, and the messages you post.", "Do not share identity documents, health data, passwords or other sensitive information in the group.", "Match Europe records evidence of agreement and the matching outcome in EURES beta but does not copy the WhatsApp conversation.", "WhatsApp is a Meta service governed by its own terms and data processing. Messages may remain on participants’ devices until deleted."]],
-      ["Retention and security", ["Operational data is retained for 12 months after the last contact, then deleted or anonymised when no longer needed.", "Access is limited to authorised staff and professional accounts use strengthened authentication.", "A data incident or misuse will suspend the relevant test."]],
-      ["Your rights and contact", ["You may request access, rectification or deletion, withdraw your agreement or object to certain uses where the law allows.", "Eric Barthélémy is the sole contact point during this phase. To exercise your rights or ask a question: matcheurope.00040@francetravail.fr.", "You may also lodge a complaint with the competent data protection authority."]]
-    ],
-    back: "Back to home",
-    separateConsent: "Any use of WhatsApp will require separate agreement when an introduction is proposed."
-  },
-  de: {
-    navLabel: "Datenschutz",
-    eyebrow: "Informationen zu Ihren personenbezogenen Daten",
-    title: "Wie Match Europe Ihre Angaben verwendet",
-    lead: "Match Europe ist eine Erprobung des EURES-Netzwerks mit France Travail. Dieser Hinweis beschreibt die derzeit für Fragebögen, Matching und den begrenzten WhatsApp-Business-Test vorgesehenen Verarbeitungen.",
-    draft: "Version vom 3. August 2026. France Travail ist für die Verarbeitung im Rahmen der Erprobung Match Europe verantwortlich. Eric Barthélémy ist in dieser Phase die einzige Kontaktperson.",
-    sections: [
-      ["Warum verwenden wir Ihre Daten?", ["Ihr berufliches Mobilitätsvorhaben oder Ihren Personalbedarf verstehen.", "Mögliche Übereinstimmungen zwischen Kandidaten und Arbeitgebern erkennen.", "Eine menschlich begleitete Kontaktaufnahme vorschlagen und nachverfolgen.", "Den Nutzen der Erprobung anhand aggregierter Kennzahlen bewerten."]],
-      ["Welche Angaben sind betroffen?", ["Antworten aus dem Kandidaten- oder Arbeitgeberfragebogen.", "Kontaktdaten für eine erneute Kontaktaufnahme.", "Berufliche Angaben, die für das Matching relevant sind.", "Nachweise Ihrer Entscheidungen, Kontaktdaten und das Ergebnis der Kontaktaufnahme."]],
-      ["Wer kann darauf zugreifen?", ["Berechtigte Mitglieder des Match-Europe-Teams und, soweit erforderlich, die beteiligten EURES-Partner.", "Arbeitgeber oder Kandidaten erhalten nur die für die vorgeschlagene Kontaktaufnahme notwendigen Informationen.", "Personenbezogene Daten werden nicht veröffentlicht; öffentliche Statistiken sind aggregiert."]],
-      ["Freiwillige Teilnahme", ["Sie können die Teilnahme ablehnen oder die Beendigung der Kontaktaufnahme verlangen.", "Die Ablehnung von WhatsApp schließt andere Kanäle wie E-Mail oder Telefon nicht aus.", "Match Europe trifft keine automatisierten Einstellungsentscheidungen."]],
-      ["Begrenzter WhatsApp-Business-Test", ["WhatsApp wird erst nach Feststellung eines Matchings und nach getrennter Zustimmung von Kandidat und Arbeitgeber angeboten.", "In einer Gruppe sehen die anderen Teilnehmer Ihre Nummer, Ihren Namen oder Benutzernamen, je nach Einstellungen Ihr Profilbild und Ihre Nachrichten.", "Teilen Sie dort keine Ausweisdokumente, Gesundheitsdaten, Passwörter oder andere sensible Informationen.", "Match Europe speichert in EURES beta den Nachweis der Zustimmung und das Ergebnis, kopiert jedoch nicht den WhatsApp-Chat.", "WhatsApp ist ein Dienst von Meta mit eigenen Bedingungen und Datenverarbeitungen. Nachrichten können bis zur Löschung auf den Geräten verbleiben."]],
-      ["Speicherdauer und Sicherheit", ["Betriebsdaten werden 12 Monate nach dem letzten Kontakt aufbewahrt und anschließend gelöscht oder anonymisiert, wenn sie nicht mehr benötigt werden.", "Der Zugriff ist auf berechtigte Personen beschränkt; berufliche Konten werden durch verstärkte Authentifizierung geschützt.", "Ein Datenschutzvorfall oder Missbrauch führt zur Aussetzung des betroffenen Tests."]],
-      ["Ihre Rechte und Kontakt", ["Sie können Auskunft, Berichtigung oder Löschung verlangen, Ihre Zustimmung widerrufen oder bestimmten Nutzungen widersprechen, soweit dies rechtlich vorgesehen ist.", "Eric Barthélémy ist in dieser Phase die einzige Kontaktperson. Kontakt für Ihre Rechte oder Fragen: matcheurope.00040@francetravail.fr.", "Sie können sich außerdem bei der zuständigen Datenschutzaufsichtsbehörde beschweren."]]
-    ],
-    back: "Zurück zur Startseite",
-    separateConsent: "Eine mögliche Nutzung von WhatsApp erfordert bei einer vorgeschlagenen Kontaktaufnahme eine gesonderte Zustimmung."
-  }
-};
 
 const copy = {
   fr: {
     common: {
-      brandTitle: PUBLIC_PROJECT_NAME,
-      brandSubtitle: "EURES beta - mobilité, matching et accompagnement transfrontalier",
+      brandTitle: "Match Europe",
+      brandSubtitle: "Service numérique France Travail / EURES",
       navHome: "Accueil",
       navCandidate: "Candidat",
       navEmployer: "Employeur",
       navStats: "Statistiques",
       navProject: "Le projet",
       navJournal: "Journal du projet",
-      navAdmin: "Admin",
       langLabel: "Langue",
-      footer: "Service en cours d’expérimentation pour structurer l’inscription, la qualification des besoins et l’organisation des mises en relation transfrontalières.",
-      footerProjectTitle: "Espace institutionnel",
-      footerProjectText: "Retrouver la présentation du projet, les enseignements de l’expérimentation et les principales étapes déjà franchies.",
+      privacyLink: "Protection des données",
+      partnersLabel: "Partenaires",
+      tagsLabel: "Repères",
+      footer: "Expérimentation Match Europe pour faciliter la mobilité professionnelle et les recrutements dans la Grande Région.",
       ctaStartCandidate: "Commencer côté candidat",
       ctaStartEmployer: "Commencer côté employeur",
       ctaBackHome: "Retour à l’accueil",
       ctaQuestionnaire: "Démarrer le questionnaire",
       ctaSeeCandidate: "Voir le parcours candidat",
       ctaSeeEmployer: "Voir le parcours employeur",
-      ctaSeeProject: "Découvrir le projet",
-      ctaSeeJournal: "Voir le journal",
-      institutionalKicker: "Repères institutionnels",
-      institutionalTitle: "Retrouver la présentation du projet sans quitter le parcours principal.",
-      institutionalText: "Un espace éditorial distinct permet de présenter Match Europe, ses enseignements, ses choix structurants et les prochaines étapes sans gêner les parcours candidat et employeur.",
-      matchingTitle: "Principes de mise en relation",
+      matchingTitle: "Comment le matching va fonctionner",
       matchingBullets: [
         "Chaque réponse est envoyée dans GRIST avec un rôle, une langue et un identifiant de reprise.",
         "Un score de compatibilité peut être calculé entre secteurs, mobilité, langues, disponibilités et conditions proposées.",
         "Si le score est élevé, la mise en relation peut être automatisée. Sinon, un contrôle humain peut valider ou corriger."
       ],
-      futureTitle: "Prochaines évolutions envisagées",
+      futureTitle: "Ce qui vient ensuite",
       futureBullets: [
         "Tableau de bord candidat pour suivre ses opportunités et son statut.",
         "Tableau de bord employeur pour suivre les profils proposés et les retours.",
@@ -105,49 +42,69 @@ const copy = {
       saving: "Enregistrement en cours...",
       saved: "Réponses enregistrées.",
       saveErrorPrefix: "Échec de l’enregistrement",
+      writeTokenError: "La session du formulaire a expiré. Rechargez la page puis renvoyez le formulaire.",
       uuidPrefix: "Identifiant de reprise",
-      questionnaireNote: "Le questionnaire est volontairement resserré pour cette première version. Il reprend la logique des Tally de référence sans les recopier entièrement."
+      questionnaireNote: "Le questionnaire est volontairement resserré pour cette première version. Il reprend la logique des Tally de référence sans les recopier entièrement.",
+      validation: {
+        required: "Information obligatoire :",
+        invalidEmail: "Adresse e-mail à corriger :",
+        invalidValue: "Information à corriger :",
+        checkHighlighted: "Vérifiez le champ mis en évidence puis réessayez."
+      }
     },
     home: {
-      eyebrow: "Une expérimentation conduite dans la Grande Région",
-      title: "Faciliter la rencontre entre candidats et employeurs à l’échelle d’un bassin d’emploi transfrontalier.",
-      lede: "Match Europe part d’un constat simple : le marché du travail fonctionne déjà à l’échelle transfrontalière, mais les parcours de retour à l’emploi, les premiers contacts et les outils de mise en relation ne suivent pas encore pleinement cette réalité. Le service combine qualification, matching explicable et accompagnement humain pour rapprocher les besoins de recrutement et les parcours de mobilité.",
-      storyTitle: "Le constat de départ",
-      storyText: "Des personnes ayant déjà travaillé de l’autre côté d’une frontière cherchent souvent un emploi avec des repères encore très nationaux. En face, des employeurs ont des besoins réels, mais le premier contact, la qualification des profils et la mise en confiance restent difficiles à organiser à l’échelle d’un bassin transfrontalier.",
+      eyebrow: "Une expérimentation dans la Grande Région",
+      title: "Faciliter les recrutements et la mobilité professionnelle dans la Grande Région",
+      lede: "Match Europe expérimente une nouvelle façon de rapprocher les besoins des employeurs et les projets de mobilité des candidats dans un espace économique transfrontalier.",
+      storyTitle: "Un marché du travail transfrontalier encore fragmenté",
+      storyText: "Le marché du travail dépasse les frontières nationales, mais les recrutements et les recherches d'emploi restent encore largement organisés pays par pays.\n\nLe projet vise à mieux identifier les besoins, les intentions de mobilité et les opportunités afin de favoriser des mises en relation plus pertinentes et plus rapides.\n\nDans la Grande Région, plusieurs centaines de milliers de personnes travaillent déjà au-delà des frontières. Pourtant, les offres d'emploi et les candidatures circulent encore difficilement entre les pays.\n\nDes employeurs rencontrent des difficultés de recrutement tandis que des candidats ouverts à la mobilité ne repèrent pas toujours les opportunités qui pourraient leur correspondre.",
+      statsTitle: "Quelques repères sur la Grande Région",
       stats: [
         ["280 000", "travailleurs frontaliers circulent chaque jour dans la Grande Région."],
-        ["Parcours dispersés", "les outils, offres et accompagnements restent encore largement organisés à l’échelle nationale."],
-        ["Confiance décisive", "la réussite du premier contact dépend d’une identité institutionnelle claire et d’un cadre rassurant."]
+        ["40–50 k", "personnes avec expérience transfrontalière pourraient rechercher un emploi."],
+        ["15 000+", "postes resteraient vacants dans le même bassin économique."]
       ],
       tracksTitle: "Deux parcours complémentaires",
       candidateTitle: "Parcours candidat",
-      candidateText: "Comprendre le projet de mobilité, les secteurs visés, les langues, les disponibilités et les éléments concrets qui facilitent une mise en relation rapide.",
+      candidateText: "Le service permet de mieux comprendre les projets de mobilité, les compétences, les langues et les préférences des personnes afin d'identifier plus facilement les opportunités susceptibles de leur correspondre.",
       employerTitle: "Parcours employeur",
-      employerText: "Qualifier les besoins de recrutement, les langues, les contraintes de poste, les aides à l’installation et les critères déterminants côté entreprise.",
-      principlesTitle: "Principes de conception",
+      employerText: "Le service aide à qualifier les besoins de recrutement et à mieux prendre en compte les contraintes et critères importants pour faciliter les mises en relation.",
+      principlesTitle: "Une expérimentation centrée sur les usages",
       principles: [
-        ["Simplicité d’accès", "Un premier parcours léger, multilingue et directement mobilisable dans le cadre de l’expérimentation."],
-        ["Données structurées", "Des réponses qualifiées pour faciliter l’analyse des besoins, la comparaison des profils et le suivi des mises en relation."],
-        ["Supervision humaine", "Lorsque le rapprochement reste incertain ou incomplet, une validation humaine intervient avant toute suite donnée."]
+        ["Tester rapidement", "Un premier service léger et multilingue permet de recueillir des besoins réels et d'observer les usages."],
+        ["Produire de la connaissance", "Les informations recueillies permettent d'améliorer progressivement la compréhension des besoins des candidats et des employeurs."],
+        ["Associer automatisation et expertise humaine", "Le projet explore différentes formes d'assistance tout en conservant la possibilité d'une intervention humaine lorsque cela est nécessaire."]
+      ],
+      perspectivesTitle: "Perspectives",
+      perspectivesBullets: [
+        "Ouverture à d'autres pays de la Grande Région.",
+        "Intégration de nouveaux secteurs d'activité.",
+        "Amélioration continue des parcours utilisateur.",
+        "Développement d'outils de suivi et d'accompagnement.",
+        "Montée en charge du dispositif à partir des enseignements issus des premiers tests."
       ]
     },
     candidateLanding: {
       kicker: "Parcours candidat",
-      title: "Un questionnaire pour examiner des opportunités de mobilité professionnelle en Europe.",
-      lede: "Cette démarche s’adresse aux personnes pouvant envisager une mobilité professionnelle en Europe, soit en transfrontalier, soit en expatriation. Il peut s’agir de travailler dans un pays voisin tout en résidant chez soi, ou de partir vivre et travailler dans un autre pays européen.",
+      title: "Explorez de nouvelles opportunités professionnelles en Europe",
+      lede: "Répondez à quelques questions pour nous aider à mieux comprendre votre profil et vos projets de mobilité.",
       messageTitle: "Pourquoi remplir ce questionnaire ?",
-      messageIntro: "Ce questionnaire permet d’identifier plus clairement si votre profil peut correspondre à des opportunités liées à la mobilité européenne.",
+      messageIntro: "Si certaines opportunités correspondent à votre expérience, vos compétences et vos préférences, nous pourrons faciliter les mises en relation avec des employeurs qui recrutent.",
       messageBody: [
-        "À ce stade, l’expérimentation concerne principalement des entreprises basées au Luxembourg, dans un cadre de mobilité transfrontalière ou de mobilité vers un autre pays européen.",
-        "Le dispositif est encore en construction et continue d’évoluer à partir des situations rencontrées sur le terrain.",
-        "Il permet déjà de mieux qualifier les profils et de préparer des mises en relation pour des personnes prêtes à envisager une mobilité en Europe."
+        "En quelques minutes, vous pouvez préciser votre métier ou votre expérience, les langues que vous maîtrisez, votre disponibilité, votre projet de mobilité et les conditions importantes pour vous.",
+        "Que vous souhaitiez travailler au Luxembourg, dans un pays voisin ou envisager une expérience professionnelle ailleurs en Europe, ce service vous aide à identifier des possibilités adaptées à votre situation.",
+        "Ces informations nous permettent de mieux identifier les opportunités susceptibles de vous intéresser."
       ],
-      messageHighlight: "Une seule réponse permet de mieux apprécier si certaines opportunités en mobilité européenne peuvent correspondre à votre situation, dès maintenant ou à court terme.",
-      messageOutcome: "Le dispositif a vocation à s’ouvrir progressivement à d’autres employeurs en Allemagne, en Belgique et en France, ainsi qu’à un plus grand nombre de métiers.",
-      signatureTitle: "À ce stade, l’expérimentation concerne surtout :",
-      signatureName: "le Luxembourg",
-      signatureRole: "et plusieurs secteurs en recrutement",
-      bulletsTitle: "Secteurs actuellement explorés avec des employeurs luxembourgeois",
+      messageHighlight: "Vous répondez une seule fois, et votre profil peut ensuite être pris en compte pour différentes opportunités.",
+      benefitsTitle: "Ce que le service peut vous apporter",
+      benefits: [
+        "Découvrir davantage d'opportunités.",
+        "Être mis en relation avec des employeurs.",
+        "Accéder à un marché de l'emploi plus large.",
+        "Construire progressivement votre projet de mobilité."
+      ],
+      bulletsTitle: "Métiers actuellement testés avec des employeurs luxembourgeois",
+      bulletsLead: "Les premiers tests concernent notamment plusieurs secteurs qui recrutent, en particulier avec des employeurs luxembourgeois.",
       bullets: [
         "La vente et le commerce",
         "Le nettoyage et l’entretien",
@@ -155,10 +112,16 @@ const copy = {
         "L’agriculture et les récoltes",
         "Les missions polyvalentes et les emplois accessibles rapidement"
       ],
-      sideTitle: "Qui sommes-nous ?",
-      sideText: "EURES est le réseau européen de coopération pour l’emploi. Il facilite les recrutements et les opportunités professionnelles en Europe, en particulier sur les parcours transfrontaliers où les candidatures et les offres se croisent difficilement.",
-      disclaimerTitle: "Suite du parcours",
-      disclaimerText: "Si votre profil correspond à des besoins identifiés, il pourra être étudié dans la perspective d’une mise en relation. Avec le temps, d’autres entreprises, d’autres pays et d’autres métiers pourront enrichir le dispositif.",
+      sideTitle: "À propos d'EURES",
+      sideText: "EURES est le réseau européen de coopération pour l'emploi. Il accompagne la mobilité professionnelle et facilite les recrutements entre les pays européens.",
+      disclaimerTitle: "Ce qui va se passer ensuite",
+      disclaimerText: "L'objectif est de vous aider à découvrir des opportunités professionnelles qui correspondent à votre profil et à votre projet de mobilité.",
+      processBullets: [
+        "1. Analyse du profil.",
+        "2. Recherche d'opportunités compatibles.",
+        "3. Proposition de mises en relation lorsque des besoins correspondent.",
+        "4. Enrichissement progressif du service avec davantage d'employeurs, de pays et de métiers."
+      ],
       tags: ["EURES", "France Travail", "Union européenne", "Luxembourg", "Vente & commerce"],
       logos: {
         eures: {
@@ -177,21 +140,25 @@ const copy = {
     },
     employerLanding: {
       kicker: "Parcours employeur",
-      title: "Un questionnaire pour qualifier vos besoins de recrutement en mobilité européenne.",
-      lede: "Cette démarche s’adresse aux employeurs susceptibles de recruter au-delà de leur marché local, en transfrontalier ou avec des candidats venant d’un autre pays européen. L’objectif est de comprendre plus précisément votre besoin afin d’identifier des profils pouvant correspondre.",
+      title: "Recrutez plus facilement grâce à la mobilité européenne",
+      lede: "Décrivez votre besoin de recrutement en quelques minutes et laissez-nous identifier des candidats susceptibles de correspondre à votre recherche, y compris au-delà de votre marché local.",
       messageTitle: "Pourquoi remplir ce questionnaire ?",
-      messageIntro: "Ce questionnaire nous aide à comprendre votre besoin de recrutement, le contexte du poste et les conditions proposées.",
+      messageIntro: "Ce service s'adresse aux employeurs qui recrutent en transfrontalier ou qui sont prêts à accueillir des candidats venant d'autres pays européens.",
       messageBody: [
-        "À ce stade, l’expérimentation est conduite d’abord avec des entreprises basées au Luxembourg, sur des recrutements concrets parfois difficiles à pourvoir.",
-        "Le dispositif continue d’évoluer à partir des besoins observés et des retours issus des premières mises en relation.",
-        "Décrire votre besoin une fois permet de mieux repérer les candidatures susceptibles d’être compatibles."
+        "Le questionnaire permet de mieux comprendre le poste, les compétences recherchées, les langues utiles, les conditions proposées et les besoins éventuels liés à la mobilité.",
+        "Notre objectif : vous aider à accéder à un vivier de candidats plus large et faciliter les mises en relation lorsque certains postes sont difficiles à pourvoir.",
+        "Plus votre besoin est précis, plus nous sommes en mesure d'identifier des profils compatibles."
       ],
-      messageHighlight: "L’objectif n’est pas d’ajouter une formalité supplémentaire, mais de mieux qualifier votre besoin pour faciliter ensuite les mises en relation.",
-      messageOutcome: "Le dispositif pourra s’ouvrir progressivement à d’autres employeurs en Allemagne, en Belgique et en France, ainsi qu’à d’autres métiers.",
-      signatureTitle: "À ce stade, l’expérimentation concerne surtout :",
-      signatureName: "des employeurs luxembourgeois",
-      signatureRole: "et plusieurs secteurs en recrutement",
-      bulletsTitle: "Éléments qualifiés dans le cadre du besoin",
+      messageHighlight: "Ce service est conçu pour vous faire gagner du temps et vous aider à élargir votre recherche de candidats quand le recrutement devient plus difficile.",
+      benefitsTitle: "Ce que le service peut vous apporter",
+      benefits: [
+        "Accéder à un vivier de candidats plus large.",
+        "Gagner du temps.",
+        "Améliorer la qualité des mises en relation.",
+        "Être accompagné dans une démarche de recrutement européen."
+      ],
+      bulletsTitle: "Secteurs particulièrement concernés",
+      bulletsLead: "Le service est particulièrement utile lorsque certains recrutements sont difficiles ou lorsque les besoins sont saisonniers ou récurrents.",
       bullets: [
         "La vente et le commerce",
         "Le nettoyage et l’entretien",
@@ -199,10 +166,31 @@ const copy = {
         "L’agriculture et les récoltes",
         "Les missions polyvalentes et les emplois accessibles rapidement"
       ],
-      sideTitle: "Ce que cela change pour vous",
-      sideText: "Vous précisez le type de recrutement, les langues utiles, les contraintes du poste, le niveau attendu et les aides éventuelles à l’arrivée. Cela nous permet de comparer plus sérieusement les besoins côté employeur et les attentes côté candidat.",
-      disclaimerTitle: "Suite du parcours",
-      disclaimerText: "Si des profils paraissent compatibles avec votre recherche, votre besoin pourra être repris dans une perspective de mise en relation. Si le besoin reste encore partiellement défini, le questionnaire aide déjà à mieux préparer les étapes suivantes.",
+      sideTitle: "Un service simple et utile",
+      sideText: "Vous décrivez votre besoin une fois. Nous nous appuyons ensuite sur ces informations pour rechercher des profils pouvant correspondre et faciliter les échanges lorsque cela est pertinent.",
+      disclaimerTitle: "Ce qui se passe ensuite",
+      disclaimerText: "L'objectif n'est pas de vous faire remplir un formulaire supplémentaire, mais de vous aider à trouver plus facilement les candidats dont vous avez besoin.",
+      processBullets: [
+        "1. Analyse du besoin.",
+        "2. Recherche de profils compatibles.",
+        "3. Proposition de mises en relation lorsque des candidats correspondent.",
+        "4. Amélioration progressive du service."
+      ],
+      inviteTitle: "Inviter un collaborateur ou une autre entreprise",
+      inviteLead: "Si vous utilisez déjà le service, vous pouvez partager un accès direct avec un collaborateur de votre structure ou avec une autre entreprise.",
+      inviteScopeLabel: "Type d'invitation",
+      inviteScopeOptions: {
+        same_company: "Un collaborateur de ma structure",
+        new_company: "Une autre entreprise"
+      },
+      inviteFirstName: "Prénom",
+      inviteLastName: "Nom",
+      inviteEmail: "Adresse e-mail",
+      inviteCompany: "Entreprise",
+      inviteNote: "Note (optionnel)",
+      inviteSend: "Envoyer l'invitation",
+      inviteHint: "Le lien reçu restera réutilisable pour déposer plusieurs besoins.",
+      inviteCompanyHint: "Pour un collaborateur, le nom de votre entreprise sera repris automatiquement si vous laissez ce champ vide.",
       tags: ["EURES", "France Travail", "Union européenne", "Luxembourg", "Recrutement"]
     },
     candidateQuestionnaire: {
@@ -275,48 +263,103 @@ const copy = {
       helper: "Vous pourrez enrichir ensuite le scoring avec les exigences fines par métier et les validations humaines."
     },
     statPage: {
-      eyebrow: "Indicateurs publics agrégés",
-      title: "Statistiques publiques Match Europe",
-      lede: "Cette page présente des indicateurs agrégés et non nominatifs sur l’activité du projet Match Europe.",
+      eyebrow: "Observatoire public de l'expérimentation",
+      title: "Suivi de l'expérimentation Match Europe",
+      lede: "Cette page présente les principaux indicateurs de suivi de l'expérimentation Match Europe.\n\nLes données publiées sont agrégées et anonymisées. Elles permettent de suivre l'activité du projet et les premiers enseignements issus des usages.",
       updatedPrefix: "Dernière mise à jour",
-      methodology: "Les chiffres affichés proviennent des tables Grist du projet. Les données personnelles, identifiants et contenus libres ne sont jamais affichés.",
-      manualNote: "Les indicateurs de contact, de transmission et d’embauche peuvent être complétés manuellement dans la table mensuelle de pilotage.",
-      manualMissing: "La table mensuelle de pilotage n’est pas encore configurée. Les indicateurs saisis à la main restent donc à zéro.",
+      methodologyTitle: "Méthodologie",
+      methodology: "Les données publiées sont agrégées et anonymisées. Elles permettent de suivre l'activité de l'expérimentation sans afficher de données personnelles.",
+      manualNote: "Les indicateurs de suivi du fonctionnement permettent d'observer les mises en relation, les retours et les étapes du parcours.",
+      manualMissing: "Les indicateurs de suivi du fonctionnement seront enrichis au fur et à mesure de la montée en charge de l'expérimentation.",
       keyFiguresTitle: "Chiffres clés",
+      keyFiguresLead: "Ces premiers résultats permettent d'observer la dynamique de l'expérimentation et les premiers rapprochements entre besoins de recrutement et projets de mobilité.",
+      observationsTitle: "Ce que nous observons",
+      observationsLead: "Les premiers usages permettent déjà d'identifier les secteurs concernés, les mobilités envisagées et les territoires impliqués.",
+      observationsCards: {
+        sectors: "Secteurs actuellement représentés",
+        mobility: "Mobilité recherchée",
+        territories: "Territoires impliqués"
+      },
+      observationsTexts: {
+        sectors: "Les premiers secteurs représentés correspondent aux métiers actuellement explorés dans le cadre de l'expérimentation.",
+        mobility: "Les premiers candidats se projettent principalement vers le Luxembourg, dans des parcours transfrontaliers ou vers d'autres pays européens.",
+        territories: "Les premiers besoins et projets recensés montrent une dynamique déjà active entre plusieurs pays de la Grande Région et au-delà."
+      },
+      learningsTitle: "Premiers enseignements",
+      learnings: [
+        ["Une demande existe", "Les premiers résultats montrent l'existence de besoins de recrutement et l'intérêt de candidats prêts à envisager une mobilité professionnelle."],
+        ["Des rapprochements sont possibles", "L'expérimentation permet d'identifier des compatibilités entre les besoins des employeurs et les projets des candidats."],
+        ["Une montée en charge progressive", "Le dispositif a vocation à s'enrichir progressivement avec davantage d'employeurs, de secteurs et de territoires."]
+      ],
+      detailedTitle: "Données détaillées",
+      detailedLead: "Les éléments ci-dessous permettent d'approfondir la lecture des usages observés dans le cadre de l'expérimentation.",
       monthlyTitle: "Suivi mensuel",
-      monthlyLead: "Les volumes automatiques sont calculés à partir des dates d’enregistrement. Les suivis métier peuvent être complétés mois par mois.",
-      breakdownsTitle: "Répartitions",
+      monthlyLead: "L'évolution mensuelle permet de suivre la progression du dispositif, l'intensité des usages et les premiers résultats observés.",
+      breakdownsTitle: "Répartitions détaillées",
+      durationsTitle: "Indicateurs de suivi du fonctionnement",
+      hoursUnit: "h",
+      daysUnit: "j",
+      noDurationData: "n/a",
       totals: {
-        besoins_employeurs: "Besoins employeurs",
+        candidats: "Candidatures reçues",
+        besoins_employeurs: "Besoins employeurs reçus",
+        matchings: "Matchings calculés",
         candidats_contactes: "Candidats contactés",
-        candidatures_recues: "Candidatures reçues",
-        matchings: "Matchings réalisés",
         candidatures_transmises_employeur: "Candidatures transmises",
+        contacts_acceptes_employeur: "Contacts acceptés par employeur",
+        contacts_refuses_employeur: "Contacts refusés par employeur",
+        contacts_sans_reponse_employeur: "Contacts sans réponse employeur",
         embauches: "Embauches"
       },
       monthlyColumns: {
         mois: "Mois",
+        candidats: "Candidatures",
         besoins_employeurs: "Besoins employeurs",
-        candidats_contactes: "Candidats contactés",
-        candidatures_recues: "Candidatures reçues",
         matchings: "Matchings",
+        candidats_contactes: "Candidats contactés",
         candidatures_transmises_employeur: "Candidatures transmises",
+        contacts_acceptes_employeur: "Acceptés",
+        contacts_refuses_employeur: "Refusés",
+        contacts_sans_reponse_employeur: "Sans réponse",
         embauches: "Embauches"
       },
       breakdownLabels: {
-        candidats_par_pays: "Candidatures par pays visé",
         besoins_par_pays: "Besoins employeurs par pays",
         secteurs: "Secteurs",
         mobilite_candidats: "Mobilité des candidats",
-        matchings_par_statut: "Statuts de matching"
+        experience_internationale_candidats: "Expérience internationale des candidats",
+        matchings_par_statut: "Statuts de matching",
+        retours_employeurs: "Retours employeurs"
       },
+      durationLabels: {
+        calcul_to_admin: "Calcul → décision admin",
+        admin_to_send: "Décision admin → envoi employeur",
+        send_to_employer_response: "Envoi employeur → réponse employeur",
+        response_to_relation: "Réponse employeur → mise en relation",
+        relation_to_hire: "Mise en relation → embauche"
+      },
+      durationMetrics: {
+        count: "Dossiers mesurés",
+        avg: "Délai moyen",
+        median: "Délai médian",
+        min: "Minimum",
+        max: "Maximum"
+      },
+      transparencyTitle: "Comprendre le matching",
+      transparencyLead: "Le rapprochement candidat / employeur repose sur des critères déclaratifs pondérés, puis sur une validation humaine dès qu'un doute subsiste.",
+      transparencyBullets: [
+        "Le score global est calculé sur 100 points à partir du métier, des compétences, des langues, de la mobilité, de la disponibilité et du salaire.",
+        "Le score n'entraîne pas à lui seul une transmission automatique : il sert d'abord à prioriser les dossiers et à documenter la décision.",
+        "Les données personnelles ne sont pas publiées. Le matching produit une proposition interne avant toute éventuelle transmission ciblée."
+      ],
+      transparencyCta: "Voir la méthode de matching",
       emptyBreakdown: "Aucune donnée exploitable pour le moment.",
       loading: "Chargement des statistiques...",
       error: "Impossible de charger les statistiques pour le moment."
     },
     projectPage: {
       eyebrow: "Présentation institutionnelle",
-      title: PUBLIC_PROJECT_NAME,
+      title: "Match Europe",
       subtitle: "Connecter les talents et les emplois d’un même bassin économique",
       intro: "Match Europe est un dispositif public de mise en relation transfrontalière. Il s’appuie sur les services publics de l’emploi, un matching explicable et une validation humaine pour faciliter la rencontre entre candidats et employeurs à l’échelle d’un même bassin économique."
     },
@@ -325,41 +368,106 @@ const copy = {
       title: "Journal du projet",
       subtitle: "Les étapes franchies, les enseignements de l’expérimentation et les choix structurants.",
       intro: "Cette page documente les évolutions significatives du projet pouvant être partagées avec des partenaires, des directions ou des acteurs institutionnels."
+    },
+    matchingPage: {
+      eyebrow: "Transparence",
+      title: "Comment fonctionne le matching Match Europe",
+      intro: "Le matching Match Europe rapproche un besoin employeur et un profil candidat à partir d'informations déclarées dans les questionnaires. L'objectif est d'aider à prioriser les dossiers, pas de remplacer l'appréciation humaine.",
+      criteriaTitle: "Critères pris en compte",
+      criteriaLead: "Le score global est calculé sur 100 points. Chaque bloc produit un sous-score explicable.",
+      criteria: [
+        ["Métier et intitulé du poste", "25 points", "Le moteur vérifie d'abord la famille de métier sélectionnée, puis compare l'intitulé libre du poste côté employeur et côté candidat."],
+        ["Compétences clés", "20 points", "Les compétences sélectionnées ou rédigées dans les questionnaires sont comparées. Une couverture forte donne un score élevé ; une proximité partielle conserve un score intermédiaire."],
+        ["Langues", "20 points", "Les langues demandées sont comparées aux langues déclarées par le candidat, avec prise en compte des niveaux et des correspondances partielles."],
+        ["Pays et mobilité", "15 points", "Le score augmente si le pays du besoin correspond au pays du candidat ou à un pays explicitement visé dans son projet de mobilité."],
+        ["Disponibilité, conditions de travail et permis", "10 points", "Ce bloc agrège la date de démarrage, la compatibilité des conditions de travail déclarées et, si besoin, les permis ou autorisations requis."],
+        ["Salaire attendu et salaire proposé", "10 points", "Lorsque les informations sont disponibles, le moteur compare l'attente minimale du candidat et la fourchette proposée par l'employeur."]
+      ],
+      thresholdsTitle: "Seuils de traitement",
+      thresholdsLead: "Le score sert à orienter le traitement administratif des dossiers.",
+      thresholds: [
+        ["75 à 100", "Le matching est classé « auto-envoyable » dans l'outil, car la compatibilité paraît forte."],
+        ["55 à 74", "Le matching est classé « à valider » et doit être revu humainement avant tout envoi."],
+        ["0 à 54", "Le matching est classé « à écarter » ou à revoir plus tard, car l'écart paraît trop important ou trop incertain."]
+      ],
+      processTitle: "Ce que le score ne fait pas seul",
+      processBullets: [
+        "Le score ne publie aucune donnée personnelle.",
+        "Le score n'envoie pas automatiquement chaque dossier à un employeur.",
+        "Un contrôle humain reste possible pour vérifier la pertinence métier, les ambiguïtés et le contexte du recrutement.",
+        "Les sous-scores et les motifs sont conservés pour expliquer pourquoi un rapprochement a été proposé ou non."
+      ],
+      noteTitle: "Ce que voit l'équipe de suivi",
+      noteText: "Dans l'espace d'administration, chaque matching affiche un score global, des sous-scores par critère, des raisons de compatibilité et des points faibles éventuels. Cela permet d'expliquer et de justifier chaque décision de mise en relation.",
+      cta: "Retour aux statistiques"
+    },
+    privacyPage: {
+      eyebrow: "Protection des données",
+      title: "Mentions d'information Match Europe",
+      intro: "Cette page résume la manière dont les données personnelles sont utilisées dans le cadre de l'expérimentation Match Europe.",
+      sections: {
+        controller: "Qui traite les données ?",
+        purposes: "Pourquoi les données sont-elles collectées ?",
+        recipients: "Qui peut y accéder ?",
+        retention: "Combien de temps sont-elles conservées ?",
+        rights: "Quels sont vos droits ?",
+        matching: "Comment fonctionne le matching ?"
+      },
+      retentionColumns: ["Catégorie", "Durée"],
+      controllerText: "Les données sont traitées dans le cadre de l'expérimentation Match Europe par les équipes habilitées du projet. Elles sont utilisées uniquement pour le suivi des candidatures, des besoins employeurs et des mises en relation proposées.",
+      purposesList: [
+        "Qualifier les profils candidats et les besoins employeurs.",
+        "Calculer des rapprochements candidats / employeurs.",
+        "Permettre une validation humaine des matchings proposés.",
+        "Organiser, lorsque cela est pertinent, la mise en relation entre un candidat et un employeur.",
+        "Produire des indicateurs agrégés et anonymisés de suivi de l'expérimentation."
+      ],
+      recipientsList: [
+        "Les personnes habilitées chargées du suivi de l'expérimentation.",
+        "Les outils techniques nécessaires au fonctionnement du service, dans un cadre contrôlé.",
+        "L'employeur concerné, uniquement lorsqu'un matching a été validé et pour les informations nécessaires à la prise de contact."
+      ],
+      retentionRows: [
+        ["Candidats", "12 mois après le dernier contact utile."],
+        ["Besoins employeurs", "12 mois après la clôture du besoin ou le dernier échange utile."],
+        ["Matchings", "24 mois pour le suivi du fonctionnement et la traçabilité des décisions."],
+        ["Invitations sans réponse", "6 mois."],
+        ["Logs d'administration et de sécurité", "6 mois."],
+        ["Statistiques publiques agrégées", "Conservation plus longue possible dès lors qu'elles sont agrégées et anonymisées."]
+      ],
+      rightsText: "Vous pouvez demander l'accès à vos données, leur rectification, leur effacement, ou exercer vos autres droits dans les conditions prévues par la réglementation applicable. Une adresse de contact dédiée sera publiée avec la version complète des mentions RGPD.",
+      matchingText: "Le matching ne publie pas les données personnelles. Il produit une proposition interne de rapprochement, fondée sur des critères structurés, avant toute éventuelle transmission ciblée à un employeur concerné.",
+      note: "Cette page constitue une première base d'information pour l'expérimentation et sera complétée avec les mentions juridiques détaillées."
     }
   },
   en: {
     common: {
-      brandTitle: PUBLIC_PROJECT_NAME,
-      brandSubtitle: "EURES beta - cross-border mobility, matching and follow-up",
+      brandTitle: "Match Europe",
+      brandSubtitle: "France Travail / EURES digital service",
       navHome: "Home",
       navCandidate: "Candidate",
       navEmployer: "Employer",
       navStats: "Stats",
       navProject: "Project",
       navJournal: "Project journal",
-      navAdmin: "Admin",
       langLabel: "Language",
-      footer: "Service currently being tested to structure sign-up, needs qualification and the organisation of cross-border introductions.",
-      footerProjectTitle: "Institutional section",
-      footerProjectText: "Find the project presentation, the lessons from the experiment and the main milestones already reached.",
+      privacyLink: "Data protection",
+      partnersLabel: "Partners",
+      tagsLabel: "Tags",
+      footer: "Match Europe experiment to support professional mobility and recruitment across the Greater Region.",
       ctaStartCandidate: "Start as candidate",
       ctaStartEmployer: "Start as employer",
       ctaBackHome: "Back to home",
       ctaQuestionnaire: "Start questionnaire",
       ctaSeeCandidate: "See candidate flow",
       ctaSeeEmployer: "See employer flow",
-      ctaSeeProject: "See the project",
-      ctaSeeJournal: "See the journal",
-      institutionalKicker: "Institutional section",
-      institutionalTitle: "Find the project presentation without leaving the main journey.",
-      institutionalText: "The main candidate and employer flows stay unchanged. A dedicated section presents the project, its lessons and its next steps.",
-      matchingTitle: "Introduction principles",
+      matchingTitle: "How matching will work",
       matchingBullets: [
         "Each answer is sent to GRIST with a role, a language and a reusable identifier.",
         "A compatibility score can be computed across sectors, mobility, languages, availability and job conditions.",
         "High scores can trigger automated matching. Lower scores can be reviewed by a human operator."
       ],
-      futureTitle: "Planned next developments",
+      futureTitle: "What comes next",
       futureBullets: [
         "Candidate dashboard to track opportunities and status.",
         "Employer dashboard to track suggested profiles and responses.",
@@ -370,49 +478,69 @@ const copy = {
       saving: "Saving...",
       saved: "Answers saved.",
       saveErrorPrefix: "Save failed",
+      writeTokenError: "The form session expired. Reload the page and submit again.",
       uuidPrefix: "Resume identifier",
-      questionnaireNote: "This questionnaire is intentionally compact for the first version. It follows the logic of the reference Tally forms without copying them in full."
+      questionnaireNote: "This questionnaire is intentionally compact for the first version. It follows the logic of the reference Tally forms without copying them in full.",
+      validation: {
+        required: "Required information:",
+        invalidEmail: "Email address to correct:",
+        invalidValue: "Information to correct:",
+        checkHighlighted: "Check the highlighted field and try again."
+      }
     },
     home: {
-      eyebrow: "An experiment conducted in the Greater Region",
-      title: "Make it easier for candidates and employers to meet across a cross-border labour market.",
-      lede: "Match Europe starts from a simple observation: the labour market already operates across borders, but return-to-work pathways, first contact and matching tools do not yet fully reflect that reality. The service combines qualification, explainable matching and human support in order to connect hiring needs with mobility pathways more effectively.",
-      storyTitle: "Initial observation",
-      storyText: "People with cross-border work experience often return to job-search pathways that remain mostly national. At the same time, employers have real hiring needs, but first contact, profile qualification and trust remain difficult to organize at the scale of a cross-border labour market.",
+      eyebrow: "An experiment in the Greater Region",
+      title: "Making recruitment and professional mobility easier across the Greater Region",
+      lede: "Match Europe is testing a new way to bring together employers' needs and candidates' mobility plans in a cross-border economic area.",
+      storyTitle: "A cross-border labour market that remains fragmented",
+      storyText: "The labour market goes beyond national borders, yet recruitment and job search are still largely organised country by country.\n\nThe project aims to better identify needs, mobility intentions and opportunities in order to support more relevant and faster introductions.\n\nAcross the Greater Region, several hundred thousand people already work beyond national borders. Even so, job offers and applications still circulate with difficulty between countries.\n\nSome employers face recruitment difficulties, while candidates open to mobility do not always spot the opportunities that could match them.",
+      statsTitle: "A few key markers across the Greater Region",
       stats: [
         ["280,000", "cross-border workers commute daily within the Greater Region."],
-        ["Fragmented pathways", "tools, vacancies and support are still largely organised within national boundaries."],
-        ["Trust matters", "successful first contact depends on a clear institutional identity and reassuring contact channels."]
+        ["40–50k", "people with cross-border experience may be looking for work."],
+        ["15,000+", "vacancies remain open in the same labour basin."]
       ],
-      tracksTitle: "Two complementary journeys",
-      candidateTitle: "Candidate flow",
-      candidateText: "Capture mobility plans, target sectors, languages, availability and concrete signals that make matching faster.",
-      employerTitle: "Employer flow",
-      employerText: "Capture hiring demand, languages, work constraints, relocation support and the employer’s strongest criteria.",
-      principlesTitle: "Design principles",
+      tracksTitle: "Two complementary paths",
+      candidateTitle: "Candidate path",
+      candidateText: "The service helps better understand mobility plans, skills, languages and preferences so that relevant opportunities can be identified more easily.",
+      employerTitle: "Employer path",
+      employerText: "The service helps clarify recruitment needs and better take account of key constraints and criteria in order to support introductions.",
+      principlesTitle: "An experiment focused on real uses",
       principles: [
-        ["Accessible from the outset", "A lightweight multilingual first journey that can already be used within the experiment."],
-        ["Structured information", "Qualified answers that help analyse needs, compare profiles and follow up on introductions."],
-        ["Human oversight", "When a proposed match remains uncertain or incomplete, a human review takes place before any next step."]
+        ["Test quickly", "A first lightweight multilingual service helps collect real needs and observe how people use it."],
+        ["Build knowledge", "The information collected helps progressively improve the understanding of candidate and employer needs."],
+        ["Combine automation and human expertise", "The project explores different forms of assistance while keeping room for human intervention when needed."]
+      ],
+      perspectivesTitle: "Perspectives",
+      perspectivesBullets: [
+        "Opening up to other countries in the Greater Region.",
+        "Adding new sectors of activity.",
+        "Continuous improvement of user journeys.",
+        "Development of follow-up and support tools.",
+        "Scaling up the service based on lessons learned from the first tests."
       ]
     },
     candidateLanding: {
-      kicker: "Candidate flow",
-      title: "A questionnaire to review professional mobility opportunities in Europe.",
-      lede: "This approach is intended for people who may consider professional mobility in Europe, either as cross-border commuting or relocation. This may mean working in a neighbouring country while remaining at home, or moving to live and work in another European country.",
+      kicker: "Candidate path",
+      title: "Explore new professional opportunities in Europe",
+      lede: "Answer a few questions to help us better understand your profile and your mobility plans.",
       messageTitle: "Why fill in this questionnaire?",
-      messageIntro: "This questionnaire helps clarify whether your profile may correspond to opportunities linked to European mobility.",
+      messageIntro: "If some opportunities match your experience, skills and preferences, we may help make introductions with employers who are recruiting.",
       messageBody: [
-        "At this stage, the experiment mainly concerns companies based in Luxembourg, within a cross-border or broader European mobility framework.",
-        "The service is still evolving and continues to be adjusted on the basis of situations encountered in the field.",
-        "It already helps qualify profiles more effectively and prepare introductions for people who are ready to consider mobility in Europe."
+        "In just a few minutes, you can tell us more about your occupation or experience, the languages you speak, your availability, your mobility plans and the conditions that matter to you.",
+        "Whether you want to work in Luxembourg, in a neighbouring country or consider a professional experience elsewhere in Europe, this service helps identify possibilities that fit your situation.",
+        "This information helps us better identify the opportunities that may interest you."
       ],
-      messageHighlight: "A single response helps assess whether some current or near-term European mobility opportunities may match your situation.",
-      messageOutcome: "The service is intended to open up progressively to other employers in Germany, Belgium and France, as well as to a wider range of occupations.",
-      signatureTitle: "At this stage, the experiment mainly concerns:",
-      signatureName: "Luxembourg",
-      signatureRole: "and several recruiting sectors",
-      bulletsTitle: "Sectors currently explored with employers in Luxembourg",
+      messageHighlight: "You answer once, and your profile can then be considered for different opportunities.",
+      benefitsTitle: "What the service can bring you",
+      benefits: [
+        "Discover more opportunities.",
+        "Be connected with employers.",
+        "Access a wider labour market.",
+        "Build your mobility project progressively."
+      ],
+      bulletsTitle: "Jobs currently tested with employers in Luxembourg",
+      bulletsLead: "The first tests currently focus on several recruiting sectors, especially with employers based in Luxembourg.",
       bullets: [
         "Retail and sales",
         "Cleaning and maintenance",
@@ -420,10 +548,16 @@ const copy = {
         "Agriculture and harvesting",
         "Flexible jobs and roles accessible quickly"
       ],
-      sideTitle: "Who are we?",
-      sideText: "EURES is the European employment cooperation network. It supports recruitment and professional opportunities across Europe, especially for cross-border mobility where candidates and vacancies often miss each other.",
-      disclaimerTitle: "Next step",
-      disclaimerText: "If your profile matches identified needs, it may be reviewed with a view to a possible introduction. Over time, more companies, more countries and more occupations may enrich the service.",
+      sideTitle: "About EURES",
+      sideText: "EURES is the European employment cooperation network. It supports professional mobility and helps recruitment across European countries.",
+      disclaimerTitle: "What happens next",
+      disclaimerText: "The goal is to help you discover professional opportunities that match your profile and your mobility plans.",
+      processBullets: [
+        "1. Review of the profile.",
+        "2. Search for compatible opportunities.",
+        "3. Suggested introductions when needs match.",
+        "4. Progressive expansion of the service with more employers, countries and occupations."
+      ],
       tags: ["EURES", "France Travail", "European Union", "Luxembourg", "Retail & sales"],
       logos: {
         eures: {
@@ -441,22 +575,26 @@ const copy = {
       }
     },
     employerLanding: {
-      kicker: "Employer flow",
-      title: "A questionnaire to qualify your hiring needs in European mobility.",
-      lede: "This approach is intended for employers who may recruit beyond their local market, either across borders or with candidates coming from another European country. The aim is to understand your need more precisely so that relevant profiles can be identified.",
+      kicker: "Employer path",
+      title: "Recruit more easily thanks to European mobility",
+      lede: "Describe your recruitment need in just a few minutes and let us identify candidates who may match your search, including beyond your local labour market.",
       messageTitle: "Why fill in this questionnaire?",
-      messageIntro: "This questionnaire helps us understand your hiring need, the role context and the conditions you offer.",
+      messageIntro: "This service is for employers recruiting across borders or willing to welcome candidates coming from other European countries.",
       messageBody: [
-        "At this stage, the experiment is first being conducted with companies based in Luxembourg, for concrete recruitments that can sometimes be difficult to fill.",
-        "The service continues to evolve on the basis of observed needs and feedback from the first introductions.",
-        "Describing your need once helps identify applications that may be compatible more effectively."
+        "The questionnaire helps us better understand the role, the skills required, the useful languages, the conditions offered and any needs related to mobility.",
+        "Our goal is to help you access a wider pool of candidates and support introductions when some vacancies are difficult to fill.",
+        "The more precise your need is, the better we can identify compatible profiles."
       ],
-      messageHighlight: "The aim is not to add an extra formality, but to qualify your need more clearly so that future introductions are easier to organise.",
-      messageOutcome: "The service may gradually open up to other employers in Germany, Belgium and France, as well as to other occupations.",
-      signatureTitle: "At this stage, the experiment mainly concerns:",
-      signatureName: "Luxembourg-based employers",
-      signatureRole: "and several recruiting sectors",
-      bulletsTitle: "What will be qualified",
+      messageHighlight: "This service is designed to save you time and help you widen your search for candidates when recruitment becomes more difficult.",
+      benefitsTitle: "What the service can bring you",
+      benefits: [
+        "Access a wider pool of candidates.",
+        "Save time.",
+        "Improve the quality of introductions.",
+        "Be supported in a European recruitment approach."
+      ],
+      bulletsTitle: "Sectors especially concerned",
+      bulletsLead: "The service is especially useful when some recruitments are difficult or when needs are seasonal or recurrent.",
       bullets: [
         "Sales and retail",
         "Cleaning and maintenance",
@@ -464,10 +602,31 @@ const copy = {
         "Agriculture and harvesting",
         "Versatile jobs and roles accessible quickly"
       ],
-      sideTitle: "What this changes for you",
-      sideText: "You clarify the type of recruitment, the useful languages, the job constraints, the expected level and any arrival support. This allows us to compare employer needs and candidate expectations more seriously.",
-      disclaimerTitle: "Next step",
-      disclaimerText: "If some profiles appear compatible with your search, your need may be considered with a view to an introduction. If the need is still only partially defined, the questionnaire already helps prepare the next steps more effectively.",
+      sideTitle: "A simple and useful service",
+      sideText: "You describe your need once. We then rely on this information to look for profiles that may match and to facilitate exchanges when relevant.",
+      disclaimerTitle: "What happens next",
+      disclaimerText: "The goal is not to make you fill in one more form, but to help you find the candidates you need more easily.",
+      processBullets: [
+        "1. Review of the need.",
+        "2. Search for compatible profiles.",
+        "3. Suggested introductions when candidates match.",
+        "4. Progressive improvement of the service."
+      ],
+      inviteTitle: "Invite a colleague or another company",
+      inviteLead: "If you already use the service, you can share direct access with a colleague in your organisation or with another company.",
+      inviteScopeLabel: "Invitation type",
+      inviteScopeOptions: {
+        same_company: "A colleague from my organisation",
+        new_company: "Another company"
+      },
+      inviteFirstName: "First name",
+      inviteLastName: "Last name",
+      inviteEmail: "Email address",
+      inviteCompany: "Company",
+      inviteNote: "Note (optional)",
+      inviteSend: "Send invitation",
+      inviteHint: "The link received will remain reusable to submit multiple hiring needs.",
+      inviteCompanyHint: "For a colleague, your company name will be reused automatically if you leave this field blank.",
       tags: ["EURES", "France Travail", "European Union", "Luxembourg", "Recruitment"]
     },
     candidateQuestionnaire: {
@@ -540,48 +699,103 @@ const copy = {
       helper: "You can extend the scoring later with detailed requirements per sector and human validation."
     },
     statPage: {
-      eyebrow: "Public aggregated data",
-      title: "Match Europe public stats",
-      lede: "This page shows aggregated, non-identifying indicators about Match Europe activity.",
+      eyebrow: "Public observatory of the experiment",
+      title: "Tracking the Match Europe experiment",
+      lede: "This page presents the main monitoring indicators for the Match Europe experiment.\n\nPublished data is aggregated and anonymized. It helps track project activity and the first lessons emerging from use.",
       updatedPrefix: "Last updated",
-      methodology: "Figures come from the project's Grist tables. Personal data, identifiers and free text are never displayed.",
-      manualNote: "Contact, transmission and hiring indicators can be completed manually in the monthly steering table.",
-      manualMissing: "The monthly steering table is not configured yet. Manually entered indicators therefore remain at zero.",
+      methodologyTitle: "Methodology",
+      methodology: "Published data is aggregated and anonymized. It helps monitor the experiment without displaying personal data.",
+      manualNote: "Operational follow-up indicators help observe introductions, feedback and the main steps of the journey.",
+      manualMissing: "Operational follow-up indicators will be expanded as the experiment scales up.",
       keyFiguresTitle: "Key figures",
+      keyFiguresLead: "These first results help show the momentum of the experiment and the first links between hiring needs and mobility plans.",
+      observationsTitle: "What we are observing",
+      observationsLead: "Early usage already highlights represented sectors, mobility patterns and involved territories.",
+      observationsCards: {
+        sectors: "Sectors currently represented",
+        mobility: "Mobility sought",
+        territories: "Territories involved"
+      },
+      observationsTexts: {
+        sectors: "The first represented sectors reflect the occupations currently explored in the experiment.",
+        mobility: "The first candidates mainly project themselves towards Luxembourg, through cross-border paths or other European destinations.",
+        territories: "The first needs and candidate plans already show an active dynamic between several countries in the Greater Region and beyond."
+      },
+      learningsTitle: "First lessons",
+      learnings: [
+        ["There is demand", "The first results show both hiring needs and interest from candidates willing to consider professional mobility."],
+        ["Matches are possible", "The experiment helps identify compatibilities between employer needs and candidate plans."],
+        ["A gradual scale-up", "The approach is designed to expand progressively with more employers, sectors and territories."]
+      ],
+      detailedTitle: "Detailed data",
+      detailedLead: "The sections below provide a more detailed view of usage patterns observed through the experiment.",
       monthlyTitle: "Monthly tracking",
-      monthlyLead: "Automatic volumes are calculated from submission dates. Operational follow-up can then be completed month by month.",
-      breakdownsTitle: "Breakdowns",
+      monthlyLead: "Monthly trends help track the rollout of the service, the level of usage and the first observed results.",
+      breakdownsTitle: "Detailed breakdowns",
+      durationsTitle: "Operational follow-up indicators",
+      hoursUnit: "h",
+      daysUnit: "d",
+      noDurationData: "n/a",
       totals: {
+        candidats: "Candidate submissions",
         besoins_employeurs: "Employer needs",
+        matchings: "Computed matchings",
         candidats_contactes: "Candidates contacted",
-        candidatures_recues: "Applications received",
-        matchings: "Matchings completed",
         candidatures_transmises_employeur: "Applications transmitted",
+        contacts_acceptes_employeur: "Employer-accepted contacts",
+        contacts_refuses_employeur: "Employer refusals",
+        contacts_sans_reponse_employeur: "No employer response",
         embauches: "Hires"
       },
       monthlyColumns: {
         mois: "Month",
+        candidats: "Candidates",
         besoins_employeurs: "Employer needs",
-        candidats_contactes: "Candidates contacted",
-        candidatures_recues: "Applications received",
         matchings: "Matchings",
+        candidats_contactes: "Candidates contacted",
         candidatures_transmises_employeur: "Applications transmitted",
+        contacts_acceptes_employeur: "Accepted",
+        contacts_refuses_employeur: "Refused",
+        contacts_sans_reponse_employeur: "No response",
         embauches: "Hires"
       },
       breakdownLabels: {
-        candidats_par_pays: "Candidates by target country",
         besoins_par_pays: "Employer needs by country",
         secteurs: "Sectors",
         mobilite_candidats: "Candidate mobility",
-        matchings_par_statut: "Matching statuses"
+        experience_internationale_candidats: "Candidates' international experience",
+        matchings_par_statut: "Matching statuses",
+        retours_employeurs: "Employer feedback"
       },
+      durationLabels: {
+        calcul_to_admin: "Scoring → admin decision",
+        admin_to_send: "Admin decision → employer send",
+        send_to_employer_response: "Employer send → employer response",
+        response_to_relation: "Employer response → introduction",
+        relation_to_hire: "Introduction → hire"
+      },
+      durationMetrics: {
+        count: "Measured cases",
+        avg: "Average",
+        median: "Median",
+        min: "Minimum",
+        max: "Maximum"
+      },
+      transparencyTitle: "Understand the matching logic",
+      transparencyLead: "Candidate / employer matching relies on weighted self-declared criteria, then on human review whenever uncertainty remains.",
+      transparencyBullets: [
+        "The global score is calculated out of 100 points using occupation, skills, languages, mobility, availability and salary.",
+        "The score does not, by itself, guarantee an automatic referral: it is first used to prioritise cases and document decisions.",
+        "Personal data is not published. Matching first creates an internal proposal before any targeted transmission."
+      ],
+      transparencyCta: "See the matching method",
       emptyBreakdown: "No usable data yet.",
       loading: "Loading statistics...",
       error: "Unable to load statistics right now."
     },
     projectPage: {
       eyebrow: "Institutional presentation",
-      title: PUBLIC_PROJECT_NAME,
+      title: "Match Europe",
       subtitle: "Connecting talent and jobs across a shared economic area",
       intro: "Match Europe is a public cross-border introduction service. It relies on public employment services, explainable matching and human validation to make it easier for candidates and employers to connect across the same economic area."
     },
@@ -590,41 +804,106 @@ const copy = {
       title: "Project journal",
       subtitle: "Key milestones, lessons from the experiment and major decisions.",
       intro: "This page documents the project’s significant developments that can be shared with partners, leadership teams or institutional stakeholders."
+    },
+    matchingPage: {
+      eyebrow: "Transparency",
+      title: "How Match Europe matching works",
+      intro: "Match Europe matching compares an employer need with a candidate profile using self-declared questionnaire information. The goal is to help prioritise cases, not to replace human judgement.",
+      criteriaTitle: "Criteria used",
+      criteriaLead: "The global score is calculated out of 100 points. Each block generates an explainable sub-score.",
+      criteria: [
+        ["Occupation and job title", "25 points", "The engine first checks the selected job family, then compares the free-text job title entered by the employer and the candidate."],
+        ["Key skills", "20 points", "Selected or written skills are compared. Strong coverage produces a high score; partial proximity keeps an intermediate one."],
+        ["Languages", "20 points", "Required languages are compared with candidate languages, taking account of levels and partial matches."],
+        ["Country and mobility", "15 points", "The score rises when the employer country matches the candidate country or a country explicitly mentioned in the mobility project."],
+        ["Availability, working conditions and permits", "10 points", "This block combines start date, compatibility of declared work conditions and, when relevant, required permits or authorisations."],
+        ["Expected salary and offered salary", "10 points", "When data is available, the engine compares the candidate's minimum expectation with the employer's salary range."]
+      ],
+      thresholdsTitle: "Processing thresholds",
+      thresholdsLead: "The score is used to orient administrative handling.",
+      thresholds: [
+        ["75 to 100", "The matching is flagged as “auto-sendable” in the tool because compatibility appears strong."],
+        ["55 to 74", "The matching is flagged as “to review” and must be checked manually before any referral."],
+        ["0 to 54", "The matching is flagged as “to discard” or to revisit later because the gap appears too high or too uncertain."]
+      ],
+      processTitle: "What the score does not do on its own",
+      processBullets: [
+        "The score does not publish personal data.",
+        "The score does not automatically send every case to an employer.",
+        "Human review remains possible to verify occupational relevance, ambiguities and recruitment context.",
+        "Sub-scores and reasons are kept to explain why a referral was or was not proposed."
+      ],
+      noteTitle: "What the follow-up team sees",
+      noteText: "In the administration area, each matching shows a global score, criterion-level sub-scores, reasons for compatibility and potential weak points. This makes each referral decision explainable.",
+      cta: "Back to statistics"
+    },
+    privacyPage: {
+      eyebrow: "Data protection",
+      title: "Match Europe privacy notice",
+      intro: "This page summarizes how personal data is used within the Match Europe experiment.",
+      sections: {
+        controller: "Who processes the data?",
+        purposes: "Why is the data collected?",
+        recipients: "Who can access it?",
+        retention: "How long is it kept?",
+        rights: "What are your rights?",
+        matching: "How does matching work?"
+      },
+      retentionColumns: ["Category", "Retention period"],
+      controllerText: "Data is processed within the Match Europe experiment by the authorized project teams. It is used only to manage candidate profiles, employer needs and proposed introductions.",
+      purposesList: [
+        "Qualify candidate profiles and employer needs.",
+        "Calculate candidate / employer matches.",
+        "Allow human validation of suggested matches.",
+        "Organize introductions when relevant between a candidate and an employer.",
+        "Produce aggregated and anonymized indicators for monitoring the experiment."
+      ],
+      recipientsList: [
+        "Authorized staff in charge of the experiment.",
+        "Technical tools required to operate the service, in a controlled framework.",
+        "The relevant employer, only when a match has been validated and only for the information needed to make contact."
+      ],
+      retentionRows: [
+        ["Candidates", "12 months after the last useful contact."],
+        ["Employer needs", "12 months after the need is closed or the last useful exchange."],
+        ["Matchings", "24 months for operational follow-up and decision traceability."],
+        ["Unanswered invitations", "6 months."],
+        ["Admin and security logs", "6 months."],
+        ["Aggregated public statistics", "May be kept longer once aggregated and anonymized."]
+      ],
+      rightsText: "You may request access to your data, its correction or deletion, and exercise your other rights under applicable regulations. A dedicated contact address will be published with the full legal privacy notice.",
+      matchingText: "Matching does not publish personal data. It creates an internal proposal based on structured criteria before any targeted transmission to a relevant employer.",
+      note: "This page is an initial information basis for the experiment and will be completed with the full legal privacy notice."
     }
   },
   de: {
     common: {
-      brandTitle: PUBLIC_PROJECT_NAME,
-      brandSubtitle: "EURES beta - grenzüberschreitende Mobilität, Matching und Begleitung",
+      brandTitle: "Match Europe",
+      brandSubtitle: "Digitaler Dienst von France Travail / EURES",
       navHome: "Start",
       navCandidate: "Kandidaten",
       navEmployer: "Arbeitgeber",
       navStats: "Statistik",
       navProject: "Projekt",
       navJournal: "Projektjournal",
-      navAdmin: "Admin",
       langLabel: "Sprache",
-      footer: "Dienst in der Erprobung, um Erfassung, Bedarfsqualifizierung und die Organisation grenzüberschreitender Vermittlungen zu strukturieren.",
-      footerProjectTitle: "Institutioneller Bereich",
-      footerProjectText: "Hier finden sich die Projektpräsentation, die Erkenntnisse aus der Erprobung und die wichtigsten bereits erreichten Etappen.",
+      privacyLink: "Datenschutz",
+      partnersLabel: "Partner",
+      tagsLabel: "Stichworte",
+      footer: "Match-Europe-Experiment zur Unterstützung beruflicher Mobilität und Rekrutierung in der Großregion.",
       ctaStartCandidate: "Als Kandidat starten",
       ctaStartEmployer: "Als Arbeitgeber starten",
       ctaBackHome: "Zur Startseite",
       ctaQuestionnaire: "Fragebogen starten",
       ctaSeeCandidate: "Kandidatenweg ansehen",
       ctaSeeEmployer: "Arbeitgeberweg ansehen",
-      ctaSeeProject: "Projekt ansehen",
-      ctaSeeJournal: "Journal ansehen",
-      institutionalKicker: "Institutioneller Bereich",
-      institutionalTitle: "Die Projektpräsentation abrufen, ohne den Hauptpfad zu verlassen.",
-      institutionalText: "Die Hauptpfade für Kandidaten und Arbeitgeber bleiben unverändert. Ein eigener Bereich erläutert Projekt, Erkenntnisse und nächste Schritte.",
-      matchingTitle: "Grundsätze der Vermittlung",
+      matchingTitle: "So soll das Matching funktionieren",
       matchingBullets: [
         "Jede Antwort wird mit Rolle, Sprache und Wiederaufnahme-ID in GRIST gespeichert.",
         "Ein Kompatibilitätsscore kann aus Branche, Mobilität, Sprachen, Verfügbarkeit und Arbeitsbedingungen berechnet werden.",
         "Hohe Scores können automatisch gematcht werden. Niedrige Scores gehen in eine menschliche Prüfung."
       ],
-      futureTitle: "Geplante nächste Entwicklungen",
+      futureTitle: "Nächste Ausbaustufen",
       futureBullets: [
         "Kandidaten-Dashboard für Chancen und Status.",
         "Arbeitgeber-Dashboard für vorgeschlagene Profile und Rückmeldungen.",
@@ -635,49 +914,69 @@ const copy = {
       saving: "Speicherung läuft...",
       saved: "Antworten gespeichert.",
       saveErrorPrefix: "Speichern fehlgeschlagen",
+      writeTokenError: "Die Formularsitzung ist abgelaufen. Laden Sie die Seite neu und senden Sie das Formular erneut.",
       uuidPrefix: "Wiederaufnahme-ID",
-      questionnaireNote: "Dieser Fragebogen ist für die erste Version bewusst kompakt. Er orientiert sich an den vorhandenen Tally-Formularen, ohne sie vollständig zu kopieren."
+      questionnaireNote: "Dieser Fragebogen ist für die erste Version bewusst kompakt. Er orientiert sich an den vorhandenen Tally-Formularen, ohne sie vollständig zu kopieren.",
+      validation: {
+        required: "Pflichtangabe:",
+        invalidEmail: "E-Mail-Adresse bitte korrigieren:",
+        invalidValue: "Angabe bitte korrigieren:",
+        checkHighlighted: "Bitte prüfen Sie das markierte Feld und versuchen Sie es erneut."
+      }
     },
     home: {
-      eyebrow: "Eine Erprobung in der Großregion",
-      title: "Begegnungen zwischen Kandidaten und Arbeitgebern in einem grenzüberschreitenden Arbeitsmarkt erleichtern.",
-      lede: "Match Europe geht von einer einfachen Beobachtung aus: Der Arbeitsmarkt funktioniert bereits grenzüberschreitend, doch Wege zurück in Beschäftigung, Erstkontakt und Vermittlungswerkzeuge bilden diese Realität noch nicht vollständig ab. Der Dienst verbindet Qualifizierung, nachvollziehbares Matching und menschliche Begleitung, um Personalbedarfe und Mobilitätswege besser zusammenzuführen.",
-      storyTitle: "Ausgangsbeobachtung",
-      storyText: "Menschen mit grenzüberschreitender Berufserfahrung kehren häufig in Suchwege zurück, die noch stark national organisiert sind. Gleichzeitig haben Arbeitgeber reale Bedarfe, doch Erstkontakt, Profilqualifizierung und Vertrauensaufbau lassen sich im grenzüberschreitenden Arbeitsraum nur schwer organisieren.",
+      eyebrow: "Ein Experiment in der Großregion",
+      title: "Rekrutierung und berufliche Mobilität in der Großregion erleichtern",
+      lede: "Match Europe erprobt einen neuen Weg, um den Bedarf von Arbeitgebern und die Mobilitätspläne von Kandidatinnen und Kandidaten in einem grenzüberschreitenden Wirtschaftsraum besser zusammenzubringen.",
+      storyTitle: "Ein grenzüberschreitender Arbeitsmarkt, der noch immer fragmentiert ist",
+      storyText: "Der Arbeitsmarkt geht über nationale Grenzen hinaus, doch Stellensuche und Rekrutierung sind noch immer weitgehend von Land zu Land organisiert.\n\nDas Projekt soll Bedarfe, Mobilitätsabsichten und Chancen besser sichtbar machen, um passendere und schnellere Vermittlungen zu ermöglichen.\n\nIn der Großregion arbeiten bereits mehrere hunderttausend Menschen jenseits nationaler Grenzen. Trotzdem zirkulieren Stellenangebote und Bewerbungen noch immer nur schwer zwischen den Ländern.\n\nEinige Arbeitgeber haben Rekrutierungsschwierigkeiten, während mobilitätsbereite Kandidatinnen und Kandidaten passende Chancen nicht immer erkennen.",
+      statsTitle: "Einige Orientierungspunkte in der Großregion",
       stats: [
         ["280.000", "Grenzpendler bewegen sich täglich in der Großregion."],
-        ["Verstreute Wege", "Werkzeuge, Stellenangebote und Begleitung bleiben noch weitgehend national organisiert."],
-        ["Vertrauen zählt", "ein erfolgreicher Erstkontakt braucht eine klare institutionelle Identität und verlässliche Kontaktkanäle."]
+        ["40–50 Tsd.", "Menschen mit grenzüberschreitender Erfahrung könnten Arbeit suchen."],
+        ["15.000+", "offene Stellen bleiben im selben Arbeitsraum unbesetzt."]
       ],
       tracksTitle: "Zwei ergänzende Wege",
-      candidateTitle: "Kandidatenweg",
-      candidateText: "Mobilitätspläne, Zielbranchen, Sprachen, Verfügbarkeit und konkrete Matching-Signale erfassen.",
-      employerTitle: "Arbeitgeberweg",
-      employerText: "Personalbedarf, Sprachen, Rahmenbedingungen, Unterstützung bei Ankunft und starke Kriterien erfassen.",
-      principlesTitle: "Gestaltungsprinzipien",
+      candidateTitle: "Kandidatenpfad",
+      candidateText: "Der Dienst hilft dabei, Mobilitätspläne, Kompetenzen, Sprachen und Präferenzen besser zu verstehen, damit passende Chancen leichter erkannt werden können.",
+      employerTitle: "Arbeitgeberpfad",
+      employerText: "Der Dienst hilft dabei, Personalbedarfe zu präzisieren und wichtige Rahmenbedingungen und Kriterien besser zu berücksichtigen, um Vermittlungen zu erleichtern.",
+      principlesTitle: "Ein Experiment mit Fokus auf reale Nutzung",
       principles: [
-        ["Niedrige Einstiegsschwelle", "Ein leichter mehrsprachiger Erstpfad, der bereits im Rahmen der Erprobung genutzt werden kann."],
-        ["Strukturierte Informationen", "Qualifizierte Antworten erleichtern die Analyse von Bedarfen, den Vergleich von Profilen und die Nachverfolgung von Vermittlungen."],
-        ["Menschliche Aufsicht", "Wenn ein Vermittlungsvorschlag unsicher oder unvollständig bleibt, erfolgt vor jedem nächsten Schritt eine menschliche Prüfung."]
+        ["Schnell testen", "Ein erster leichter und mehrsprachiger Dienst hilft dabei, reale Bedarfe zu sammeln und Nutzungen zu beobachten."],
+        ["Wissen aufbauen", "Die gesammelten Informationen helfen dabei, das Verständnis der Bedarfe von Kandidatinnen, Kandidaten und Arbeitgebern schrittweise zu verbessern."],
+        ["Automatisierung und menschliche Expertise verbinden", "Das Projekt erprobt verschiedene Formen der Unterstützung und lässt zugleich Raum für menschliches Eingreifen, wenn es nötig ist."]
+      ],
+      perspectivesTitle: "Perspektiven",
+      perspectivesBullets: [
+        "Öffnung für weitere Länder der Großregion.",
+        "Einbeziehung neuer Tätigkeitsbereiche.",
+        "Kontinuierliche Verbesserung der Nutzerwege.",
+        "Entwicklung von Werkzeugen für Begleitung und Nachverfolgung.",
+        "Schrittweise Skalierung auf Basis der Erkenntnisse aus den ersten Tests."
       ]
     },
     candidateLanding: {
-      kicker: "Kandidatenweg",
-      title: "Ein Fragebogen, um berufliche Mobilitätsmöglichkeiten in Europa zu prüfen.",
-      lede: "Dieses Angebot richtet sich an Menschen, die berufliche Mobilität in Europa in Betracht ziehen, entweder grenzüberschreitend oder durch einen Umzug. Das kann bedeuten, in einem Nachbarland zu arbeiten und zu Hause wohnen zu bleiben, oder in ein anderes europäisches Land zu ziehen, um dort zu leben und zu arbeiten.",
+      kicker: "Kandidatenpfad",
+      title: "Neue berufliche Chancen in Europa entdecken",
+      lede: "Beantworten Sie einige Fragen, damit wir Ihr Profil und Ihre Mobilitätspläne besser verstehen können.",
       messageTitle: "Warum diesen Fragebogen ausfüllen?",
-      messageIntro: "Der Fragebogen hilft dabei, klarer einzuschätzen, ob Ihr Profil zu Chancen im Rahmen europäischer Mobilität passen könnte.",
+      messageIntro: "Wenn einige Chancen zu Ihrer Erfahrung, Ihren Kompetenzen und Ihren Präferenzen passen, können wir Vermittlungen mit rekrutierenden Arbeitgebern erleichtern.",
       messageBody: [
-        "In dieser Phase betrifft die Erprobung vor allem Unternehmen mit Sitz in Luxemburg, in einem grenzüberschreitenden oder allgemein europäischen Mobilitätsrahmen.",
-        "Der Dienst entwickelt sich weiter und wird anhand der auf dem Feld beobachteten Situationen fortlaufend angepasst.",
-        "Er hilft bereits dabei, Profile besser zu qualifizieren und Vermittlungen für Menschen vorzubereiten, die berufliche Mobilität in Europa in Betracht ziehen."
+        "In wenigen Minuten können Sie Ihren Beruf oder Ihre Erfahrung, die von Ihnen gesprochenen Sprachen, Ihre Verfügbarkeit, Ihr Mobilitätsprojekt und die für Sie wichtigen Bedingungen genauer beschreiben.",
+        "Ob Sie in Luxemburg, in einem Nachbarland oder anderswo in Europa arbeiten möchten: Dieser Dienst hilft dabei, Möglichkeiten zu erkennen, die zu Ihrer Situation passen.",
+        "Diese Informationen helfen uns, die Chancen besser zu identifizieren, die für Sie interessant sein könnten."
       ],
-      messageHighlight: "Eine einmalige Antwort hilft einzuschätzen, ob aktuelle oder kurzfristige Chancen der europäischen Mobilität zu Ihrer Situation passen könnten.",
-      messageOutcome: "Der Dienst soll schrittweise für weitere Arbeitgeber in Deutschland, Belgien und Frankreich sowie für weitere Berufe geöffnet werden.",
-      signatureTitle: "In dieser Phase betrifft die Erprobung vor allem:",
-      signatureName: "Luxemburg",
-      signatureRole: "und mehrere rekrutierende Branchen",
-      bulletsTitle: "Bereiche, die derzeit mit Arbeitgebern in Luxemburg betrachtet werden",
+      messageHighlight: "Sie antworten nur einmal, und Ihr Profil kann anschließend für verschiedene Chancen berücksichtigt werden.",
+      benefitsTitle: "Was Ihnen der Dienst bringen kann",
+      benefits: [
+        "Mehr Chancen entdecken.",
+        "Mit Arbeitgebern in Kontakt kommen.",
+        "Zugang zu einem größeren Arbeitsmarkt erhalten.",
+        "Ihr Mobilitätsprojekt schrittweise aufbauen."
+      ],
+      bulletsTitle: "Berufe, die aktuell mit Arbeitgebern in Luxemburg getestet werden",
+      bulletsLead: "Die ersten Tests betreffen mehrere rekrutierende Bereiche, insbesondere mit Arbeitgebern in Luxemburg.",
       bullets: [
         "Verkauf und Handel",
         "Reinigung und Instandhaltung",
@@ -685,10 +984,16 @@ const copy = {
         "Landwirtschaft und Ernte",
         "Vielseitige Tätigkeiten und Jobs mit schnellem Einstieg"
       ],
-      sideTitle: "Wer sind wir?",
-      sideText: "EURES ist das europäische Kooperationsnetzwerk für Beschäftigung. Es erleichtert Rekrutierung und berufliche Chancen in Europa, insbesondere in grenzüberschreitenden Arbeitsmärkten.",
-      disclaimerTitle: "Nächster Schritt",
-      disclaimerText: "Wenn Ihr Profil zu identifizierten Bedarfen passt, kann es mit Blick auf eine mögliche Vermittlung geprüft werden. Mit der Zeit können weitere Unternehmen, Länder und Berufe den Dienst ergänzen.",
+      sideTitle: "Über EURES",
+      sideText: "EURES ist das europäische Kooperationsnetzwerk für Beschäftigung. Es unterstützt berufliche Mobilität und erleichtert Rekrutierungen zwischen europäischen Ländern.",
+      disclaimerTitle: "Wie es danach weitergeht",
+      disclaimerText: "Ziel ist es, Ihnen berufliche Chancen sichtbar zu machen, die zu Ihrem Profil und Ihrem Mobilitätsprojekt passen.",
+      processBullets: [
+        "1. Prüfung des Profils.",
+        "2. Suche nach passenden Chancen.",
+        "3. Vorschläge für Vermittlungen, wenn Bedarfe passen.",
+        "4. Schrittweise Erweiterung des Dienstes um mehr Arbeitgeber, Länder und Berufe."
+      ],
       tags: ["EURES", "France Travail", "Europäische Union", "Luxemburg", "Verkauf & Handel"],
       logos: {
         eures: {
@@ -706,22 +1011,26 @@ const copy = {
       }
     },
     employerLanding: {
-      kicker: "Arbeitgeberweg",
-      title: "Ein Fragebogen, um Ihren Personalbedarf in der europäischen Mobilität zu qualifizieren.",
-      lede: "Dieses Angebot richtet sich an Arbeitgeber, die über ihren lokalen Markt hinaus rekrutieren können, grenzüberschreitend oder mit Kandidaten aus einem anderen europäischen Land. Ziel ist es, Ihren Bedarf genauer zu verstehen, um passende Profile zu identifizieren.",
+      kicker: "Arbeitgeberpfad",
+      title: "Einfacher rekrutieren dank europäischer Mobilität",
+      lede: "Beschreiben Sie Ihren Rekrutierungsbedarf in wenigen Minuten und lassen Sie uns Kandidatinnen und Kandidaten identifizieren, die zu Ihrer Suche passen könnten, auch über Ihren lokalen Markt hinaus.",
       messageTitle: "Warum diesen Fragebogen ausfüllen?",
-      messageIntro: "Dieser Fragebogen hilft uns, Ihren Personalbedarf, den Kontext der Stelle und die angebotenen Bedingungen besser zu verstehen.",
+      messageIntro: "Dieser Dienst richtet sich an Arbeitgeber, die grenzüberschreitend rekrutieren oder offen für Kandidatinnen und Kandidaten aus anderen europäischen Ländern sind.",
       messageBody: [
-        "In dieser Phase wird die Erprobung zunächst mit Unternehmen in Luxemburg durchgeführt, bei konkreten Einstellungen, die teilweise schwer zu besetzen sind.",
-        "Der Dienst entwickelt sich auf Grundlage beobachteter Bedarfe und der Rückmeldungen aus den ersten Vermittlungen weiter.",
-        "Wenn Sie Ihren Bedarf einmal beschreiben, lassen sich passende Bewerbungen gezielter identifizieren."
+        "Der Fragebogen hilft dabei, die Stelle, die gesuchten Kompetenzen, die nützlichen Sprachen, die angebotenen Bedingungen und eventuelle mobilitätsbezogene Bedarfe besser zu verstehen.",
+        "Unser Ziel ist es, Ihnen Zugang zu einem größeren Bewerberpool zu geben und Vermittlungen zu erleichtern, wenn Stellen schwer zu besetzen sind.",
+        "Je präziser Ihr Bedarf beschrieben ist, desto besser können wir passende Profile identifizieren."
       ],
-      messageHighlight: "Es geht nicht darum, eine weitere Formalität hinzuzufügen, sondern Ihren Bedarf klarer zu qualifizieren, damit spätere Vermittlungen leichter organisiert werden können.",
-      messageOutcome: "Der Dienst kann schrittweise auch für andere Arbeitgeber in Deutschland, Belgien und Frankreich sowie für weitere Berufe geöffnet werden.",
-      signatureTitle: "In dieser Phase betrifft die Erprobung vor allem:",
-      signatureName: "Arbeitgeber in Luxemburg",
-      signatureRole: "und mehrere rekrutierende Branchen",
-      bulletsTitle: "Welche Elemente qualifiziert werden",
+      messageHighlight: "Dieser Dienst soll Ihnen Zeit sparen und helfen, Ihre Kandidatensuche zu erweitern, wenn Rekrutierung schwieriger wird.",
+      benefitsTitle: "Was Ihnen der Dienst bringen kann",
+      benefits: [
+        "Zugang zu einem größeren Kandidatenpool.",
+        "Zeit sparen.",
+        "Die Qualität der Vermittlungen verbessern.",
+        "Unterstützung bei einem europäischen Rekrutierungsansatz erhalten."
+      ],
+      bulletsTitle: "Besonders betroffene Bereiche",
+      bulletsLead: "Der Dienst ist besonders nützlich, wenn Rekrutierungen schwierig sind oder wenn Bedarfe saisonal oder wiederkehrend sind.",
       bullets: [
         "Verkauf und Handel",
         "Reinigung und Instandhaltung",
@@ -729,10 +1038,31 @@ const copy = {
         "Landwirtschaft und Ernte",
         "Vielseitige Tätigkeiten und Jobs mit schnellem Einstieg"
       ],
-      sideTitle: "Was das für Sie verändert",
-      sideText: "Sie präzisieren die Art der Rekrutierung, die nützlichen Sprachen, die Rahmenbedingungen der Stelle, das erwartete Niveau und mögliche Unterstützung bei der Ankunft. So können wir Arbeitgeberbedarfe und Kandidatenerwartungen fundierter vergleichen.",
-      disclaimerTitle: "Nächster Schritt",
-      disclaimerText: "Wenn einige Profile zu Ihrer Suche passen könnten, kann Ihr Bedarf mit Blick auf eine Vermittlung aufgegriffen werden. Wenn der Bedarf noch nicht vollständig geklärt ist, hilft der Fragebogen bereits dabei, die nächsten Schritte besser vorzubereiten.",
+      sideTitle: "Ein einfacher und nützlicher Dienst",
+      sideText: "Sie beschreiben Ihren Bedarf einmal. Auf dieser Grundlage suchen wir anschließend nach Profilen, die passen könnten, und erleichtern bei Bedarf den Austausch.",
+      disclaimerTitle: "Wie es danach weitergeht",
+      disclaimerText: "Ziel ist nicht, Ihnen ein zusätzliches Formular aufzuerlegen, sondern Ihnen zu helfen, die benötigten Kandidatinnen und Kandidaten leichter zu finden.",
+      processBullets: [
+        "1. Prüfung des Bedarfs.",
+        "2. Suche nach passenden Profilen.",
+        "3. Vorschläge für Vermittlungen, wenn Kandidatinnen und Kandidaten passen.",
+        "4. Schrittweise Verbesserung des Dienstes."
+      ],
+      inviteTitle: "Einen Kollegen oder ein anderes Unternehmen einladen",
+      inviteLead: "Wenn Sie den Dienst bereits nutzen, können Sie einem Kollegen in Ihrer Struktur oder einem anderen Unternehmen einen direkten Zugang senden.",
+      inviteScopeLabel: "Einladungstyp",
+      inviteScopeOptions: {
+        same_company: "Ein Kollege aus meiner Struktur",
+        new_company: "Ein anderes Unternehmen"
+      },
+      inviteFirstName: "Vorname",
+      inviteLastName: "Name",
+      inviteEmail: "E-Mail-Adresse",
+      inviteCompany: "Unternehmen",
+      inviteNote: "Notiz (optional)",
+      inviteSend: "Einladung senden",
+      inviteHint: "Der erhaltene Link bleibt wiederverwendbar, um mehrere Personalbedarfe zu übermitteln.",
+      inviteCompanyHint: "Für einen Kollegen wird Ihr Unternehmensname automatisch übernommen, wenn Sie dieses Feld leer lassen.",
       tags: ["EURES", "France Travail", "Europäische Union", "Luxemburg", "Rekrutierung"]
     },
     candidateQuestionnaire: {
@@ -805,48 +1135,103 @@ const copy = {
       helper: "Später kann das Scoring um feinere Kriterien je Branche und menschliche Validierung ergänzt werden."
     },
     statPage: {
-      eyebrow: "Öffentliche aggregierte Kennzahlen",
-      title: "Öffentliche Statistiken zu Match Europe",
-      lede: "Diese Seite zeigt aggregierte und nicht personenbezogene Kennzahlen zur Aktivität von Match Europe.",
+      eyebrow: "Öffentliches Beobachtungsportal des Experiments",
+      title: "Verfolgung des EURES-beta-Experiments",
+      lede: "Diese Seite zeigt die wichtigsten Indikatoren zur Beobachtung des EURES-beta-Experiments.\n\nDie veröffentlichten Daten sind aggregiert und anonymisiert. Sie machen die Aktivität des Projekts und erste Erkenntnisse aus der Nutzung sichtbar.",
       updatedPrefix: "Letzte Aktualisierung",
-      methodology: "Die Zahlen stammen aus den Grist-Tabellen des Projekts. Personendaten, Kennungen und freie Texte werden nie angezeigt.",
-      manualNote: "Kontakt-, Übermittlungs- und Einstellungsindikatoren können in der monatlichen Steuerungstabelle manuell ergänzt werden.",
-      manualMissing: "Die monatliche Steuerungstabelle ist noch nicht konfiguriert. Manuell gepflegte Kennzahlen bleiben daher auf null.",
+      methodologyTitle: "Methodik",
+      methodology: "Die veröffentlichten Daten sind aggregiert und anonymisiert. Sie dienen der Beobachtung des Experiments, ohne personenbezogene Daten anzuzeigen.",
+      manualNote: "Indikatoren zur Funktionsbeobachtung zeigen Vermittlungen, Rückmeldungen und die wichtigsten Schritte im Ablauf.",
+      manualMissing: "Die Indikatoren zur Funktionsbeobachtung werden mit dem Ausbau des Experiments schrittweise ergänzt.",
       keyFiguresTitle: "Kennzahlen",
+      keyFiguresLead: "Diese ersten Ergebnisse zeigen die Dynamik des Experiments und erste Verbindungen zwischen Personalbedarf und Mobilitätsplänen.",
+      observationsTitle: "Was wir beobachten",
+      observationsLead: "Die ersten Nutzungen zeigen bereits vertretene Branchen, Mobilitätsmuster und beteiligte Gebiete.",
+      observationsCards: {
+        sectors: "Derzeit vertretene Branchen",
+        mobility: "Gesuchte Mobilität",
+        territories: "Beteiligte Gebiete"
+      },
+      observationsTexts: {
+        sectors: "Die ersten vertretenen Branchen entsprechen den Berufen, die im Rahmen des Experiments derzeit untersucht werden.",
+        mobility: "Die ersten Kandidatinnen und Kandidaten richten ihren Blick vor allem auf Luxemburg, auf grenzüberschreitende Wege oder andere europäische Ziele.",
+        territories: "Die ersten erfassten Bedarfe und Vorhaben zeigen bereits eine aktive Dynamik zwischen mehreren Ländern der Großregion und darüber hinaus."
+      },
+      learningsTitle: "Erste Erkenntnisse",
+      learnings: [
+        ["Es gibt Nachfrage", "Die ersten Ergebnisse zeigen sowohl Personalbedarf als auch Interesse von Kandidatinnen und Kandidaten, die berufliche Mobilität in Betracht ziehen."],
+        ["Annäherungen sind möglich", "Das Experiment hilft, Kompatibilitäten zwischen Arbeitgeberbedarfen und Kandidatenvorhaben zu erkennen."],
+        ["Schrittweiser Ausbau", "Der Ansatz soll schrittweise mit mehr Arbeitgebern, Branchen und Gebieten wachsen."]
+      ],
+      detailedTitle: "Detaillierte Daten",
+      detailedLead: "Die folgenden Bereiche ermöglichen eine vertiefte Lektüre der im Experiment beobachteten Nutzungsmuster.",
       monthlyTitle: "Monatliche Entwicklung",
-      monthlyLead: "Automatische Volumen werden aus den Einreichungsdaten berechnet. Die operative Nachverfolgung kann dann monatlich ergänzt werden.",
-      breakdownsTitle: "Verteilungen",
+      monthlyLead: "Die monatliche Entwicklung zeigt den Ausbau des Angebots, die Intensität der Nutzung und erste beobachtete Ergebnisse.",
+      breakdownsTitle: "Detaillierte Verteilungen",
+      durationsTitle: "Indikatoren zur Funktionsbeobachtung",
+      hoursUnit: "Std.",
+      daysUnit: "Tg.",
+      noDurationData: "k. A.",
       totals: {
+        candidats: "Kandidaten-Eingänge",
         besoins_employeurs: "Arbeitgeberbedarfe",
+        matchings: "Berechnete Matchings",
         candidats_contactes: "Kontaktierte Kandidaten",
-        candidatures_recues: "Eingegangene Bewerbungen",
-        matchings: "Durchgeführte Matchings",
         candidatures_transmises_employeur: "Übermittelte Bewerbungen",
+        contacts_acceptes_employeur: "Vom Arbeitgeber akzeptierte Kontakte",
+        contacts_refuses_employeur: "Vom Arbeitgeber abgelehnte Kontakte",
+        contacts_sans_reponse_employeur: "Kontakte ohne Arbeitgeberantwort",
         embauches: "Einstellungen"
       },
       monthlyColumns: {
         mois: "Monat",
+        candidats: "Kandidaten",
         besoins_employeurs: "Arbeitgeberbedarfe",
-        candidats_contactes: "Kontaktierte Kandidaten",
-        candidatures_recues: "Eingegangene Bewerbungen",
         matchings: "Matchings",
+        candidats_contactes: "Kontaktierte Kandidaten",
         candidatures_transmises_employeur: "Übermittelte Bewerbungen",
+        contacts_acceptes_employeur: "Akzeptiert",
+        contacts_refuses_employeur: "Abgelehnt",
+        contacts_sans_reponse_employeur: "Ohne Antwort",
         embauches: "Einstellungen"
       },
       breakdownLabels: {
-        candidats_par_pays: "Kandidaten nach Zielland",
         besoins_par_pays: "Arbeitgeberbedarfe nach Land",
         secteurs: "Sektoren",
         mobilite_candidats: "Mobilität der Kandidaten",
-        matchings_par_statut: "Matching-Status"
+        experience_internationale_candidats: "Internationale Erfahrung der Kandidaten",
+        matchings_par_statut: "Matching-Status",
+        retours_employeurs: "Arbeitgeber-Rückmeldungen"
       },
+      durationLabels: {
+        calcul_to_admin: "Berechnung → Admin-Entscheidung",
+        admin_to_send: "Admin-Entscheidung → Versand Arbeitgeber",
+        send_to_employer_response: "Versand Arbeitgeber → Antwort Arbeitgeber",
+        response_to_relation: "Arbeitgeberantwort → Kontaktaufnahme",
+        relation_to_hire: "Kontaktaufnahme → Einstellung"
+      },
+      durationMetrics: {
+        count: "Gemessene Fälle",
+        avg: "Durchschnitt",
+        median: "Median",
+        min: "Minimum",
+        max: "Maximum"
+      },
+      transparencyTitle: "Matching nachvollziehen",
+      transparencyLead: "Der Abgleich zwischen Kandidaten und Arbeitgebern basiert auf gewichteten Eigenauskünften und wird bei Unsicherheiten menschlich überprüft.",
+      transparencyBullets: [
+        "Der Gesamtscore wird auf 100 Punkte berechnet und berücksichtigt Beruf, Kompetenzen, Sprachen, Mobilität, Verfügbarkeit und Gehalt.",
+        "Der Score allein führt nicht automatisch zu einer Weiterleitung: Er dient zunächst der Priorisierung und der Begründung von Entscheidungen.",
+        "Personenbezogene Daten werden nicht veröffentlicht. Das Matching erzeugt zunächst einen internen Vorschlag."
+      ],
+      transparencyCta: "Matching-Methode ansehen",
       emptyBreakdown: "Noch keine auswertbaren Daten.",
       loading: "Statistiken werden geladen...",
       error: "Die Statistiken können derzeit nicht geladen werden."
     },
     projectPage: {
       eyebrow: "Institutionelle Darstellung",
-      title: PUBLIC_PROJECT_NAME,
+      title: "Match Europe",
       subtitle: "Talente und Arbeitsplätze in einem gemeinsamen Wirtschaftsraum zusammenführen",
       intro: "Match Europe ist ein öffentlicher Dienst für grenzüberschreitende Vermittlung. Er stützt sich auf öffentliche Arbeitsverwaltungen, nachvollziehbares Matching und menschliche Validierung, um die Begegnung zwischen Kandidaten und Arbeitgebern in einem gemeinsamen Wirtschaftsraum zu erleichtern."
     },
@@ -855,9 +1240,1781 @@ const copy = {
       title: "Projektjournal",
       subtitle: "Wichtige Etappen, Erkenntnisse aus der Erprobung und strukturierende Entscheidungen.",
       intro: "Diese Seite dokumentiert die wichtigsten Entwicklungen des Projekts, die mit Partnern, Leitungen oder institutionellen Akteuren geteilt werden können."
+    },
+    matchingPage: {
+      eyebrow: "Transparenz",
+      title: "Wie das Matching in Match Europe funktioniert",
+      intro: "Das Matching von Match Europe vergleicht einen Personalbedarf mit einem Kandidatenprofil anhand der im Fragebogen gemachten Angaben. Ziel ist es, Fälle zu priorisieren, nicht menschliches Urteil zu ersetzen.",
+      criteriaTitle: "Berücksichtigte Kriterien",
+      criteriaLead: "Der Gesamtscore wird auf 100 Punkte berechnet. Jeder Block erzeugt einen nachvollziehbaren Teilscore.",
+      criteria: [
+        ["Beruf und Stellenbezeichnung", "25 Punkte", "Zunächst wird die ausgewählte Berufsgruppe geprüft, danach die freie Stellenbezeichnung auf Arbeitgeber- und Kandidatenseite verglichen."],
+        ["Schlüsselkompetenzen", "20 Punkte", "Ausgewählte oder frei angegebene Kompetenzen werden verglichen. Hohe Übereinstimmung ergibt einen hohen Score, Teilnähe einen mittleren Wert."],
+        ["Sprachen", "20 Punkte", "Geforderte Sprachen werden mit den angegebenen Sprachkenntnissen der Kandidaten verglichen, einschließlich Niveaus und Teiltreffern."],
+        ["Land und Mobilität", "15 Punkte", "Der Score steigt, wenn das Einsatzland mit dem Wohnland oder einem ausdrücklich gewünschten Zielland übereinstimmt."],
+        ["Verfügbarkeit, Arbeitsbedingungen und Berechtigungen", "10 Punkte", "Dieser Block bündelt Starttermin, Kompatibilität der Arbeitsbedingungen sowie gegebenenfalls Führerscheine oder besondere Berechtigungen."],
+        ["Gehaltsvorstellung und Gehaltsangebot", "10 Punkte", "Soweit verfügbar, vergleicht das System die Mindestvorstellung der Kandidaten mit der vom Arbeitgeber angebotenen Spanne."]
+      ],
+      thresholdsTitle: "Bearbeitungsschwellen",
+      thresholdsLead: "Der Score steuert die administrative Bearbeitung.",
+      thresholds: [
+        ["75 bis 100", "Das Matching wird im Tool als „auto-sendable“ markiert, weil die Passung stark erscheint."],
+        ["55 bis 74", "Das Matching wird als „zu prüfen“ markiert und muss vor einer Weiterleitung manuell kontrolliert werden."],
+        ["0 bis 54", "Das Matching wird als „zurückstellen“ markiert, weil die Abweichung zu groß oder zu unsicher erscheint."]
+      ],
+      processTitle: "Was der Score nicht allein entscheidet",
+      processBullets: [
+        "Der Score veröffentlicht keine personenbezogenen Daten.",
+        "Der Score versendet nicht automatisch jeden Fall an Arbeitgeber.",
+        "Eine menschliche Prüfung bleibt möglich, um berufliche Relevanz, Unklarheiten und den Rekrutierungskontext zu bewerten.",
+        "Teilscores und Begründungen bleiben erhalten, damit nachvollziehbar ist, warum ein Vorschlag gemacht wurde oder nicht."
+      ],
+      noteTitle: "Was das Projektteam sieht",
+      noteText: "Im Administrationsbereich zeigt jedes Matching einen Gesamtscore, Teilscores je Kriterium, Gründe für die Passung und mögliche Schwächen. So lässt sich jede Entscheidung zur Kontaktanbahnung erklären.",
+      cta: "Zurück zu den Statistiken"
+    },
+    privacyPage: {
+      eyebrow: "Datenschutz",
+      title: "Datenschutzhinweise Match Europe",
+      intro: "Diese Seite fasst zusammen, wie personenbezogene Daten im Rahmen des EURES-beta-Experiments verwendet werden.",
+      sections: {
+        controller: "Wer verarbeitet die Daten?",
+        purposes: "Warum werden die Daten erhoben?",
+        recipients: "Wer kann darauf zugreifen?",
+        retention: "Wie lange werden sie aufbewahrt?",
+        rights: "Welche Rechte haben Sie?",
+        matching: "Wie funktioniert das Matching?"
+      },
+      retentionColumns: ["Kategorie", "Aufbewahrungsdauer"],
+      controllerText: "Die Daten werden im Rahmen des EURES-beta-Experiments von den dafür autorisierten Projektteams verarbeitet. Sie werden nur zur Verwaltung von Kandidatenprofilen, Arbeitgeberbedarfen und vorgeschlagenen Vermittlungen verwendet.",
+      purposesList: [
+        "Kandidatenprofile und Arbeitgeberbedarfe qualifizieren.",
+        "Kandidaten-/Arbeitgeber-Matchings berechnen.",
+        "Eine menschliche Validierung der vorgeschlagenen Matchings ermöglichen.",
+        "Bei Relevanz die Kontaktanbahnung zwischen Kandidat und Arbeitgeber organisieren.",
+        "Aggregierte und anonymisierte Indikatoren zur Beobachtung des Experiments erstellen."
+      ],
+      recipientsList: [
+        "Autorisierte Personen, die das Experiment begleiten.",
+        "Technische Werkzeuge, die für den Betrieb des Dienstes erforderlich sind, in einem kontrollierten Rahmen.",
+        "Der betreffende Arbeitgeber, nur wenn ein Matching validiert wurde und nur für die zur Kontaktaufnahme erforderlichen Informationen."
+      ],
+      retentionRows: [
+        ["Kandidaten", "12 Monate nach dem letzten zweckdienlichen Kontakt."],
+        ["Arbeitgeberbedarfe", "12 Monate nach Abschluss des Bedarfs oder dem letzten zweckdienlichen Austausch."],
+        ["Matchings", "24 Monate für das operative Monitoring und die Nachvollziehbarkeit von Entscheidungen."],
+        ["Unbeantwortete Einladungen", "6 Monate."],
+        ["Admin- und Sicherheitslogs", "6 Monate."],
+        ["Aggregierte öffentliche Statistiken", "Können länger aufbewahrt werden, sobald sie aggregiert und anonymisiert sind."]
+      ],
+      rightsText: "Sie können Zugang zu Ihren Daten, deren Berichtigung oder Löschung verlangen und Ihre weiteren Rechte nach den geltenden Vorschriften ausüben. Eine eigene Kontaktadresse wird mit der vollständigen rechtlichen Datenschutzerklärung veröffentlicht.",
+      matchingText: "Das Matching veröffentlicht keine personenbezogenen Daten. Es erstellt zunächst einen internen Vorschlag auf Basis strukturierter Kriterien, bevor gegebenenfalls eine gezielte Übermittlung an einen relevanten Arbeitgeber erfolgt.",
+      note: "Diese Seite ist eine erste Informationsgrundlage für das Experiment und wird durch die vollständigen rechtlichen Datenschutzhinweise ergänzt."
     }
   }
 };
+
+const journalLabels = {
+  fr: {
+    observed: "Ce que nous avons observé",
+    decided: "Ce que nous avons décidé",
+    changed: "Ce que cela change",
+    next: "Prochaine étape",
+  },
+  en: {
+    observed: "What we observed",
+    decided: "What we decided",
+    changed: "What this changes",
+    next: "Next step",
+  },
+  de: {
+    observed: "Was wir beobachtet haben",
+    decided: "Was wir entschieden haben",
+    changed: "Was sich dadurch ändert",
+    next: "Nächster Schritt",
+  },
+};
+
+function sortJournalEntries(entries) {
+  return [...entries].sort((left, right) => {
+    const leftValue = String(left.sort_date || "");
+    const rightValue = String(right.sort_date || "");
+    return rightValue.localeCompare(leftValue);
+  });
+}
+
+const candidateTallyMeta = {
+  formId: "449blX",
+  otherSectorValue: "Autre métier / autre secteur",
+  mobilityTypes: ["Transfrontalière", "Expatriation"],
+  countryColumns: ["J'y habite", "Je veux y travailler", "J'y ai déjà travaillé"],
+  countryRows: [
+    { field: "tally_q01_f01", label: "Allemagne" },
+    { field: "tally_q01_f02", label: "France" },
+    { field: "tally_q01_f03", label: "Luxembourg" },
+    { field: "tally_q01_f04", label: "Un autre pays de l'UE" },
+    { field: "tally_q01_f05", label: "Un autre pays hors UE" }
+  ],
+  scheduleColumns: ["Matin", "Après-midi", "Soir", "Nuit"],
+  scheduleRows: [
+    { field: "tally_q07_f01", label: "Lundi" },
+    { field: "tally_q07_f02", label: "Mardi" },
+    { field: "tally_q07_f03", label: "Mercredi" },
+    { field: "tally_q07_f04", label: "Jeudi" },
+    { field: "tally_q07_f05", label: "Vendredi" },
+    { field: "tally_q07_f06", label: "Samedi" },
+    { field: "tally_q07_f07", label: "Dimanche" }
+  ],
+  documentsColumns: ["Je l'ai", "Je suis en train de le préparer", "Je ne sais pas encore"],
+  documentsRows: [
+    { field: "tally_q10_f01", label: "Carte d'identité ou passeport (en cours de validité)" },
+    { field: "tally_q10_f02", label: "CV à jour" },
+    { field: "tally_q10_f03", label: "Vos diplômes ou qualifications professionnelles" },
+    { field: "tally_q10_f04", label: "Compte bancaire / IBAN" }
+  ],
+  languageColumns: [
+    "Langue maternelle",
+    "Je peux échanger à l'oral",
+    "Je peux travailler avec cette langue",
+    "J'utilise un outil de traduction si nécessaire",
+    "Je ne la pratique pas"
+  ],
+  languageRows: [
+    { field: "tally_q18_f01", label: "Allemand" },
+    { field: "tally_q18_f02", label: "Anglais" },
+    { field: "tally_q18_f03", label: "Français" },
+    { field: "tally_q18_f04", label: "Luxembourgeois" }
+  ],
+  rankingOptions: [
+    "Trouver un logement",
+    "Trouver un emploi",
+    "Comprendre les démarches administratives/fiscales",
+    "Préparer votre budget et vos finances",
+    "Améliorer votre niveau de langue",
+    "Obtenir de l'aide à l'arrivée (installation, démarches)",
+    "Construire un réseau, vous intégrer socialement"
+  ],
+  sectors: [
+    "Vente et commerce (ex : prêt-à-porter, chaussures, commerce spécialisé)",
+    "Nettoyage et entretien (ex : bureaux, espaces collectifs)",
+    "Hôtellerie et restauration (ex : plonge, service, aide de cuisine)",
+    "Agriculture et récolte (ex : récolte de fruits, travaux saisonniers)",
+    "Missions polyvalentes et emplois accessibles rapidement",
+    "Production industrielle (assemblage, fabrication, conditionnement, contrôle qualité)",
+    "Autre métier / autre secteur"
+  ]
+};
+
+const candidateTallyCopy = {
+  fr: {
+    eyebrow: "Questionnaire candidat EURES",
+    heroTitle: "Mobilité européenne, transfrontalière ou expatriation",
+    heroLede: "Ce questionnaire nous aide à mieux comprendre votre projet de mobilité en Europe, que vous envisagiez de travailler dans un pays voisin ou de partir vivre et travailler dans un autre pays européen.",
+    heroHighlight: "Quelques minutes suffisent. Vos réponses nous permettent de voir plus rapidement si des opportunités peuvent correspondre à votre situation, à vos disponibilités et à vos préférences.",
+    matrixMobileHint: "Sur téléphone et tablette, chaque ligne s'affiche verticalement pour faciliter la lecture.",
+    overviewTitle: "Concernant votre projet de mobilité",
+    overviewMatrixTitle: "Sélectionner ci-dessous votre pays de résidence, le(s) pays où vous souhaitez travailler et ceux où vous avez déjà travaillé",
+    mobilityTypeTitle: "Quel type de mobilité envisagez vous ?",
+    mobilityTypeHint: "Vous pouvez choisir une seule option ou les deux.",
+    crossBorderTitle: "Votre projet de mobilité transfrontalière",
+    expatriationTitle: "Votre projet d'expatriation",
+    professionalTitle: "Votre projet professionnel",
+    contactTitle: "Pour pouvoir vous recontacter",
+    rankingTitle: "Classez du plus important au moins important pour vous ces propositions ?",
+    rankingHint: "Attribuez un rang unique à chaque proposition : 1 pour le plus important, 7 pour le moins important.",
+    sidebarWhyTitle: "Pourquoi ce questionnaire ?",
+    sidebarWhyText: "Il sert à repérer plus facilement les personnes qui peuvent être intéressées par une opportunité de mobilité européenne, en fonction du pays visé, du métier, des langues, de la disponibilité et des conditions pratiques.",
+    sidebarAfterTitle: "Et après ?",
+    sidebarAfterText: "Si votre profil semble correspondre à un besoin en cours, il pourra être étudié pour une mise en relation. Si ce n’est pas encore le bon moment, vos réponses nous aident aussi à mieux préparer les prochaines opportunités.",
+    sidebarResumeTitle: "Reprendre plus tard",
+    sidebarResumeText: "Un identifiant est conservé pour retrouver votre progression si besoin.",
+    salaryExpectationIntro: "Indiquez ici votre attente salariale pour ce métier, en euros.",
+    fileNote: "Le nom du fichier sera enregistré. Le fichier lui-même n’est pas encore stocké côté plateforme.",
+    consentText: "J’accepte que mes réponses soient utilisées par les équipes et partenaires EURES dans le cadre de l’accompagnement à la mobilité professionnelle et des mises en relation proposées. Vos données seront utilisées uniquement dans le cadre de votre accompagnement et conformément à la réglementation européenne sur la protection des données (RGPD).",
+    whatsappTitle: "Contact WhatsApp",
+    whatsappHint: "Ce choix sert uniquement à faciliter une mise en relation lorsqu’une opportunité pertinente est identifiée. En cas de refus, les échanges se feront par e-mail ou téléphone.",
+    whatsappOptions: [
+      { value: "yes", label: "J’accepte que Match Europe utilise mon numéro pour créer, lorsqu’une opportunité pertinente est identifiée, un groupe WhatsApp réunissant l’employeur concerné, le conseiller Match Europe et moi-même. Mon numéro sera visible par les membres du groupe. Je pourrai refuser ou retirer cet accord à tout moment." },
+      { value: "no", label: "Je refuse l’utilisation de WhatsApp pour les mises en relation. En cas d’opportunité pertinente, les échanges se feront par e-mail ou téléphone." }
+    ],
+    rankingError: "Chaque priorité d'expatriation doit avoir un rang unique de 1 à 7.",
+    errors: {
+      maxFour: "Vous avez déjà choisi 4 éléments pour cette section."
+    },
+    mobilityTypeOptions: ["Transfrontalière", "Expatriation"],
+    countryColumns: ["J'y habite", "Je veux y travailler", "J'y ai déjà travaillé"],
+    countryRows: ["Allemagne", "France", "Luxembourg", "Un autre pays de l'UE", "Un autre pays hors UE"],
+    scheduleColumns: ["Matin", "Après-midi", "Soir", "Nuit"],
+    scheduleRows: ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"],
+    documentsColumns: ["Je l'ai", "Je suis en train de le préparer", "Je ne sais pas encore"],
+    documentsRows: [
+      "Carte d'identité ou passeport (en cours de validité)",
+      "CV à jour",
+      "Vos diplômes ou qualifications professionnelles",
+      "Compte bancaire / IBAN"
+    ],
+    languageColumns: [
+      "Langue maternelle",
+      "Je peux échanger à l'oral",
+      "Je peux travailler avec cette langue",
+      "J'utilise un outil de traduction si nécessaire",
+      "Je ne la pratique pas"
+    ],
+    languageRows: ["Allemand", "Anglais", "Français", "Luxembourgeois"],
+    rankingOptions: [
+      "Trouver un logement",
+      "Trouver un emploi",
+      "Comprendre les démarches administratives/fiscales",
+      "Préparer votre budget et vos finances",
+      "Améliorer votre niveau de langue",
+      "Obtenir de l'aide à l'arrivée (installation, démarches)",
+      "Construire un réseau, vous intégrer socialement"
+    ],
+    sectors: [
+      "Vente et commerce (ex : prêt-à-porter, chaussures, commerce spécialisé)",
+      "Nettoyage et entretien (ex : bureaux, espaces collectifs)",
+      "Hôtellerie et restauration (ex : plonge, service, aide de cuisine)",
+      "Agriculture et récolte (ex : récolte de fruits, travaux saisonniers)",
+      "Missions polyvalentes et emplois accessibles rapidement",
+      "Production industrielle (assemblage, fabrication, conditionnement, contrôle qualité)",
+      "Autre métier / autre secteur"
+    ],
+    questions: {
+      q03: "Avez-vous déjà travaillé sous statut \"frontalier\" ?",
+      q04: "Quel temps de trajet maximum accepteriez vous de faire (aller simple) ?",
+      q05: "Comment vous vous déplaceriez au quotidien ?",
+      q06: "Quelles sont vos disponibilités horaires ?",
+      q07: "Sélectionner vos disponibilités",
+      q08: "Quels types de contrats accepteriez vous ?",
+      q09: "À partir de quand seriez-vous disponible pour commencer un emploi ?",
+      q10: "Où en êtes-vous dans la préparation de ces documents ?",
+      q10Hint: "Il n’est pas nécessaire d’avoir déjà tous les documents.",
+      q11: "Avez-vous déjà un numéro ou une affiliation à la sécurité sociale luxembourgeoise ?",
+      q12: "Avez-vous déjà un numéro ou une affiliation à la sécurité sociale allemande ?",
+      q13: "Avez-vous déjà un numéro ou une affiliation à la sécurité sociale française ?",
+      q14: "Avez-vous déjà vécu et travaillé dans pays étranger ?",
+      q15: "Quand souhaitez-vous partir ?",
+      q16: "Concernant les conditions de votre départ, vous partirez :",
+      q18: "Vos compétences linguistiques",
+      q19: "Dans quels secteurs souhaitez-vous travailler ?",
+      q19Other: "Précisez votre métier",
+      sectorHint: "Vous pouvez sélectionner jusqu'à 4 propositions.",
+      q21: "Avez-vous une expérience professionnelle dans le secteur de la vente et du commerce ?",
+      q23: "Avez-vous une expérience professionnelle dans le secteur du nettoyage ?",
+      q24: "Disposez-vous d’un extrait de casier judiciaire (bulletin n°3) datant de moins de 3 mois ?",
+      q26: "Avez-vous une expérience professionnelle dans le secteur de l'hôtellerie et de la restauration?",
+      q28: "Avez-vous une expérience professionnelle dans le secteur de l'agriculture et de la récolte?",
+      q30: "Avez-vous une expérience professionnelle ?",
+      q39: "Avez-vous une expérience professionnelle dans le secteur de la production industrielle ?",
+      q41: "Disposez-vous d’un permis de conduire ou d’une autorisation particulière ?",
+      q42: "Quels permis ou autorisations possédez-vous ?",
+      q42Extra: "Précisez le permis ou l’autorisation",
+      q43: "Quelles conditions de travail pouvez-vous accepter ?",
+      jobTitle: "Quel intitulé de poste recherchez-vous pour ce métier ?",
+      salaryType: "Sous quelle forme pensez-vous à votre salaire ?",
+      salaryMin: "Quel est le minimum que vous souhaiteriez pour ce métier, en euros bruts ou nets ?",
+      firstName: "Prénom",
+      lastName: "Nom",
+      email: "Adresse e-mail",
+      phone: "Téléphone",
+      city: "Ville de résidence actuelle",
+      cv: "Souhaitez-vous transmettre votre CV ?"
+    },
+    options: {
+      yesNo: ["Oui", "Non"],
+      yesNoUnknown: ["Oui", "Non", "Je ne sais pas"],
+      commute: ["30 min", "1h", "1h30", "2h", "Plus de 2h"],
+      transport: ["Voiture", "Train", "Bus", "Covoiturage", "Je ne sais pas encore"],
+      schedule: ["Je suis disponible sur des horaires variés", "J’ai des contraintes ou préférences horaires"],
+      contracts: ["CDI", "CDD", "Intérim", "Saisonnier", "Temps plein", "Temps partiel"],
+      startDate: ["Dès que possible", "Dans les prochains jours", "Dans les prochaines semaines", "Dans 1 à 3 mois", "Je ne sais pas encore"],
+      departWhen: ["Dès que possible", "D'ici 3 mois", "Entre 3 et 6 mois", "Dans  plus de 6 mois", "Je ne sais pas"],
+      departWith: ["Uniquement vous", "En couple", "En famille"],
+      experience: ["Oui, plus de 2 ans", "Oui, entre 6 mois et 2 ans", "Oui, moins de 6 mois", "Non, mais je suis intéressé(e) par le secteur"],
+      backgroundCheck: ["Oui", "Non", "Je peux en faire la demande rapidement", "Je ne sais pas"],
+      workConditions: ["Travail tôt le matin ou en horaires décalés", "Travail en soirée ou la nuit", "Travail le week-end ou les jours fériés", "Horaires variables", "Travail posté", "Travail physique", "Travail debout prolongé", "Travail en extérieur", "Déplacements fréquents", "Travail en équipe", "Aucune condition particulière", "Je ne sais pas encore"],
+      permits: ["Permis B", "Permis C", "Permis CE", "Permis D", "Permis DE", "CACES", "Autre"]
+    },
+    salaryUnits: ["Par heure", "Par mois", "Par an"],
+    salaryAmountTypes: [
+      { value: "gross", label: "Brut" },
+      { value: "net", label: "Net" }
+    ],
+    salaryFields: {
+      type: "Sous quelle forme pensez-vous à votre salaire ?",
+      amountType: "Votre attente est-elle exprimée en brut ou en net ?",
+      min: "Quel est le minimum que vous souhaiteriez pour ce métier, en euros ?"
+    },
+    sectorTitles: {
+      vente: "Vente et commerce",
+      nettoyage: "Nettoyage et entretien",
+      hotel: "Hôtellerie et restauration",
+      agri: "Agriculture et récolte",
+      polyvalent: "Missions polyvalentes et emplois accessibles rapidement",
+      industrie_production: "Production industrielle (assemblage, fabrication, conditionnement, contrôle qualité)"
+    },
+    sectorLegends: {
+      vente: "Vente et commerce — parmi les propositions suivantes, lesquelles vous correspondent le mieux ?",
+      nettoyage: "Nettoyage et entretien — parmi les propositions suivantes, lesquelles vous correspondent le mieux ?",
+      hotel: "Hôtellerie et restauration — parmi les propositions suivantes, lesquelles vous correspondent le mieux ?",
+      agri: "Agriculture et récolte — parmi les propositions suivantes, lesquelles vous correspondent le mieux ?",
+      polyvalent: "Missions polyvalentes et emplois accessibles rapidement — parmi les propositions suivantes, lesquelles vous correspondent le mieux ?",
+      industrie_production: "Production industrielle (assemblage, fabrication, conditionnement, contrôle qualité) — parmi les propositions suivantes, lesquelles vous correspondent le mieux ?"
+    },
+    sectorChoices: {
+      vente: [
+        "Accueillir et orienter les clients",
+        "Conseiller un produit ou un service",
+        "Comprendre rapidement une demande",
+        "Réaliser un encaissement",
+        "Garder son calme en période d’affluence",
+        "Travailler en équipe",
+        "Être ponctuel",
+        "S’adapter à différentes tâches",
+        "Résister au stress",
+        "Aider un collègue si nécessaire",
+        "Fidéliser la clientèle",
+        "Maintenir un espace de vente propre et organisé"
+      ],
+      nettoyage: [
+        "Travailler de manière autonome",
+        "Appliquer des consignes",
+        "Organiser son travail",
+        "Maintenir un espace propre et organisé",
+        "S'adapter à une situation imprévue",
+        "Prendre soin du matériel utilisé",
+        "Être efficace dans ses tâches",
+        "Travailler en équipe",
+        "Aider un collègue si nécessaire",
+        "Être ponctuel",
+        "Respecter des règles d’hygiène et de sécurité",
+        "Effectuer des tâches répétitives"
+      ],
+      hotel: [
+        "Accueillir et orienter les clients",
+        "Travailler en équipe",
+        "Garder son calme pendant les périodes d’affluence",
+        "Appliquer des consignes",
+        "Être ponctuel",
+        "S’adapter à différentes tâches",
+        "Mémoriser des commandes ou des informations",
+        "Aider un collègue si nécessaire",
+        "Résister au stress",
+        "Maintenir un espace propre et organisé",
+        "Conseiller un client ou répondre à une demande"
+      ],
+      agri: [
+        "Être ponctuel",
+        "Travailler en équipe",
+        "Appliquer des consignes",
+        "Prendre soin du matériel utilisé",
+        "Aider un collègue si nécessaire",
+        "Garder son calme en période d’activité intense",
+        "Réaliser des tâches physiques",
+        "Travailler en extérieur et selon les conditions météo",
+        "S’adapter à différentes tâches",
+        "Effectuer des tâches répétitives"
+      ],
+      polyvalent: [
+        "S’adapter rapidement à une nouvelle tâche",
+        "Travailler en équipe",
+        "Respecter les consignes",
+        "Respecter les horaires de travail",
+        "Réaliser un travail physique",
+        "Travailler à un rythme soutenu",
+        "Travailler dans différents environnements",
+        "Accepter des horaires variables",
+        "Aider un collègue si nécessaire",
+        "Être disponible rapidement"
+      ],
+      industrie_production: [
+        "Respect des consignes",
+        "Travail en équipe",
+        "Rigueur",
+        "Respect des règles de sécurité",
+        "Contrôle qualité",
+        "Utilisation de machines de production",
+        "Lecture de consignes techniques",
+        "Cadence de production",
+        "Maintenance de premier niveau",
+        "Organisation du poste de travail",
+        "Réactivité",
+        "Polyvalence"
+      ]
+    }
+  },
+  en: {
+    eyebrow: "EURES candidate questionnaire",
+    heroTitle: "European mobility, cross-border commuting or relocation",
+    heroLede: "This questionnaire helps us better understand your mobility plans in Europe, whether you are considering working in a neighbouring country or moving to live and work in another European country.",
+    heroHighlight: "It only takes a few minutes. Your answers help us identify more quickly whether opportunities may match your situation, availability and preferences.",
+    matrixMobileHint: "On mobile and tablet, each row is displayed vertically for easier reading.",
+    overviewTitle: "About your mobility plans",
+    overviewMatrixTitle: "Select below your country of residence, the country or countries where you would like to work, and those where you have already worked",
+    mobilityTypeTitle: "What type of mobility are you considering?",
+    mobilityTypeHint: "You can choose one option or both.",
+    crossBorderTitle: "Your cross-border mobility plans",
+    expatriationTitle: "Your relocation plans",
+    professionalTitle: "Your professional plans",
+    contactTitle: "So that we can contact you again",
+    rankingTitle: "Rank these items from most important to least important for you",
+    rankingHint: "Give a unique rank to each item: 1 for the most important, 7 for the least important.",
+    sidebarWhyTitle: "Why this questionnaire?",
+    sidebarWhyText: "It helps us identify more easily people who may be interested in a European mobility opportunity, based on the target country, job sector, languages, availability and practical conditions.",
+    sidebarAfterTitle: "What happens next?",
+    sidebarAfterText: "If your profile seems to match an active need, it may be reviewed for a possible introduction. If the timing is not right yet, your answers still help us prepare upcoming opportunities better.",
+    sidebarResumeTitle: "Continue later",
+    sidebarResumeText: "An identifier is kept so your progress can be found again if needed.",
+    salaryExpectationIntro: "Indicate your salary expectation for this role here, in euros.",
+    fileNote: "The file name will be recorded. The file itself is not yet stored on the platform.",
+    consentText: "I agree that my answers may be used by EURES teams and partners for professional mobility support and the proposed introductions. Your data will only be used for your support and in accordance with European data protection rules (GDPR).",
+    whatsappTitle: "WhatsApp contact",
+    whatsappHint: "This choice is only used to facilitate an introduction when a relevant opportunity is identified. If you refuse, exchanges will take place by email or phone.",
+    whatsappOptions: [
+      { value: "yes", label: "I agree that Match Europe may use my number to create, when a relevant opportunity is identified, a WhatsApp group including the employer concerned, the Match Europe adviser and myself. My number will be visible to the group members. I may refuse or withdraw this agreement at any time." },
+      { value: "no", label: "I refuse the use of WhatsApp for introductions. If a relevant opportunity is identified, exchanges will take place by email or phone." }
+    ],
+    rankingError: "Each relocation priority must have a unique rank from 1 to 7.",
+    errors: {
+      maxFour: "You have already selected 4 items for this section."
+    },
+    mobilityTypeOptions: ["Cross-border commuting", "Relocation"],
+    countryColumns: ["I live there", "I want to work there", "I have already worked there"],
+    countryRows: ["Germany", "France", "Luxembourg", "Another EU country", "Another non-EU country"],
+    scheduleColumns: ["Morning", "Afternoon", "Evening", "Night"],
+    scheduleRows: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+    documentsColumns: ["I already have it", "I am preparing it", "I do not know yet"],
+    documentsRows: [
+      "Identity card or passport (valid)",
+      "Up-to-date CV",
+      "Your diplomas or professional qualifications",
+      "Bank account / IBAN"
+    ],
+    languageColumns: [
+      "Native language",
+      "I can speak it",
+      "I can work in this language",
+      "I use a translation tool if needed",
+      "I do not use it"
+    ],
+    languageRows: ["German", "English", "French", "Luxembourgish"],
+    rankingOptions: [
+      "Finding accommodation",
+      "Finding a job",
+      "Understanding administrative and tax procedures",
+      "Planning your budget and finances",
+      "Improving your language level",
+      "Getting help on arrival (settling in, procedures)",
+      "Building a network and integrating socially"
+    ],
+    sectors: [
+      "Sales and retail (for example ready-to-wear, shoes, specialist retail)",
+      "Cleaning and maintenance (for example offices, shared spaces)",
+      "Hospitality and food service (for example dishwashing, service, kitchen support)",
+      "Agriculture and harvesting (for example fruit picking, seasonal work)",
+      "Versatile jobs and roles accessible quickly",
+      "Industrial production (assembly, manufacturing, packaging, quality control)",
+      "Other occupation / other sector"
+    ],
+    questions: {
+      q03: "Have you already worked with cross-border commuter status?",
+      q04: "What maximum travel time would you accept (one way)?",
+      q05: "How would you travel on a daily basis?",
+      q06: "What are your schedule availabilities?",
+      q07: "Select your availabilities",
+      q08: "Which types of contract would you accept?",
+      q09: "When would you be available to start a job?",
+      q10: "Where do you stand in preparing these documents?",
+      q10Hint: "It is not necessary to already have all of them.",
+      q11: "Do you already have a Luxembourg social security number or affiliation?",
+      q12: "Do you already have a German social security number or affiliation?",
+      q13: "Do you already have a French social security number or affiliation?",
+      q14: "Have you already lived and worked in a foreign country?",
+      q15: "When would you like to leave?",
+      q16: "Regarding your departure, you would leave:",
+      q18: "Your language skills",
+      q19: "In which sectors would you like to work?",
+      q19Other: "Specify your occupation",
+      sectorHint: "You can select up to 4 options.",
+      q21: "Do you have work experience in sales and retail?",
+      q23: "Do you have work experience in cleaning?",
+      q24: "Do you have a criminal record extract issued within the last 3 months?",
+      q26: "Do you have work experience in hospitality and food service?",
+      q28: "Do you have work experience in agriculture and harvesting?",
+      q30: "Do you have work experience?",
+      q39: "Do you have work experience in industrial production?",
+      q41: "Do you have a driving licence or a specific authorisation?",
+      q42: "Which licences or authorisations do you have?",
+      q42Extra: "Specify the licence or authorisation",
+      q43: "Which working conditions can you accept?",
+      jobTitle: "What job title are you looking for in this occupation?",
+      salaryType: "How do you think about your salary?",
+      salaryMin: "What is the minimum you would like for this role, in gross or net euros?",
+      firstName: "First name",
+      lastName: "Last name",
+      email: "Email address",
+      phone: "Phone",
+      city: "Current city of residence",
+      cv: "Would you like to provide your CV?"
+    },
+    options: {
+      yesNo: ["Yes", "No"],
+      yesNoUnknown: ["Yes", "No", "I don't know"],
+      commute: ["30 min", "1h", "1h30", "2h", "More than 2h"],
+      transport: ["Car", "Train", "Bus", "Carpooling", "I don't know yet"],
+      schedule: ["I am available on varied schedules", "I have schedule constraints or preferences"],
+      contracts: ["Permanent contract", "Fixed-term contract", "Temporary agency work", "Seasonal", "Full-time", "Part-time"],
+      startDate: ["As soon as possible", "In the next few days", "In the next few weeks", "In 1 to 3 months", "I don't know yet"],
+      departWhen: ["As soon as possible", "Within 3 months", "Between 3 and 6 months", "In more than 6 months", "I don't know"],
+      departWith: ["Only you", "As a couple", "As a family"],
+      experience: ["Yes, more than 2 years", "Yes, between 6 months and 2 years", "Yes, less than 6 months", "No, but I am interested in this sector"],
+      backgroundCheck: ["Yes", "No", "I can request it quickly", "I don't know"],
+      workConditions: ["Early morning work or staggered hours", "Evening or night work", "Weekend or public holiday work", "Variable hours", "Shift work", "Physical work", "Prolonged standing work", "Outdoor work", "Frequent travel", "Teamwork", "No particular condition", "I do not know yet"],
+      permits: ["Category B driving licence", "Category C driving licence", "Category CE driving licence", "Category D driving licence", "Category DE driving licence", "CACES", "Other"]
+    },
+    salaryUnits: ["Per hour", "Per month", "Per year"],
+    salaryAmountTypes: [
+      { value: "gross", label: "Gross" },
+      { value: "net", label: "Net" }
+    ],
+    salaryFields: {
+      type: "How do you think about your salary?",
+      amountType: "Is your expectation expressed as gross or net?",
+      min: "What is the minimum you would like for this role, in euros?"
+    },
+    sectorTitles: {
+      vente: "Sales and retail",
+      nettoyage: "Cleaning and maintenance",
+      hotel: "Hospitality and food service",
+      agri: "Agriculture and harvesting",
+      polyvalent: "Versatile jobs and roles accessible quickly",
+      industrie_production: "Industrial production (assembly, manufacturing, packaging, quality control)"
+    },
+    sectorLegends: {
+      vente: "Sales and retail: which of the following statements describe you best?",
+      nettoyage: "Cleaning and maintenance: which of the following statements describe you best?",
+      hotel: "Hospitality and food service: which of the following statements describe you best?",
+      agri: "Agriculture and harvesting: which of the following statements describe you best?",
+      polyvalent: "Versatile jobs and roles accessible quickly: which of the following statements describe you best?",
+      industrie_production: "Industrial production (assembly, manufacturing, packaging, quality control): which of the following statements describe you best?"
+    },
+    sectorChoices: {
+      vente: ["Welcoming and guiding customers", "Advising on a product or service", "Understanding a request quickly", "Handling payment", "Staying calm during busy periods", "Working as part of a team", "Being punctual", "Adapting to different tasks", "Handling stress", "Helping a colleague when needed", "Building customer loyalty", "Keeping the sales area clean and organised"],
+      nettoyage: ["Working independently", "Following instructions", "Organising your work", "Keeping an area clean and organised", "Adapting to an unexpected situation", "Taking care of the equipment used", "Being efficient in your tasks", "Working as part of a team", "Helping a colleague when needed", "Being punctual", "Following hygiene and safety rules", "Carrying out repetitive tasks"],
+      hotel: ["Welcoming and guiding customers", "Working as part of a team", "Staying calm during busy periods", "Following instructions", "Being punctual", "Adapting to different tasks", "Remembering orders or information", "Helping a colleague when needed", "Handling stress", "Keeping an area clean and organised", "Advising a customer or answering a request"],
+      agri: ["Being punctual", "Working as part of a team", "Following instructions", "Taking care of the equipment used", "Helping a colleague when needed", "Staying calm during intense periods of activity", "Doing physical tasks", "Working outdoors and depending on weather conditions", "Adapting to different tasks", "Carrying out repetitive tasks"],
+      polyvalent: ["Adapting quickly to a new task", "Working as part of a team", "Following instructions", "Respecting working hours", "Doing physical work", "Working at a sustained pace", "Working in different environments", "Accepting variable schedules", "Helping a colleague when needed", "Being available quickly"],
+      industrie_production: ["Following instructions", "Working as part of a team", "Being rigorous", "Following safety rules", "Quality control", "Using production machines", "Reading technical instructions", "Working at production pace", "First-level maintenance", "Organising your workstation", "Being reactive", "Being versatile"]
+    }
+  },
+  de: {
+    eyebrow: "EURES-Kandidatenfragebogen",
+    heroTitle: "Europäische Mobilität, Grenzpendeln oder Umzug",
+    heroLede: "Dieser Fragebogen hilft uns, Ihre Mobilitätspläne in Europa besser zu verstehen, egal ob Sie in einem Nachbarland arbeiten möchten oder in ein anderes europäisches Land ziehen wollen, um dort zu leben und zu arbeiten.",
+    heroHighlight: "Das dauert nur wenige Minuten. Ihre Antworten helfen uns, schneller zu erkennen, ob Chancen zu Ihrer Situation, Ihrer Verfügbarkeit und Ihren Präferenzen passen könnten.",
+    matrixMobileHint: "Auf Smartphone und Tablet wird jede Zeile untereinander angezeigt, damit sie leichter lesbar ist.",
+    overviewTitle: "Zu Ihrem Mobilitätsprojekt",
+    overviewMatrixTitle: "Wählen Sie unten Ihr Wohnland, die Länder, in denen Sie arbeiten möchten, und die Länder, in denen Sie bereits gearbeitet haben",
+    mobilityTypeTitle: "Welche Art von Mobilität ziehen Sie in Betracht?",
+    mobilityTypeHint: "Sie können eine oder beide Optionen wählen.",
+    crossBorderTitle: "Ihr grenzüberschreitendes Mobilitätsprojekt",
+    expatriationTitle: "Ihr Umzugsprojekt",
+    professionalTitle: "Ihr berufliches Projekt",
+    contactTitle: "Damit wir Sie wieder kontaktieren können",
+    rankingTitle: "Ordnen Sie diese Punkte von am wichtigsten bis am wenigsten wichtig für Sie",
+    rankingHint: "Geben Sie jedem Punkt einen eindeutigen Rang: 1 für am wichtigsten, 7 für am wenigsten wichtig.",
+    sidebarWhyTitle: "Warum dieser Fragebogen?",
+    sidebarWhyText: "Er hilft uns, leichter Personen zu erkennen, die an einer europäischen Mobilitätschance interessiert sein könnten, je nach Zielland, Berufsfeld, Sprachen, Verfügbarkeit und praktischen Bedingungen.",
+    sidebarAfterTitle: "Wie geht es danach weiter?",
+    sidebarAfterText: "Wenn Ihr Profil zu einem aktuellen Bedarf zu passen scheint, kann es für eine mögliche Vermittlung geprüft werden. Wenn der Zeitpunkt noch nicht passt, helfen uns Ihre Antworten trotzdem dabei, kommende Chancen besser vorzubereiten.",
+    sidebarResumeTitle: "Später fortsetzen",
+    sidebarResumeText: "Eine Kennung wird gespeichert, damit Ihr Fortschritt bei Bedarf wiedergefunden werden kann.",
+    salaryExpectationIntro: "Geben Sie hier Ihre Gehaltserwartung für diesen Beruf in Euro an.",
+    fileNote: "Der Dateiname wird gespeichert. Die Datei selbst wird derzeit noch nicht auf der Plattform gespeichert.",
+    consentText: "Ich stimme zu, dass meine Antworten von EURES-Teams und Partnern für die Begleitung der beruflichen Mobilität und die vorgeschlagenen Vermittlungen verwendet werden dürfen. Ihre Daten werden nur im Rahmen Ihrer Begleitung und gemäß den europäischen Datenschutzvorschriften (DSGVO) verwendet.",
+    whatsappTitle: "Kontakt über WhatsApp",
+    whatsappHint: "Diese Auswahl dient nur dazu, eine Kontaktaufnahme zu erleichtern, wenn eine passende Gelegenheit identifiziert wird. Bei Ablehnung erfolgen die Kontakte per E-Mail oder Telefon.",
+    whatsappOptions: [
+      { value: "yes", label: "Ich stimme zu, dass Match Europe meine Nummer verwenden darf, um bei einer passenden Gelegenheit eine WhatsApp-Gruppe mit dem betreffenden Arbeitgeber, dem Match-Europe-Berater und mir zu erstellen. Meine Nummer ist für die Gruppenmitglieder sichtbar. Ich kann diese Zustimmung jederzeit ablehnen oder widerrufen." },
+      { value: "no", label: "Ich lehne die Nutzung von WhatsApp für Vermittlungen ab. Bei einer passenden Gelegenheit erfolgen die Kontakte per E-Mail oder Telefon." }
+    ],
+    rankingError: "Jede Umzugspriorität muss einen eindeutigen Rang von 1 bis 7 haben.",
+    errors: {
+      maxFour: "Sie haben für diesen Abschnitt bereits 4 Elemente ausgewählt."
+    },
+    mobilityTypeOptions: ["Grenzpendeln", "Umzug"],
+    countryColumns: ["Ich wohne dort", "Ich möchte dort arbeiten", "Ich habe dort bereits gearbeitet"],
+    countryRows: ["Deutschland", "Frankreich", "Luxemburg", "Ein anderes EU-Land", "Ein anderes Nicht-EU-Land"],
+    scheduleColumns: ["Morgen", "Nachmittag", "Abend", "Nacht"],
+    scheduleRows: ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"],
+    documentsColumns: ["Ich habe es bereits", "Ich bereite es gerade vor", "Ich weiß es noch nicht"],
+    documentsRows: [
+      "Personalausweis oder Reisepass (gültig)",
+      "Aktueller Lebenslauf",
+      "Ihre Diplome oder beruflichen Qualifikationen",
+      "Bankkonto / IBAN"
+    ],
+    languageColumns: [
+      "Muttersprache",
+      "Ich kann mich mündlich verständigen",
+      "Ich kann in dieser Sprache arbeiten",
+      "Ich nutze bei Bedarf ein Übersetzungstool",
+      "Ich nutze sie nicht"
+    ],
+    languageRows: ["Deutsch", "Englisch", "Französisch", "Luxemburgisch"],
+    rankingOptions: [
+      "Eine Unterkunft finden",
+      "Eine Arbeit finden",
+      "Verwaltungs- und Steuerverfahren verstehen",
+      "Ihr Budget und Ihre Finanzen planen",
+      "Ihr Sprachniveau verbessern",
+      "Hilfe bei der Ankunft erhalten (Einrichtung, Verfahren)",
+      "Ein Netzwerk aufbauen und sich sozial integrieren"
+    ],
+    sectors: [
+      "Verkauf und Handel (z. B. Bekleidung, Schuhe, Fachhandel)",
+      "Reinigung und Instandhaltung (z. B. Büros, Gemeinschaftsflächen)",
+      "Hotellerie und Gastronomie (z. B. Spülküche, Service, Küchenhilfe)",
+      "Landwirtschaft und Ernte (z. B. Obsternte, Saisonarbeit)",
+      "Vielseitige Tätigkeiten und Jobs mit schnellem Einstieg",
+      "Industrielle Produktion (Montage, Fertigung, Verpackung, Qualitätskontrolle)",
+      "Anderer Beruf / anderer Sektor"
+    ],
+    questions: {
+      q03: "Haben Sie bereits mit Grenzgängerstatus gearbeitet?",
+      q04: "Welche maximale Fahrzeit würden Sie akzeptieren (einfache Strecke)?",
+      q05: "Wie würden Sie sich täglich fortbewegen?",
+      q06: "Wie sind Ihre zeitlichen Verfügbarkeiten?",
+      q07: "Wählen Sie Ihre Verfügbarkeiten",
+      q08: "Welche Vertragsarten würden Sie akzeptieren?",
+      q09: "Ab wann wären Sie verfügbar, um eine Arbeit zu beginnen?",
+      q10: "Wie weit sind Sie bei der Vorbereitung dieser Unterlagen?",
+      q10Hint: "Es ist nicht nötig, bereits alle Unterlagen zu haben.",
+      q11: "Haben Sie bereits eine luxemburgische Sozialversicherungsnummer oder Zugehörigkeit?",
+      q12: "Haben Sie bereits eine deutsche Sozialversicherungsnummer oder Zugehörigkeit?",
+      q13: "Haben Sie bereits eine französische Sozialversicherungsnummer oder Zugehörigkeit?",
+      q14: "Haben Sie bereits in einem anderen Land gelebt und gearbeitet?",
+      q15: "Wann möchten Sie aufbrechen?",
+      q16: "Unter welchen Bedingungen würden Sie aufbrechen:",
+      q18: "Ihre Sprachkenntnisse",
+      q19: "In welchen Bereichen möchten Sie arbeiten?",
+      q19Other: "Geben Sie Ihren Beruf an",
+      sectorHint: "Sie können bis zu 4 Antworten auswählen.",
+      q21: "Haben Sie Berufserfahrung im Verkauf und Handel?",
+      q23: "Haben Sie Berufserfahrung in der Reinigung?",
+      q24: "Verfügen Sie über einen Strafregisterauszug, der nicht älter als 3 Monate ist?",
+      q26: "Haben Sie Berufserfahrung in Hotellerie und Gastronomie?",
+      q28: "Haben Sie Berufserfahrung in Landwirtschaft und Ernte?",
+      q30: "Haben Sie Berufserfahrung?",
+      q39: "Haben Sie Berufserfahrung in der industriellen Produktion?",
+      q41: "Verfügen Sie über einen Führerschein oder eine besondere Genehmigung?",
+      q42: "Welche Führerscheine oder Genehmigungen besitzen Sie?",
+      q42Extra: "Bitte präzisieren Sie den Führerschein oder die Genehmigung",
+      q43: "Welche Arbeitsbedingungen können Sie akzeptieren?",
+      jobTitle: "Welche konkrete Stellenbezeichnung suchen Sie für diesen Beruf?",
+      salaryType: "In welcher Form denken Sie an Ihr Gehalt?",
+      salaryMin: "Was ist das Minimum, das Sie für diesen Beruf in Euro brutto oder netto erwarten würden?",
+      firstName: "Vorname",
+      lastName: "Nachname",
+      email: "E-Mail-Adresse",
+      phone: "Telefon",
+      city: "Aktueller Wohnort",
+      cv: "Möchten Sie Ihren Lebenslauf übermitteln?"
+    },
+    options: {
+      yesNo: ["Ja", "Nein"],
+      yesNoUnknown: ["Ja", "Nein", "Ich weiß es nicht"],
+      commute: ["30 Min.", "1 Std.", "1 Std. 30", "2 Std.", "Mehr als 2 Std."],
+      transport: ["Auto", "Zug", "Bus", "Fahrgemeinschaft", "Ich weiß es noch nicht"],
+      schedule: ["Ich bin zu unterschiedlichen Zeiten verfügbar", "Ich habe zeitliche Einschränkungen oder Präferenzen"],
+      contracts: ["Unbefristeter Vertrag", "Befristeter Vertrag", "Zeitarbeit", "Saisonarbeit", "Vollzeit", "Teilzeit"],
+      startDate: ["So schnell wie möglich", "In den nächsten Tagen", "In den nächsten Wochen", "In 1 bis 3 Monaten", "Ich weiß es noch nicht"],
+      departWhen: ["So schnell wie möglich", "Innerhalb von 3 Monaten", "Zwischen 3 und 6 Monaten", "In mehr als 6 Monaten", "Ich weiß es nicht"],
+      departWith: ["Nur Sie", "Als Paar", "Als Familie"],
+      experience: ["Ja, mehr als 2 Jahre", "Ja, zwischen 6 Monaten und 2 Jahren", "Ja, weniger als 6 Monate", "Nein, aber ich interessiere mich für diesen Bereich"],
+      backgroundCheck: ["Ja", "Nein", "Ich kann ihn schnell beantragen", "Ich weiß es nicht"],
+      workConditions: ["Arbeit früh am Morgen oder zu versetzten Zeiten", "Arbeit am Abend oder in der Nacht", "Arbeit am Wochenende oder an Feiertagen", "Variable Arbeitszeiten", "Schichtarbeit", "Körperliche Arbeit", "Längeres Stehen", "Arbeit im Freien", "Häufige Fahrten", "Teamarbeit", "Keine besonderen Bedingungen", "Ich weiß es noch nicht"],
+      permits: ["Führerschein B", "Führerschein C", "Führerschein CE", "Führerschein D", "Führerschein DE", "CACES", "Andere"]
+    },
+    salaryUnits: ["Pro Stunde", "Pro Monat", "Pro Jahr"],
+    salaryAmountTypes: [
+      { value: "gross", label: "Brutto" },
+      { value: "net", label: "Netto" }
+    ],
+    salaryFields: {
+      type: "In welcher Form denken Sie an Ihr Gehalt?",
+      amountType: "Ist Ihre Erwartung als Brutto- oder Nettobetrag angegeben?",
+      min: "Was ist das Minimum, das Sie für diesen Beruf in Euro erwarten würden?"
+    },
+    sectorTitles: {
+      vente: "Verkauf und Handel",
+      nettoyage: "Reinigung und Instandhaltung",
+      hotel: "Hotellerie und Gastronomie",
+      agri: "Landwirtschaft und Ernte",
+      polyvalent: "Vielseitige Tätigkeiten und Jobs mit schnellem Einstieg",
+      industrie_production: "Industrielle Produktion (Montage, Fertigung, Verpackung, Qualitätskontrolle)"
+    },
+    sectorLegends: {
+      vente: "Verkauf und Handel: Welche der folgenden Aussagen passen am besten zu Ihnen?",
+      nettoyage: "Reinigung und Instandhaltung: Welche der folgenden Aussagen passen am besten zu Ihnen?",
+      hotel: "Hotellerie und Gastronomie: Welche der folgenden Aussagen passen am besten zu Ihnen?",
+      agri: "Landwirtschaft und Ernte: Welche der folgenden Aussagen passen am besten zu Ihnen?",
+      polyvalent: "Vielseitige Tätigkeiten und Jobs mit schnellem Einstieg: Welche der folgenden Aussagen passen am besten zu Ihnen?",
+      industrie_production: "Industrielle Produktion (Montage, Fertigung, Verpackung, Qualitätskontrolle): Welche der folgenden Aussagen passen am besten zu Ihnen?"
+    },
+    sectorChoices: {
+      vente: ["Kunden empfangen und orientieren", "Zu einem Produkt oder einer Dienstleistung beraten", "Eine Anfrage schnell verstehen", "Eine Zahlung durchführen", "In Stoßzeiten ruhig bleiben", "Im Team arbeiten", "Pünktlich sein", "Sich an verschiedene Aufgaben anpassen", "Stress standhalten", "Bei Bedarf einem Kollegen helfen", "Kundschaft binden", "Einen Verkaufsbereich sauber und organisiert halten"],
+      nettoyage: ["Selbstständig arbeiten", "Anweisungen befolgen", "Die eigene Arbeit organisieren", "Einen Bereich sauber und organisiert halten", "Sich an eine unvorhergesehene Situation anpassen", "Sorgfältig mit dem verwendeten Material umgehen", "In den Aufgaben effizient sein", "Im Team arbeiten", "Bei Bedarf einem Kollegen helfen", "Pünktlich sein", "Hygiene- und Sicherheitsregeln einhalten", "Wiederholende Aufgaben ausführen"],
+      hotel: ["Kunden empfangen und orientieren", "Im Team arbeiten", "Während starker Auslastung ruhig bleiben", "Anweisungen befolgen", "Pünktlich sein", "Sich an verschiedene Aufgaben anpassen", "Bestellungen oder Informationen behalten", "Bei Bedarf einem Kollegen helfen", "Stress standhalten", "Einen Bereich sauber und organisiert halten", "Einen Kunden beraten oder auf eine Anfrage antworten"],
+      agri: ["Pünktlich sein", "Im Team arbeiten", "Anweisungen befolgen", "Sorgfältig mit dem verwendeten Material umgehen", "Bei Bedarf einem Kollegen helfen", "In intensiven Arbeitsphasen ruhig bleiben", "Körperliche Aufgaben ausführen", "Im Freien und je nach Wetterbedingungen arbeiten", "Sich an verschiedene Aufgaben anpassen", "Wiederholende Aufgaben ausführen"],
+      polyvalent: ["Sich schnell an eine neue Aufgabe anpassen", "Im Team arbeiten", "Anweisungen befolgen", "Arbeitszeiten einhalten", "Körperliche Arbeit ausführen", "In hohem Tempo arbeiten", "In unterschiedlichen Umgebungen arbeiten", "Variable Arbeitszeiten akzeptieren", "Bei Bedarf einem Kollegen helfen", "Schnell verfügbar sein"],
+      industrie_production: ["Anweisungen befolgen", "Im Team arbeiten", "Sorgfältig arbeiten", "Sicherheitsregeln einhalten", "Qualitätskontrolle", "Produktionsmaschinen bedienen", "Technische Anweisungen lesen", "Im Produktionstakt arbeiten", "Erste Wartungsarbeiten durchführen", "Den Arbeitsplatz organisieren", "Reaktionsfähig sein", "Vielseitig einsetzbar sein"]
+    }
+  }
+};
+
+function localizeOptions(values, labels) {
+  return values.map((value, index) => ({ value, label: labels[index] || value }));
+}
+
+function localizeRows(rows, labels) {
+  return rows.map((row, index) => ({ ...row, label: labels[index] || row.label }));
+}
+
+function getCandidateTallyContent(lang) {
+  const content = candidateTallyCopy[lang] || candidateTallyCopy.fr;
+  return {
+    ...content,
+    mobilityTypeOptions: localizeOptions(candidateTallyMeta.mobilityTypes, content.mobilityTypeOptions),
+    countryColumns: localizeOptions(candidateTallyMeta.countryColumns, content.countryColumns),
+    countryRows: localizeRows(candidateTallyMeta.countryRows, content.countryRows),
+    scheduleColumns: localizeOptions(candidateTallyMeta.scheduleColumns, content.scheduleColumns),
+    scheduleRows: localizeRows(candidateTallyMeta.scheduleRows, content.scheduleRows),
+    documentsColumns: localizeOptions(candidateTallyMeta.documentsColumns, content.documentsColumns),
+    documentsRows: localizeRows(candidateTallyMeta.documentsRows, content.documentsRows),
+    languageColumns: localizeOptions(candidateTallyMeta.languageColumns, content.languageColumns),
+    languageRows: localizeRows(candidateTallyMeta.languageRows, content.languageRows),
+    sectorsOptions: localizeOptions(candidateTallyMeta.sectors, content.sectors),
+    workConditionsOptions: localizeOptions(candidateTallyCopy.fr.options.workConditions, content.options.workConditions),
+    permitYesNoOptions: [
+      { value: "yes", label: (content.options.yesNo || candidateTallyCopy.fr.options.yesNo)[0] || "Oui" },
+      { value: "no", label: (content.options.yesNo || candidateTallyCopy.fr.options.yesNo)[1] || "Non" }
+    ],
+    permitOptions: localizeOptions(candidateTallyCopy.fr.options.permits, content.options.permits),
+    rankingDisplayOptions: content.rankingOptions
+  };
+}
+
+const employerTallyMeta = {
+  formId: "ZjZA7A",
+  sectors: [
+    "Vente et commerce",
+    "Nettoyage et entretien",
+    "Hôtellerie et restauration",
+    "Agriculture et récolte",
+    "Missions polyvalentes et emplois accessibles rapidement",
+    "Production industrielle (assemblage, fabrication, conditionnement, contrôle qualité)"
+  ],
+  languageColumns: ["Pas nécessaire", "Communication simple", "Communication professionelle", "Très important au quotidien"],
+  languageRows: [
+    { field: "tally_q02_f01", label: "Allemand" },
+    { field: "tally_q02_f02", label: "Anglais" },
+    { field: "tally_q02_f03", label: "Français" },
+    { field: "tally_q02_f04", label: "Luxembourgeois" }
+  ],
+  sectorPriorityGroups: {
+    tally_q10: [
+      "Être à l’aise avec les clients",
+      "Pouvoir communiquer simplement avec les clients",
+      "Travailler pendant les périodes d’affluence",
+      "Réaliser des opérations d'encaissements",
+      "Travailler en équipe",
+      "S’adapter à différentes tâches",
+      "Maintenir un espace de vente propre et organisé",
+      "Respecter les horaires de travail"
+    ],
+    tally_q11: [
+      "Respecter les procédures, consignes et les règles d’hygiène",
+      "Maintenir un niveau de qualité constant",
+      "Respecter les horaires de travail",
+      "Travailler de manière autonome",
+      "Travailler en équipe",
+      "Travailler à un rythme soutenu",
+      "S’adapter à différents lieux ou environnements de travail",
+      "Réaliser des tâches répétitives",
+      "Pouvoir se déplacer facilement sur les lieux d’intervention"
+    ],
+    tally_q12: [
+      "Accueillir et orienter les clients",
+      "Pouvoir communiquer simplement avec les clients",
+      "Travailler pendant les périodes d’affluence",
+      "Garder son calme en période d’activité intense",
+      "Travailler en équipe",
+      "Respecter les horaires de travail",
+      "Travailler en soirée, le week-end ou les jours fériés",
+      "Mémoriser des commandes ou des informations",
+      "S’adapter à différentes tâches",
+      "Maintenir un espace d'accueil ou de service propre et organisé"
+    ],
+    tally_q13: [
+      "Respecter les horaires et les périodes de récolte",
+      "Travailler en extérieur et selon les conditions météo",
+      "Réaliser un travail physique",
+      "Travailler à un rythme soutenu",
+      "Respecter les consignes de travail et de sécurité",
+      "Utiliser correctement le matériel ou les outils",
+      "Travailler en équipe",
+      "S’adapter à différents types de travaux",
+      "Pouvoir se déplacer facilement sur les lieux de travail",
+      "Maintenir une qualité de travail régulière"
+    ],
+    tally_q14: [
+      "S’adapter rapidement à différentes tâches",
+      "Respecter les consignes et les horaires",
+      "Réaliser un travail physique",
+      "Travailler à un rythme soutenu",
+      "Travailler dans différents environnements",
+      "Intégrer rapidement une équipe",
+      "Travailler en équipe",
+      "Accepter des horaires variables",
+      "Être disponible rapidement",
+      "Pouvoir commencer rapidement une mission"
+    ],
+    tally_q40: [
+      "Respect des consignes",
+      "Travail en équipe",
+      "Rigueur",
+      "Respect des règles de sécurité",
+      "Contrôle qualité",
+      "Utilisation de machines de production",
+      "Lecture de consignes techniques",
+      "Cadence de production",
+      "Maintenance de premier niveau",
+      "Organisation du poste de travail",
+      "Réactivité",
+      "Polyvalence"
+    ]
+  }
+};
+
+const employerTallyCopy = {
+  fr: {
+    eyebrow: "Questionnaire employeur EURES",
+    heroTitle: "Décrire un besoin de recrutement ouvert à la mobilité européenne",
+    heroLede: "Ce questionnaire nous aide à mieux comprendre votre besoin de recrutement, les profils recherchés, les langues utiles et les conditions de travail proposées.",
+    heroHighlight: "L’objectif est de rendre votre besoin plus clair et plus comparable, pour faciliter ensuite l’identification de profils compatibles.",
+    sidebarWhyTitle: "Pourquoi ce questionnaire ?",
+    sidebarWhyText: "Il sert à rendre le besoin de recrutement plus lisible : secteur, volume, langues, contraintes de travail, profils acceptés et éventuelles aides à l’installation.",
+    sidebarAfterTitle: "Et après ?",
+    sidebarAfterText: "Si des profils semblent correspondre, votre besoin peut être repris pour une mise en relation. Sinon, les réponses servent déjà à mieux structurer les prochains recrutements.",
+    sidebarResumeTitle: "Reprendre plus tard",
+    sidebarResumeText: "Un identifiant est conservé pour retrouver votre progression si besoin.",
+    salaryOfferIntro: "Indiquez ici le salaire proposé pour ce métier, en euros.",
+    introNote: "Ce formulaire prend 2 à 3 minutes et s’adresse aux employeurs ayant des besoins de recrutement ouverts à la mobilité européenne et aux recrutements hors frontières.",
+    introNote2: "Nous travaillons actuellement sur quelques métiers prioritaires, afin de tester le service sur des cas concrets.",
+    matrixMobileHint: "Sur téléphone et tablette, chaque ligne s'affiche verticalement pour faciliter la lecture.",
+    sections: {
+      need: "Votre besoin de recrutement",
+      conditions: "Profils, aides et conditions de travail",
+      contact: "Pour pouvoir vous recontacter"
+    },
+    questions: {
+      q01: "Dans quel secteur recrutez-vous actuellement ?",
+      q02: "Quelles langues sont impératives pour ce recrutement ?",
+      q02Hint: "Indiquez le niveau de communication attendu pour chaque langue.",
+      q03: "Combien de personnes souhaitez-vous recruter ?",
+      q04: "À partir de quand avez-vous besoin de ces recrutements ?",
+      q05: "Quelle durée de contrat proposez-vous ?",
+      q06: "Quel volume de travail hebdomadaire proposez-vous ?",
+      q07: "Quels profils êtes-vous prêts à recruter ?",
+      q08: "Pouvez-vous aider les personnes recrutées dans leur arrivée ou leur installation ?",
+      q09: "Parmi les éléments suivants, lesquels sont indispensables pour vous ?",
+      q10: "Pour ce recrutement en vente et commerce, quels éléments vous semblent les plus importants ?",
+      q11: "Pour ce recrutement en nettoyage et entretien, quels éléments vous semblent les plus importants ?",
+      q12: "Pour ce recrutement en hôtellerie et restauration, quels éléments vous semblent les plus importants ?",
+      q13: "Pour ce recrutement en agriculture et récolte, quels éléments vous semblent les plus importants ?",
+      q14: "Pour ce recrutement en missions polyvalentes et emplois accessibles rapidement, quels éléments vous semblent les plus importants ?",
+      q40: "Pour ce recrutement en production industrielle, quels éléments vous semblent les plus importants ?",
+      q14Hint: "Vous pouvez sélectionner jusqu'à 4 propositions.",
+      q15: "Quelles conditions de travail les personnes recrutées doivent-elles connaître ?",
+      q22: "Le poste nécessite-t-il un permis ou une autorisation particulière ?",
+      q23: "Quels permis ou autorisations sont nécessaires ?",
+      q23Extra: "Précisez le permis ou l’autorisation nécessaire",
+      q16: "Prénom",
+      q17: "Nom de l'entreprise",
+      q18: "Adresse e-mail",
+      q19: "Téléphone",
+      q20: "Lieux de travail",
+      q20Extra: "Quels autres métiers souhaiteriez-vous voir proposés ici à l'avenir ?",
+      jobTitle: "Quel est l’intitulé du poste pour ce recrutement ?",
+      salaryType: "Sous quelle forme exprimez-vous le salaire proposé ?",
+      salaryMin: "Montant minimum proposé, en euros bruts ou nets",
+      salaryMax: "Montant maximum proposé, en euros bruts ou nets",
+      q21Title: "Protection des données",
+      q21Text: "Les informations transmises permettront à l’équipe Match Europe de mieux comprendre votre besoin de recrutement et les conditions proposées afin d’identifier des profils susceptibles de correspondre.",
+      q21Text2: "Si des profils compatibles avec votre recherche sont identifiés, vous pourrez être recontacté prochainement.",
+      q21Text3: "Pensez à répondre aux appels masqués ou inconnus et à vérifier régulièrement vos courriers indésirables (spams).",
+      consent: "J’accepte que les informations transmises soient utilisées par les équipes et partenaires EURES dans le cadre des mises en relation et des échanges liés au recrutement. Les données transmises seront utilisées uniquement dans le cadre des échanges liés au recrutement et conformément à la réglementation européenne sur la protection des données (RGPD)."
+    },
+    options: {
+      sectors: employerTallyMeta.sectors,
+      yesNo: ["Oui", "Non"],
+      q03: ["1 personne", "2 à 5 personnes", "Plus de 5 personnes", "Je ne sais pas encore"],
+      q04: ["Dès que possible", "Dans les prochains jours", "Dans les prochaines semaines", "Pour une période saisonnière", "Je ne sais pas encore"],
+      q05: ["Moins d'un mois", "1 à 3 mois", "3 à 6 mois", "Plus de 6 mois", "Contrat sans date de fin prévue", "Je ne sais pas encore"],
+      q06: ["Moins de 20 heures par semaine", "20 à 34 heures par semaine", "35 heures ou plus par semaine", "Le volume peut varier selon l'activité", "Je ne sais pas encore"],
+      q07: ["Des travailleurs frontaliers", "Des personnes venant d’un autre pays de l’Union européenne", "Des personnes débutantes dans le métier", "Des personnes ayant besoin de temps pour s’installer", "Des personnes ne parlant pas encore parfaitement la langue", "Je ne sais pas encore"],
+      q08: ["Oui, pour le logement", "Oui, pour les démarches administratives", "Oui, pour les transports ou déplacement", "Non", "Je ne sais pas encore"],
+      q09: ["Une expérience dans le métier", "Une disponibilité rapide", "Le permis de conduire", "Une expérience de travail dans le pays", "Aucun de ces éléments n'est indispensable", "La motivation pour le poste", "Je ne sais pas encore"],
+      q15: ["Travail tôt le matin ou en horaire décalés", "Travail en soirée ou la nuit", "Travail le week-end ou les jours fériés", "Horaires variables", "Travail posté", "Travail physique", "Travail debout prolongé", "Travail en extérieur", "Déplacement fréquents", "Travail en équipe", "Aucune condition particulière", "Je ne sais pas encore"],
+      permits: ["Permis B", "Permis C", "Permis CE", "Permis D", "Permis DE", "CACES", "Autre"]
+    },
+    salaryUnits: ["Par heure", "Par mois", "Par an"],
+    salaryAmountTypes: [
+      { value: "gross", label: "Brut" },
+      { value: "net", label: "Net" }
+    ],
+    salaryFields: {
+      type: "Sous quelle forme exprimez-vous le salaire proposé ?",
+      amountType: "Le montant est-il exprimé en brut ou en net ?",
+      min: "Montant minimum proposé, en euros",
+      max: "Montant maximum proposé, en euros"
+    },
+    sectorTitles: {
+      tally_q10: "Vente et commerce",
+      tally_q11: "Nettoyage et entretien",
+      tally_q12: "Hôtellerie et restauration",
+      tally_q13: "Agriculture et récolte",
+      tally_q14: "Missions polyvalentes et emplois accessibles rapidement",
+      tally_q40: "Production industrielle (assemblage, fabrication, conditionnement, contrôle qualité)"
+    },
+    errors: {
+      chooseAtLeastOne: "Sélectionnez au moins une réponse pour :",
+      chooseBetween: "Sélectionnez entre 1 et 4 réponses pour :",
+      maxFour: "Vous avez déjà choisi 4 éléments pour cette section."
+    }
+  },
+  en: {
+    eyebrow: "EURES employer questionnaire",
+    heroTitle: "Describe a hiring need open to European mobility",
+    heroLede: "This questionnaire helps us better understand your hiring need, the profiles you are looking for, the useful languages and the working conditions you offer.",
+    heroHighlight: "The aim is to make your need clearer and more comparable, so that compatible profiles can be identified more easily afterwards.",
+    sidebarWhyTitle: "Why this questionnaire?",
+    sidebarWhyText: "It makes the hiring need easier to read: sector, volume, languages, working constraints, accepted profiles and possible relocation support.",
+    sidebarAfterTitle: "What happens next?",
+    sidebarAfterText: "If some profiles seem compatible, your need can be used for an introduction. Otherwise, the answers already help us structure future recruitments better.",
+    sidebarResumeTitle: "Continue later",
+    sidebarResumeText: "An identifier is kept so your progress can be found again if needed.",
+    salaryOfferIntro: "Indicate the salary offered for this role here, in euros.",
+    introNote: "This form takes 2 to 3 minutes and is intended for employers with hiring needs open to European mobility and cross-border recruitment.",
+    introNote2: "We are currently working on a few priority occupations in order to test the service on concrete cases.",
+    matrixMobileHint: "On mobile and tablet, each row is displayed vertically for easier reading.",
+    sections: {
+      need: "Your hiring need",
+      conditions: "Profiles, support and working conditions",
+      contact: "So that we can contact you again"
+    },
+    questions: {
+      q01: "In which sector are you currently recruiting?",
+      q02: "Which languages are essential for this recruitment?",
+      q02Hint: "Indicate the expected level of communication for each language.",
+      q03: "How many people would you like to recruit?",
+      q04: "From when do you need these recruitments?",
+      q05: "What contract duration do you offer?",
+      q06: "What weekly working volume do you offer?",
+      q07: "Which profiles are you ready to recruit?",
+      q08: "Can you help recruited people with their arrival or settlement?",
+      q09: "Which of the following elements are essential for you?",
+      q10: "For this sales and retail recruitment, which elements seem most important to you?",
+      q11: "For this cleaning and maintenance recruitment, which elements seem most important to you?",
+      q12: "For this hospitality and food service recruitment, which elements seem most important to you?",
+      q13: "For this agriculture and harvesting recruitment, which elements seem most important to you?",
+      q14: "For this versatile jobs and quick-access roles recruitment, which elements seem most important to you?",
+      q40: "For this production operator in industry recruitment, which elements seem most important to you?",
+      q14Hint: "You can select up to 4 options.",
+      q15: "Which working conditions should recruited people be aware of?",
+      q22: "Does the job require a driving licence or a specific authorisation?",
+      q23: "Which licences or authorisations are required?",
+      q23Extra: "Specify the required licence or authorisation",
+      q16: "First name",
+      q17: "Company name",
+      q18: "Email address",
+      q19: "Phone",
+      q20: "Work locations",
+      q20Extra: "Which other occupations would you like to see included here in the future?",
+      jobTitle: "What is the job title for this recruitment?",
+      salaryType: "How do you express the salary offered?",
+      salaryMin: "Minimum amount offered, in gross or net euros",
+      salaryMax: "Maximum amount offered, in gross or net euros",
+      q21Title: "Data protection",
+      q21Text: "The information provided will allow the Match Europe team to better understand your hiring need and the conditions offered in order to identify profiles that may match.",
+      q21Text2: "If profiles compatible with your search are identified, you may be contacted again soon.",
+      q21Text3: "Please remember to answer hidden or unknown calls and to check your junk mail regularly.",
+      consent: "I agree that the information provided may be used by EURES teams and partners for introductions and exchanges related to recruitment. The data provided will only be used within the framework of recruitment exchanges and in accordance with European data protection rules (GDPR)."
+    },
+    options: {
+      yesNo: ["Yes", "No"],
+      sectors: ["Sales and retail", "Cleaning and maintenance", "Hospitality and food service", "Agriculture and harvesting", "Versatile jobs and roles accessible quickly", "Industrial production (assembly, manufacturing, packaging, quality control)"],
+      q02Columns: ["Not necessary", "Simple communication", "Professional communication", "Very important on a daily basis"],
+      q02Rows: ["German", "English", "French", "Luxembourgish"],
+      q03: ["1 person", "2 to 5 people", "More than 5 people", "I do not know yet"],
+      q04: ["As soon as possible", "In the next few days", "In the next few weeks", "For a seasonal period", "I do not know yet"],
+      q05: ["Less than one month", "1 to 3 months", "3 to 6 months", "More than 6 months", "Contract with no planned end date", "I do not know yet"],
+      q06: ["Less than 20 hours per week", "20 to 34 hours per week", "35 hours or more per week", "The workload may vary depending on activity", "I do not know yet"],
+      q07: ["Cross-border workers", "People coming from another European Union country", "People who are beginners in the profession", "People who need time to settle in", "People who do not yet speak the language perfectly", "I do not know yet"],
+      q08: ["Yes, for housing", "Yes, for administrative procedures", "Yes, for transport or travel", "No", "I do not know yet"],
+      q09: ["Experience in the profession", "Quick availability", "Driving licence", "Work experience in the country", "None of these elements is essential", "Motivation for the role", "I do not know yet"],
+      q15: ["Early morning work or staggered hours", "Evening or night work", "Weekend or public holiday work", "Variable hours", "Shift work", "Physical work", "Prolonged standing work", "Outdoor work", "Frequent travel", "Teamwork", "No particular condition", "I do not know yet"],
+      permits: ["Category B driving licence", "Category C driving licence", "Category CE driving licence", "Category D driving licence", "Category DE driving licence", "CACES", "Other"]
+    },
+    salaryUnits: ["Per hour", "Per month", "Per year"],
+    salaryAmountTypes: [
+      { value: "gross", label: "Gross" },
+      { value: "net", label: "Net" }
+    ],
+    salaryFields: {
+      type: "How do you express the salary offered?",
+      amountType: "Is the amount expressed as gross or net?",
+      min: "Minimum amount offered, in euros",
+      max: "Maximum amount offered, in euros"
+    },
+    sectorTitles: {
+      tally_q10: "Sales and retail",
+      tally_q11: "Cleaning and maintenance",
+      tally_q12: "Hospitality and food service",
+      tally_q13: "Agriculture and harvesting",
+      tally_q14: "Versatile jobs and roles accessible quickly",
+      tally_q40: "Industrial production (assembly, manufacturing, packaging, quality control)"
+    },
+    sectorChoices: {
+      tally_q10: ["Being comfortable with customers", "Being able to communicate simply with customers", "Working during busy periods", "Handling payment operations", "Working as part of a team", "Adapting to different tasks", "Keeping a sales area clean and organised", "Respecting working hours"],
+      tally_q11: ["Following procedures, instructions and hygiene rules", "Maintaining a consistent level of quality", "Respecting working hours", "Working independently", "Working as part of a team", "Working at a sustained pace", "Adapting to different workplaces or environments", "Carrying out repetitive tasks", "Being able to travel easily to intervention sites"],
+      tally_q12: ["Welcoming and guiding customers", "Being able to communicate simply with customers", "Working during busy periods", "Staying calm during intense periods of activity", "Working as part of a team", "Respecting working hours", "Working in the evening, on weekends or on public holidays", "Remembering orders or information", "Adapting to different tasks", "Keeping a reception or service area clean and organised"],
+      tally_q13: ["Respecting schedules and harvesting periods", "Working outdoors and depending on weather conditions", "Doing physical work", "Working at a sustained pace", "Following work and safety instructions", "Using equipment or tools correctly", "Working as part of a team", "Adapting to different types of tasks", "Being able to travel easily to work sites", "Maintaining a consistent quality of work"],
+      tally_q14: ["Adapting quickly to different tasks", "Respecting instructions and schedules", "Doing physical work", "Working at a sustained pace", "Working in different environments", "Joining a team quickly", "Working as part of a team", "Accepting variable schedules", "Being available quickly", "Being able to start an assignment quickly"],
+      tally_q40: ["Following instructions", "Working as part of a team", "Being rigorous", "Following safety rules", "Quality control", "Using production machines", "Reading technical instructions", "Working at production pace", "First-level maintenance", "Organising the workstation", "Being reactive", "Being versatile"]
+    },
+    errors: {
+      chooseAtLeastOne: "Select at least one answer for:",
+      chooseBetween: "Select between 1 and 4 answers for:",
+      maxFour: "You have already selected 4 items for this section."
+    }
+  },
+  de: {
+    eyebrow: "EURES-Arbeitgeberfragebogen",
+    heroTitle: "Einen Personalbedarf beschreiben, der für europäische Mobilität offen ist",
+    heroLede: "Dieser Fragebogen hilft uns, Ihren Personalbedarf, die gesuchten Profile, die nützlichen Sprachen und die angebotenen Arbeitsbedingungen besser zu verstehen.",
+    heroHighlight: "Ziel ist es, Ihren Bedarf klarer und besser vergleichbar zu machen, damit anschließend passende Profile leichter erkannt werden können.",
+    sidebarWhyTitle: "Warum dieser Fragebogen?",
+    sidebarWhyText: "Er macht den Personalbedarf besser lesbar: Bereich, Volumen, Sprachen, Arbeitsbedingungen, akzeptierte Profile und mögliche Unterstützung bei der Installation.",
+    sidebarAfterTitle: "Wie geht es danach weiter?",
+    sidebarAfterText: "Wenn einige Profile kompatibel erscheinen, kann Ihr Bedarf für eine Vermittlung genutzt werden. Andernfalls helfen die Antworten bereits dabei, künftige Einstellungen besser zu strukturieren.",
+    sidebarResumeTitle: "Später fortsetzen",
+    sidebarResumeText: "Eine Kennung wird gespeichert, damit Ihr Fortschritt bei Bedarf wiedergefunden werden kann.",
+    salaryOfferIntro: "Geben Sie hier das für diesen Beruf angebotene Gehalt in Euro an.",
+    introNote: "Dieses Formular dauert 2 bis 3 Minuten und richtet sich an Arbeitgeber mit Personalbedarf, der für europäische Mobilität und grenzüberschreitende Rekrutierung offen ist.",
+    introNote2: "Wir arbeiten derzeit an einigen prioritären Berufen, um den Dienst an konkreten Fällen zu testen.",
+    matrixMobileHint: "Auf Smartphone und Tablet wird jede Zeile untereinander angezeigt, damit sie leichter lesbar ist.",
+    sections: {
+      need: "Ihr Personalbedarf",
+      conditions: "Profile, Unterstützung und Arbeitsbedingungen",
+      contact: "Damit wir Sie wieder kontaktieren können"
+    },
+    questions: {
+      q01: "In welchem Bereich rekrutieren Sie derzeit?",
+      q02: "Welche Sprachen sind für diese Rekrutierung zwingend erforderlich?",
+      q02Hint: "Geben Sie das erwartete Kommunikationsniveau für jede Sprache an.",
+      q03: "Wie viele Personen möchten Sie einstellen?",
+      q04: "Ab wann benötigen Sie diese Einstellungen?",
+      q05: "Welche Vertragsdauer bieten Sie an?",
+      q06: "Welches wöchentliche Arbeitsvolumen bieten Sie an?",
+      q07: "Welche Profile sind Sie bereit einzustellen?",
+      q08: "Können Sie den eingestellten Personen bei ihrer Ankunft oder Installation helfen?",
+      q09: "Welche der folgenden Elemente sind für Sie unverzichtbar?",
+      q10: "Welche Elemente erscheinen Ihnen bei dieser Einstellung im Verkauf und Handel am wichtigsten?",
+      q11: "Welche Elemente erscheinen Ihnen bei dieser Einstellung in Reinigung und Instandhaltung am wichtigsten?",
+      q12: "Welche Elemente erscheinen Ihnen bei dieser Einstellung in Hotellerie und Gastronomie am wichtigsten?",
+      q13: "Welche Elemente erscheinen Ihnen bei dieser Einstellung in Landwirtschaft und Ernte am wichtigsten?",
+      q14: "Welche Elemente erscheinen Ihnen bei dieser Einstellung für vielseitige Tätigkeiten und schnell zugängliche Jobs am wichtigsten?",
+      q40: "Welche Elemente erscheinen Ihnen bei dieser Einstellung in der industriellen Produktion am wichtigsten?",
+      q14Hint: "Sie können bis zu 4 Antworten auswählen.",
+      q15: "Welche Arbeitsbedingungen sollten die eingestellten Personen kennen?",
+      q22: "Erfordert die Stelle einen Führerschein oder eine besondere Genehmigung?",
+      q23: "Welche Führerscheine oder Genehmigungen sind erforderlich?",
+      q23Extra: "Bitte präzisieren Sie den erforderlichen Führerschein oder die Genehmigung",
+      q16: "Vorname",
+      q17: "Unternehmensname",
+      q18: "E-Mail-Adresse",
+      q19: "Telefon",
+      q20: "Arbeitsorte",
+      q20Extra: "Welche anderen Berufe würden Sie hier künftig gerne sehen?",
+      jobTitle: "Wie lautet die konkrete Stellenbezeichnung für diese Einstellung?",
+      salaryType: "In welcher Form geben Sie das angebotene Gehalt an?",
+      salaryMin: "Angebotener Mindestbetrag in Euro brutto oder netto",
+      salaryMax: "Angebotener Höchstbetrag in Euro brutto oder netto",
+      q21Title: "Datenschutz",
+      q21Text: "Die übermittelten Informationen ermöglichen es dem EURES-beta-Team, Ihren Personalbedarf und die angebotenen Bedingungen besser zu verstehen, um Profile zu identifizieren, die passen könnten.",
+      q21Text2: "Wenn mit Ihrer Suche kompatible Profile identifiziert werden, können Sie in Kürze erneut kontaktiert werden.",
+      q21Text3: "Bitte denken Sie daran, anonyme oder unbekannte Anrufe anzunehmen und regelmäßig Ihren Spam-Ordner zu prüfen.",
+      consent: "Ich stimme zu, dass die übermittelten Informationen von EURES-Teams und Partnern im Rahmen von Vermittlungen und austauschbezogenen Rekrutierungen verwendet werden dürfen. Die übermittelten Daten werden nur im Rahmen des recruitmentbezogenen Austauschs und gemäß den europäischen Datenschutzvorschriften (DSGVO) verwendet."
+    },
+    options: {
+      yesNo: ["Ja", "Nein"],
+      sectors: ["Verkauf und Handel", "Reinigung und Instandhaltung", "Hotellerie und Gastronomie", "Landwirtschaft und Ernte", "Vielseitige Tätigkeiten und Jobs mit schnellem Einstieg", "Industrielle Produktion (Montage, Fertigung, Verpackung, Qualitätskontrolle)"],
+      q02Columns: ["Nicht erforderlich", "Einfache Kommunikation", "Berufliche Kommunikation", "Im Alltag sehr wichtig"],
+      q02Rows: ["Deutsch", "Englisch", "Französisch", "Luxemburgisch"],
+      q03: ["1 Person", "2 bis 5 Personen", "Mehr als 5 Personen", "Ich weiß es noch nicht"],
+      q04: ["So schnell wie möglich", "In den nächsten Tagen", "In den nächsten Wochen", "Für einen saisonalen Zeitraum", "Ich weiß es noch nicht"],
+      q05: ["Weniger als ein Monat", "1 bis 3 Monate", "3 bis 6 Monate", "Mehr als 6 Monate", "Vertrag ohne geplantes Enddatum", "Ich weiß es noch nicht"],
+      q06: ["Weniger als 20 Stunden pro Woche", "20 bis 34 Stunden pro Woche", "35 Stunden oder mehr pro Woche", "Das Arbeitsvolumen kann je nach Aktivität variieren", "Ich weiß es noch nicht"],
+      q07: ["Grenzgänger", "Personen aus einem anderen Land der Europäischen Union", "Berufseinsteiger", "Personen, die Zeit für die Installation brauchen", "Personen, die die Sprache noch nicht perfekt sprechen", "Ich weiß es noch nicht"],
+      q08: ["Ja, beim Wohnen", "Ja, bei administrativen Verfahren", "Ja, bei Transport oder Fahrten", "Nein", "Ich weiß es noch nicht"],
+      q09: ["Berufserfahrung", "Schnelle Verfügbarkeit", "Führerschein", "Arbeitserfahrung im Land", "Keines dieser Elemente ist unverzichtbar", "Motivation für die Stelle", "Ich weiß es noch nicht"],
+      q15: ["Arbeit früh am Morgen oder zu versetzten Zeiten", "Arbeit am Abend oder in der Nacht", "Arbeit am Wochenende oder an Feiertagen", "Variable Arbeitszeiten", "Schichtarbeit", "Körperliche Arbeit", "Längeres Stehen", "Arbeit im Freien", "Häufige Fahrten", "Teamarbeit", "Keine besonderen Bedingungen", "Ich weiß es noch nicht"],
+      permits: ["Führerschein B", "Führerschein C", "Führerschein CE", "Führerschein D", "Führerschein DE", "CACES", "Andere"]
+    },
+    salaryUnits: ["Pro Stunde", "Pro Monat", "Pro Jahr"],
+    salaryAmountTypes: [
+      { value: "gross", label: "Brutto" },
+      { value: "net", label: "Netto" }
+    ],
+    salaryFields: {
+      type: "In welcher Form geben Sie das angebotene Gehalt an?",
+      amountType: "Ist der Betrag als Brutto- oder Nettobetrag angegeben?",
+      min: "Angebotener Mindestbetrag in Euro",
+      max: "Angebotener Höchstbetrag in Euro"
+    },
+    sectorTitles: {
+      tally_q10: "Verkauf und Handel",
+      tally_q11: "Reinigung und Instandhaltung",
+      tally_q12: "Hotellerie und Gastronomie",
+      tally_q13: "Landwirtschaft und Ernte",
+      tally_q14: "Vielseitige Tätigkeiten und Jobs mit schnellem Einstieg",
+      tally_q40: "Industrielle Produktion (Montage, Fertigung, Verpackung, Qualitätskontrolle)"
+    },
+    sectorChoices: {
+      tally_q10: ["Sich im Umgang mit Kunden wohlfühlen", "Einfach mit Kunden kommunizieren können", "Während Stoßzeiten arbeiten", "Kassenvorgänge durchführen", "Im Team arbeiten", "Sich an verschiedene Aufgaben anpassen", "Einen Verkaufsbereich sauber und organisiert halten", "Arbeitszeiten einhalten"],
+      tally_q11: ["Verfahren, Anweisungen und Hygieneregeln einhalten", "Ein gleichbleibendes Qualitätsniveau halten", "Arbeitszeiten einhalten", "Selbstständig arbeiten", "Im Team arbeiten", "In hohem Tempo arbeiten", "Sich an verschiedene Arbeitsorte oder Umgebungen anpassen", "Wiederholende Aufgaben ausführen", "Einsatzorte leicht erreichen können"],
+      tally_q12: ["Kunden empfangen und orientieren", "Einfach mit Kunden kommunizieren können", "Während Stoßzeiten arbeiten", "In intensiven Phasen ruhig bleiben", "Im Team arbeiten", "Arbeitszeiten einhalten", "Abends, am Wochenende oder an Feiertagen arbeiten", "Bestellungen oder Informationen behalten", "Sich an verschiedene Aufgaben anpassen", "Einen Empfangs- oder Servicebereich sauber und organisiert halten"],
+      tally_q13: ["Zeitpläne und Erntezeiten einhalten", "Im Freien und je nach Wetter arbeiten", "Körperliche Arbeit leisten", "In hohem Tempo arbeiten", "Arbeits- und Sicherheitsanweisungen einhalten", "Material oder Werkzeuge korrekt verwenden", "Im Team arbeiten", "Sich an unterschiedliche Arten von Aufgaben anpassen", "Arbeitsorte leicht erreichen können", "Eine gleichbleibende Arbeitsqualität aufrechterhalten"],
+      tally_q14: ["Sich schnell an verschiedene Aufgaben anpassen", "Anweisungen und Zeitpläne einhalten", "Körperliche Arbeit leisten", "In hohem Tempo arbeiten", "In unterschiedlichen Umgebungen arbeiten", "Sich schnell in ein Team integrieren", "Im Team arbeiten", "Variable Arbeitszeiten akzeptieren", "Schnell verfügbar sein", "Schnell eine Aufgabe beginnen können"],
+      tally_q40: ["Anweisungen befolgen", "Im Team arbeiten", "Sorgfältig arbeiten", "Sicherheitsregeln einhalten", "Qualitätskontrolle", "Produktionsmaschinen bedienen", "Technische Anweisungen lesen", "Im Produktionstakt arbeiten", "Erste Wartungsarbeiten durchführen", "Den Arbeitsplatz organisieren", "Reaktionsfähig sein", "Vielseitig einsetzbar sein"]
+    },
+    errors: {
+      chooseAtLeastOne: "Wählen Sie mindestens eine Antwort für:",
+      chooseBetween: "Wählen Sie zwischen 1 und 4 Antworten für:",
+      maxFour: "Sie haben für diesen Abschnitt bereits 4 Elemente ausgewählt."
+    }
+  }
+};
+
+function getEmployerTallyContent(lang) {
+  const content = employerTallyCopy[lang] || employerTallyCopy.fr;
+  const frContent = employerTallyCopy.fr;
+  return {
+    ...content,
+    sectorsOptions: localizeOptions(employerTallyMeta.sectors, content.options.sectors || frContent.options.sectors || employerTallyMeta.sectors),
+    languageColumns: localizeOptions(
+      employerTallyMeta.languageColumns,
+      content.options.q02Columns || frContent.options.q02Columns || employerTallyMeta.languageColumns
+    ),
+    languageRows: localizeRows(
+      employerTallyMeta.languageRows,
+      content.options.q02Rows || frContent.options.q02Rows || employerTallyMeta.languageRows.map((row) => row.label)
+    ),
+    optionGroups: {
+      q03: localizeOptions(frContent.options.q03, content.options.q03 || frContent.options.q03),
+      q04: localizeOptions(frContent.options.q04, content.options.q04 || frContent.options.q04),
+      q05: localizeOptions(frContent.options.q05, content.options.q05 || frContent.options.q05),
+      q06: localizeOptions(frContent.options.q06, content.options.q06 || frContent.options.q06),
+      q07: localizeOptions(frContent.options.q07, content.options.q07 || frContent.options.q07),
+      q08: localizeOptions(frContent.options.q08, content.options.q08 || frContent.options.q08),
+      q09: localizeOptions(frContent.options.q09, content.options.q09 || frContent.options.q09),
+      q15: localizeOptions(frContent.options.q15, content.options.q15 || frContent.options.q15)
+    },
+    permitYesNoOptions: [
+      { value: "yes", label: (content.options.yesNo || frContent.options.yesNo || ["Oui", "Non"])[0] || "Oui" },
+      { value: "no", label: (content.options.yesNo || frContent.options.yesNo || ["Oui", "Non"])[1] || "Non" }
+    ],
+    permitOptions: localizeOptions(frContent.options.permits, content.options.permits || frContent.options.permits),
+    sectorPriorityOptions: Object.fromEntries(
+      Object.entries(employerTallyMeta.sectorPriorityGroups).map(([key, value]) => [
+        key,
+        localizeOptions(value, (content.sectorChoices && content.sectorChoices[key]) || value)
+      ])
+    )
+  };
+}
+
+function currentLang() {
+  const params = new URLSearchParams(window.location.search);
+  const lang = (params.get("lang") || "").replace(/[^a-z-]/gi, "").slice(0, 2);
+  return LANGS.includes(lang) ? lang : DEFAULT_LANG;
+}
+
+function currentInviteToken() {
+  const params = new URLSearchParams(window.location.search);
+  const inviteToken = (params.get("invite_token") || "").trim();
+  return inviteToken || "";
+}
+
+function getAnalyticsSessionId() {
+  const key = "matchEuropeAnalyticsSessionId";
+  try {
+    let value = window.sessionStorage.getItem(key);
+    if (!value) {
+      value = crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      window.sessionStorage.setItem(key, value);
+    }
+    return value;
+  } catch {
+    return "";
+  }
+}
+
+function getAnalyticsSource(params) {
+  const source = (params.get("utm_source") || "").trim();
+  if (source) {
+    return source;
+  }
+  const referrer = document.referrer || "";
+  try {
+    const host = new URL(referrer).hostname.toLowerCase();
+    if (host.includes("linkedin")) return "linkedin";
+    if (host.includes("brevo") || host.includes("sendib") || host.includes("sibforms")) return "brevo";
+    if (host.includes("francetravail")) return "france-travail";
+    return host || "referral";
+  } catch {
+    return "direct";
+  }
+}
+
+function sendAnalyticsEvent(eventType, extra = {}) {
+  if (FORM_ID !== "eures-beta") {
+    return;
+  }
+  const params = new URLSearchParams(window.location.search);
+  const page = normalizeAnalyticsPage(document.body?.dataset?.page || "", window.location.pathname);
+  const payload = {
+    event_type: eventType,
+    page,
+    path: window.location.pathname,
+    lang: currentLang(),
+    source: getAnalyticsSource(params),
+    medium: (params.get("utm_medium") || "").trim(),
+    campaign: (params.get("utm_campaign") || "").trim(),
+    content: (params.get("utm_content") || "").trim(),
+    term: (params.get("utm_term") || "").trim(),
+    referrer: document.referrer || "",
+    session_id: getAnalyticsSessionId(),
+    ...extra
+  };
+  const body = JSON.stringify(payload);
+  const url = `/api/forms/${FORM_ID}/analytics/event`;
+  try {
+    if (navigator.sendBeacon) {
+      const blob = new Blob([body], { type: "application/json" });
+      navigator.sendBeacon(url, blob);
+      return;
+    }
+  } catch {
+    // Fall back to fetch below.
+  }
+  fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body,
+    keepalive: true
+  }).catch(() => {});
+}
+
+function normalizeAnalyticsPage(page, path) {
+  const rawPage = String(page || "").trim();
+  if (rawPage) {
+    return rawPage;
+  }
+  const rawPath = String(path || "");
+  if (rawPath.includes("/questionnaire-candidate")) return "candidate-questionnaire";
+  if (rawPath.includes("/questionnaire-employer")) return "employer-questionnaire";
+  if (rawPath.includes("/candidate")) return "candidate-landing";
+  if (rawPath.includes("/employer")) return "employer-landing";
+  if (rawPath.includes("/privacy")) return "privacy";
+  if (rawPath.includes("/stat")) return "stat";
+  if (rawPath.includes("/le-projet")) return "project";
+  if (rawPath.includes("/journal")) return "journal";
+  return "home";
+}
+
+function questionnaireRoleFromHref(href) {
+  const value = String(href || "");
+  try {
+    const url = new URL(value, window.location.origin);
+    if (url.pathname.includes("/questionnaire-employer")) return "employer";
+    if (url.pathname.includes("/questionnaire-candidate")) return "candidate";
+  } catch {
+    if (value.includes("questionnaire-employer")) return "employer";
+    if (value.includes("questionnaire-candidate")) return "candidate";
+  }
+  return "";
+}
+
+function currentAnalyticsPage() {
+  return normalizeAnalyticsPage(document.body?.dataset?.page || "", window.location.pathname);
+}
+
+function trackQuestionnaireCta(link) {
+  if (!link || link.dataset.analyticsCtaSent === "1") {
+    return;
+  }
+  const href = link.getAttribute("href") || "";
+  const role = questionnaireRoleFromHref(href);
+  if (!role) {
+    return;
+  }
+  link.dataset.analyticsCtaSent = "1";
+  try {
+    window.sessionStorage.setItem("matchEuropePendingQuestionnaireCta", JSON.stringify({
+      target: href,
+      role,
+      from_page: currentAnalyticsPage(),
+      created_at: new Date().toISOString()
+    }));
+  } catch {
+    // Do not block navigation if storage is unavailable.
+  }
+}
+
+function flushPendingQuestionnaireCta() {
+  const page = currentAnalyticsPage();
+  if (page !== "candidate-questionnaire" && page !== "employer-questionnaire") {
+    return;
+  }
+  let pending = null;
+  try {
+    pending = JSON.parse(window.sessionStorage.getItem("matchEuropePendingQuestionnaireCta") || "null");
+    window.sessionStorage.removeItem("matchEuropePendingQuestionnaireCta");
+  } catch {
+    pending = null;
+  }
+  const expectedRole = page === "employer-questionnaire" ? "employer" : "candidate";
+  if (!pending || pending.role !== expectedRole) {
+    return;
+  }
+  sendAnalyticsEvent("cta_click", {
+    target: pending.target || window.location.pathname,
+    role: pending.role,
+    from_page: pending.from_page || ""
+  });
+}
+
+function attachAnalyticsBehavior() {
+  sendAnalyticsEvent("page_view");
+  flushPendingQuestionnaireCta();
+
+  document.addEventListener("pointerdown", (event) => {
+    const link = event.target?.closest?.("a[href]");
+    trackQuestionnaireCta(link);
+  }, { capture: true });
+
+  document.addEventListener("click", (event) => {
+    const link = event.target?.closest?.("a[href]");
+    trackQuestionnaireCta(link);
+  });
+
+  const startedKey = `matchEuropeQuestionnaireStarted:${currentAnalyticsPage()}`;
+  document.addEventListener("input", (event) => {
+    const page = document.body?.dataset?.page || "";
+    if (page !== "candidate-questionnaire" && page !== "employer-questionnaire") {
+      return;
+    }
+    if (!event.target?.closest?.("form")) {
+      return;
+    }
+    try {
+      if (window.sessionStorage.getItem(startedKey)) {
+        return;
+      }
+      window.sessionStorage.setItem(startedKey, "1");
+    } catch {
+      // If sessionStorage is unavailable, still record at most once per page load.
+    }
+    sendAnalyticsEvent("questionnaire_started", {
+      role: page === "employer-questionnaire" ? "employer" : "candidate"
+    });
+  }, { once: false });
+}
+
+const writeTokenCache = new Map();
+
+async function getWriteToken(role, t) {
+  const normalizedRole = role === "candidate" || role === "employer" ? role : "";
+  if (!normalizedRole) {
+    throw new Error(t.common.writeTokenError);
+  }
+  if (!writeTokenCache.has(normalizedRole)) {
+    const promise = fetch(`/api/forms/${FORM_ID}/write-token?role=${encodeURIComponent(normalizedRole)}`, {
+      headers: { Accept: "application/json" }
+    })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.token) {
+          throw new Error(payload.error || t.common.writeTokenError);
+        }
+        return payload.token;
+      })
+      .catch((error) => {
+        writeTokenCache.delete(normalizedRole);
+        throw error;
+      });
+    writeTokenCache.set(normalizedRole, promise);
+  }
+  return writeTokenCache.get(normalizedRole);
+}
+
+function resetWriteToken(role) {
+  if (role) {
+    writeTokenCache.delete(role);
+  }
+}
+
+function setDocumentLang(lang) {
+  document.documentElement.lang = lang;
+}
+
+function pageUrl(page, lang) {
+  const map = {
+    home: `${BASE_PATH}/`,
+    "candidate-landing": `${BASE_PATH}/candidate`,
+    "employer-landing": `${BASE_PATH}/employer`,
+    stat: `${BASE_PATH}/stat`,
+    project: `${BASE_PATH}/le-projet`,
+    journal: `${BASE_PATH}/journal`,
+    matching: `${BASE_PATH}/matching`,
+    privacy: `${BASE_PATH}/privacy`,
+    "candidate-questionnaire": `${BASE_PATH}/questionnaire-candidate`,
+    "employer-questionnaire": `${BASE_PATH}/questionnaire-employer`
+  };
+  const params = new URLSearchParams({ lang });
+  const inviteToken = currentInviteToken();
+  if (inviteToken) {
+    params.set("invite_token", inviteToken);
+  }
+  return `${map[page]}?${params.toString()}`;
+}
+
+function isVisibleControl(element) {
+  if (!element || element.disabled) {
+    return false;
+  }
+  if (element.closest("[hidden]")) {
+    return false;
+  }
+  return element.getClientRects().length > 0;
+}
+
+function cleanLabelText(value) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .replace(/\*/g, "")
+    .trim();
+}
+
+function getFieldLabel(element) {
+  if (!element) {
+    return "";
+  }
+
+  const fromAria = cleanLabelText(element.getAttribute("aria-label"));
+  if (fromAria) {
+    return fromAria;
+  }
+
+  if (element.id) {
+    const explicit = document.querySelector(`label[for="${CSS.escape(element.id)}"]`);
+    const explicitText = cleanLabelText(explicit?.textContent);
+    if (explicitText) {
+      return explicitText;
+    }
+  }
+
+  const field = element.closest(".field, .field-stack, .question-block, fieldset, .panel");
+  const scopedLabel = cleanLabelText(
+    field?.querySelector(":scope > span, :scope > legend, :scope > h3, :scope > h4, :scope > .section-title")?.textContent
+  ) || cleanLabelText(
+    field?.querySelector("legend, h3, h4, .section-title, span, label")?.textContent
+  );
+  if ((element.type === "radio" || element.type === "checkbox") && scopedLabel) {
+    return scopedLabel;
+  }
+
+  const wrappingLabel = element.closest("label");
+  const wrappingText = cleanLabelText(wrappingLabel?.textContent);
+  if (wrappingText) {
+    return wrappingText;
+  }
+
+  if (scopedLabel) {
+    return scopedLabel;
+  }
+
+  return cleanLabelText(element.name || element.type || "champ");
+}
+
+function focusField(element) {
+  if (!element) {
+    return;
+  }
+  element.focus({ preventScroll: true });
+  element.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function setStatusMessage(statusEl, message, state = "") {
+  if (!statusEl) {
+    return;
+  }
+  statusEl.textContent = message;
+  statusEl.dataset.state = state;
+  if (state === "error") {
+    statusEl.setAttribute("role", "alert");
+    statusEl.setAttribute("aria-live", "assertive");
+  } else {
+    statusEl.setAttribute("role", "status");
+    statusEl.setAttribute("aria-live", "polite");
+  }
+}
+
+function getFieldContainer(element) {
+  return element?.closest(".field, .fieldset, .matrix-question, .matrix-wrap, .form-section") || null;
+}
+
+function nextFieldErrorId() {
+  nextFieldErrorId.counter = (nextFieldErrorId.counter || 0) + 1;
+  return `field-error-${nextFieldErrorId.counter}`;
+}
+
+function clearFieldErrorState(element) {
+  if (!(element instanceof HTMLElement)) {
+    return;
+  }
+  const container = getFieldContainer(element);
+  if (container) {
+    container.classList.remove("is-invalid");
+    container.querySelectorAll(".field-error").forEach((node) => node.remove());
+  }
+  const controls = [];
+  if (element instanceof HTMLInputElement && element.name) {
+    controls.push(...document.querySelectorAll(`[name="${CSS.escape(element.name)}"]`));
+  } else {
+    controls.push(element);
+  }
+  controls.forEach((control) => {
+    if (!(control instanceof HTMLElement)) {
+      return;
+    }
+    control.removeAttribute("aria-invalid");
+    const describedBy = String(control.getAttribute("aria-describedby") || "")
+      .split(/\s+/)
+      .filter((token) => token && !token.startsWith("field-error-"));
+    if (describedBy.length) {
+      control.setAttribute("aria-describedby", describedBy.join(" "));
+    } else {
+      control.removeAttribute("aria-describedby");
+    }
+  });
+}
+
+function clearInvalidState(scope) {
+  const root = scope instanceof HTMLElement ? scope : document;
+  root.querySelectorAll('[aria-invalid="true"]').forEach((node) => {
+    node.removeAttribute("aria-invalid");
+    const describedBy = String(node.getAttribute("aria-describedby") || "")
+      .split(/\s+/)
+      .filter((token) => token && !token.startsWith("field-error-"));
+    if (describedBy.length) {
+      node.setAttribute("aria-describedby", describedBy.join(" "));
+    } else {
+      node.removeAttribute("aria-describedby");
+    }
+  });
+  root.querySelectorAll(".is-invalid").forEach((node) => node.classList.remove("is-invalid"));
+  root.querySelectorAll(".field-error").forEach((node) => node.remove());
+}
+
+function setInlineFieldError(element, message) {
+  const container = getFieldContainer(element);
+  if (!container) {
+    return;
+  }
+  container.classList.add("is-invalid");
+  const existing = container.querySelector(".field-error");
+  if (existing) {
+    existing.textContent = message;
+    return;
+  }
+  const note = document.createElement("p");
+  note.className = "field-error";
+  note.id = nextFieldErrorId();
+  note.textContent = message;
+  container.appendChild(note);
+  const controls = [];
+  if (element instanceof HTMLInputElement && element.name) {
+    controls.push(...document.querySelectorAll(`[name="${CSS.escape(element.name)}"]`));
+  } else {
+    controls.push(element);
+  }
+  controls.forEach((control) => {
+    if (!(control instanceof HTMLElement)) {
+      return;
+    }
+    control.setAttribute("aria-invalid", "true");
+    const describedBy = new Set(
+      String(control.getAttribute("aria-describedby") || "")
+        .split(/\s+/)
+        .filter(Boolean)
+    );
+    describedBy.add(note.id);
+    control.setAttribute("aria-describedby", Array.from(describedBy).join(" "));
+  });
+}
+
+function describeInvalidField(element, t) {
+  const label = getFieldLabel(element);
+  if (element.validity?.valueMissing) {
+    return `${t.common.validation.required} ${label}`;
+  }
+  if (element.validity?.typeMismatch && element.type === "email") {
+    return `${t.common.validation.invalidEmail} ${label}`;
+  }
+  return `${t.common.validation.invalidValue} ${label}`;
+}
+
+function findFirstInvalidControl(form) {
+  const seenRadioNames = new Set();
+  const controls = Array.from(form.elements).filter((element) => {
+    if (!(element instanceof HTMLElement)) {
+      return false;
+    }
+    if (element.tagName === "BUTTON" || element.type === "hidden") {
+      return false;
+    }
+    if (!isVisibleControl(element)) {
+      return false;
+    }
+    if (element.type === "radio") {
+      if (seenRadioNames.has(element.name)) {
+        return false;
+      }
+      seenRadioNames.add(element.name);
+    }
+    return typeof element.checkValidity === "function" && !element.checkValidity();
+  });
+
+  return controls[0] || null;
+}
+
+function showFirstInvalidControl(form, setStatus, t) {
+  clearInvalidState(form);
+  const invalid = findFirstInvalidControl(form);
+  if (!invalid) {
+    return false;
+  }
+
+  const message = `${describeInvalidField(invalid, t)} ${t.common.validation.checkHighlighted}`;
+  setStatus(message, "error");
+  setInlineFieldError(invalid, message);
+  focusField(invalid);
+  if (typeof invalid.reportValidity === "function") {
+    invalid.reportValidity();
+  }
+  return true;
+}
+
+function validateVisibleCheckboxGroup(form, name, label, setStatus, t, min = 1, max = Infinity) {
+  clearInvalidState(form.querySelector(`input[name="${name}"]`) || form);
+  const visibleInputs = Array.from(form.querySelectorAll(`input[name="${name}"]`)).filter((input) => isVisibleControl(input));
+  if (!visibleInputs.length) {
+    return true;
+  }
+
+  const checkedCount = visibleInputs.filter((input) => input.checked).length;
+  if (checkedCount < min) {
+    const message = `${t.common.validation.required} ${label}. ${t.common.validation.checkHighlighted}`;
+    setStatus(message, "error");
+    setInlineFieldError(visibleInputs[0], message);
+    focusField(visibleInputs[0]);
+    return false;
+  }
+  if (checkedCount > max) {
+    const message = `${t.common.validation.invalidValue} ${label}. ${t.common.validation.checkHighlighted}`;
+    setStatus(message, "error");
+    setInlineFieldError(visibleInputs[0], message);
+    focusField(visibleInputs[0]);
+    return false;
+  }
+  return true;
+}
+
+function navSectionPage(page) {
+  if (page === "candidate-questionnaire") {
+    return "candidate-landing";
+  }
+  if (page === "employer-questionnaire") {
+    return "employer-landing";
+  }
+  return page;
+}
+
+function nav(page, lang, t) {
+  const currentPage = navSectionPage(page);
+  const navItems = [
+    ["home", t.common.navHome],
+    ["candidate-landing", t.common.navCandidate],
+    ["employer-landing", t.common.navEmployer],
+    ["stat", t.common.navStats],
+    ["project", t.common.navProject],
+    ["journal", t.common.navJournal],
+  ];
+  return `
+    <a class="skip-link" href="#main-content">Aller au contenu</a>
+    <header class="site-header">
+      <div class="shell">
+        <div class="brand" aria-label="${t.common.brandTitle}">
+          <img class="brand-lockup brand-logo-match" src="/assets/match-europe-logo.png" alt="Match Europe">
+          <span class="brand-copy">
+            <strong>${t.common.brandTitle}</strong>
+            <span>${t.common.brandSubtitle}</span>
+          </span>
+        </div>
+        <nav class="nav" aria-label="Primary">
+          <div class="nav-links">
+            ${navItems.map(([key, label]) => `
+              ${key === currentPage
+                ? `<span class="nav-pill is-active" aria-current="page">${label}</span>`
+                : `<a class="nav-pill" href="${pageUrl(key, lang)}">${label}</a>`
+              }
+            `).join("")}
+          </div>
+          <div class="lang-switch" aria-label="${t.common.langLabel}">
+            ${LANGS.map((choice) => `
+              <a class="lang-link${choice === lang ? " is-active" : ""}" href="${pageUrl(page, choice)}"${choice === lang ? ' aria-current="true"' : ""}>${choice.toUpperCase()}</a>
+            `).join("")}
+          </div>
+        </nav>
+      </div>
+    </header>
+  `;
+}
+
+function footer(t) {
+  return `
+    <footer class="footer">
+      <div class="shell footer-inner">
+        <span>${t.common.footer}</span>
+        <a class="footer-link" href="${pageUrl("privacy", currentLang())}">${t.common.privacyLink}</a>
+      </div>
+    </footer>
+  `;
+}
 
 const projectContentFR = {
   summary: {
@@ -1397,6 +3554,47 @@ const projectContentByLang = {
 
 const journalEntriesFR = [
   {
+    sort_date: "2026-08-17",
+    date: "17 août 2026",
+    title: "Clarifier le rôle de Match Europe dans un marché du recrutement saturé par l’automatisation",
+    observed: "Un article publié le 17 août 2026 dans Le Point décrit un marché du recrutement de plus en plus saturé par l’usage symétrique de l’intelligence artificielle : des candidats optimisent leurs CV et leurs candidatures pour franchir les filtres, tandis que les recruteurs utilisent des outils automatisés pour traiter des volumes de candidatures devenus difficiles à gérer. Cette mécanique augmente le bruit, favorise les profils standardisés, affaiblit la qualité du signal CV et renforce l’importance du réseau, de la mobilité interne et de la confiance dans la mise en relation.",
+    decided: "Utiliser cette lecture comme hypothèse produit, sans la traiter comme une preuve statistique officielle : Match Europe ne doit pas chercher à ajouter un flux supplémentaire de candidatures, mais à organiser des mises en relation qualifiées, explicables, sobres et humaines. Le service doit aider à comprendre pourquoi un profil est proposé, à sécuriser le premier contact et à suivre ce qui se passe réellement après la transmission.",
+    changed: [
+      "Le CV reste une pièce utile, mais il ne doit pas devenir le seul signal de décision.",
+      "Les réponses structurées des candidats et des employeurs doivent être davantage mises en avant : disponibilité, mobilité, langues, conditions de travail, documents, salaire, canal de contact et consentement.",
+      "Le matching doit rester explicable et supervisé, avec une décision humaine avant transmission.",
+      "Le suivi des suites données devient un indicateur produit central : contact réel, échange, entretien, refus, abandon, recrutement et raison de non-suite."
+    ],
+    next: "Renforcer l’administration autour de trois objectifs : mieux lire les profils, mieux expliquer les propositions de matching et mieux mesurer les résultats des mises en relation, notamment pour comparer les canaux de contact."
+  },
+  {
+    sort_date: "2026-08-13",
+    date: "13 août 2026",
+    title: "Renforcer l’identité publique et tester un canal d’invitation plus rassurant",
+    observed: "Les premiers tests d’email montrent que la confiance ne dépend pas seulement du contenu du message. Même lorsque l’URL cible est bien celle de Match Europe, certains outils d’envoi réécrivent les liens avec un domaine technique de tracking. Pour un candidat ou un employeur, ce type de lien peut susciter une méfiance immédiate.",
+    decided: "Configurer le domaine public matcheurope.beta.francetravail.fr comme adresse de référence, renforcer l’identité visible du service sur les pages publiques et tester en parallèle des invitations envoyées directement depuis la boîte professionnelle France Travail, avec des URL lisibles et rassurantes.",
+    changed: [
+      "Les pages publiques affichent désormais Match Europe comme nom principal du service.",
+      "Le logo Match Europe est intégré dans l’en-tête public.",
+      "Les liens de test et d’accès administrateur utilisent l’URL publique France Travail.",
+      "Un modèle d’invitation candidat est préparé pour un test d’envoi depuis Outlook professionnel."
+    ],
+    next: "Comparer les réponses issues des invitations Brevo et des invitations envoyées depuis la boîte professionnelle, puis décider du canal à privilégier pour la prochaine vague."
+  },
+  {
+    sort_date: "2026-08-10",
+    date: "10 août 2026",
+    title: "Tester la candidature spontanée auprès d’un nouvel employeur",
+    observed: "Un profil peut être pertinent pour une entreprise qui n’utilise pas encore Match Europe et qui n’a donc pas décrit de besoin dans le service. Imposer le questionnaire employeur avant de lui présenter ce profil créerait une friction inutile et empêcherait de mesurer simplement son intérêt.",
+    decided: "Créer un parcours de candidature spontanée distinct. Le CV est transmis à l’employeur, qui peut répondre « Intéressé » ou « Pas intéressé » sans remplir immédiatement de questionnaire. Le candidat est informé séparément de la transmission et chaque envoi est inscrit dans un registre de suivi.",
+    changed: [
+      "Match Europe peut désormais ouvrir une relation avec un nouvel employeur à partir d’un profil concret.",
+      "Le questionnaire employeur n’est proposé que si l’entreprise souhaite poursuivre.",
+      "Les envois et les réponses employeur deviennent traçables dans l’administration."
+    ],
+    next: "Mesurer les réponses, les délais, les échanges, les entretiens et les recrutements afin d’évaluer l’utilité de ce nouveau canal."
+  },
+  {
     sort_date: "2026-07-20",
     date: "Juillet 2026",
     title: "Ouvrir le projet et documenter ses décisions",
@@ -1502,6 +3700,33 @@ const journalEntriesFR = [
 
 const journalEntriesEN = [
   {
+    sort_date: "2026-08-13",
+    date: "August 13, 2026",
+    title: "Strengthen the public identity and test a more reassuring invitation channel",
+    observed: "The first email tests show that trust does not depend only on the wording of the message. Even when the target URL is the Match Europe domain, some sending tools rewrite links through a technical tracking domain. For a candidate or an employer, this can immediately look suspicious.",
+    decided: "Use matcheurope.beta.francetravail.fr as the public reference address, strengthen the visible identity of the service on public pages, and test invitations sent directly from the France Travail professional mailbox with readable and reassuring URLs.",
+    changed: [
+      "Public pages now display Match Europe as the main service name.",
+      "The Match Europe logo is integrated into the public header.",
+      "Test links and admin access links use the France Travail public URL.",
+      "A candidate invitation template is prepared for testing through professional Outlook."
+    ],
+    next: "Compare responses from Brevo invitations and from invitations sent through the professional mailbox, then decide which channel should be used for the next wave."
+  },
+  {
+    sort_date: "2026-08-10",
+    date: "August 10, 2026",
+    title: "Test unsolicited applications with a new employer",
+    observed: "A candidate profile may be relevant to a company that does not yet use Match Europe and has therefore not described a vacancy in the service. Requiring the employer questionnaire before presenting the profile would create unnecessary friction and make it harder to measure simple interest.",
+    decided: "Create a separate unsolicited-application flow. The CV is sent to the employer, who can answer ‘Interested’ or ‘Not interested’ without immediately completing a questionnaire. The candidate is informed separately and every send is recorded for follow-up.",
+    changed: [
+      "Match Europe can now open a relationship with a new employer through a concrete profile.",
+      "The employer questionnaire is only proposed if the company wants to continue.",
+      "Sends and employer responses can be tracked in the administration area."
+    ],
+    next: "Measure responses, delays, exchanges, interviews and hires to assess the usefulness of this new channel."
+  },
+  {
     sort_date: "2026-07-20",
     date: "July 2026",
     title: "Open up the project and document its decisions",
@@ -1606,6 +3831,33 @@ const journalEntriesEN = [
 ];
 
 const journalEntriesDE = [
+  {
+    sort_date: "2026-08-13",
+    date: "13. August 2026",
+    title: "Die öffentliche Identität stärken und einen vertrauenswürdigeren Einladungskanal testen",
+    observed: "Die ersten E-Mail-Tests zeigen, dass Vertrauen nicht nur vom Inhalt der Nachricht abhängt. Auch wenn die Zieladresse tatsächlich zur Match-Europe-Domain führt, schreiben manche Versandwerkzeuge Links über eine technische Tracking-Domain um. Für Kandidaten oder Arbeitgeber kann dies sofort verdächtig wirken.",
+    decided: "matcheurope.beta.francetravail.fr als öffentliche Referenzadresse verwenden, die sichtbare Identität des Dienstes auf den öffentlichen Seiten stärken und parallel Einladungen direkt über das berufliche France-Travail-Postfach mit lesbaren und vertrauenswürdigen URLs testen.",
+    changed: [
+      "Die öffentlichen Seiten zeigen nun Match Europe als Hauptnamen des Dienstes.",
+      "Das Match-Europe-Logo ist im öffentlichen Seitenkopf integriert.",
+      "Testlinks und administrative Zugangslinks verwenden die öffentliche France-Travail-URL.",
+      "Eine Kandidaten-Einladungsvorlage wird für einen Test über das berufliche Outlook vorbereitet."
+    ],
+    next: "Antworten aus Brevo-Einladungen und aus Einladungen über das berufliche Postfach vergleichen und anschließend entscheiden, welcher Kanal für die nächste Welle bevorzugt wird."
+  },
+  {
+    sort_date: "2026-08-10",
+    date: "10. August 2026",
+    title: "Initiativbewerbungen bei einem neuen Arbeitgeber testen",
+    observed: "Ein Kandidatenprofil kann für ein Unternehmen relevant sein, das Match Europe noch nicht nutzt und daher keinen Bedarf im Dienst beschrieben hat. Ein verpflichtender Arbeitgeberfragebogen vor der Vorstellung des Profils würde unnötige Reibung erzeugen und die einfache Messung des Interesses erschweren.",
+    decided: "Einen eigenen Ablauf für Initiativbewerbungen schaffen. Der Lebenslauf wird dem Arbeitgeber übermittelt, der ohne sofortigen Fragebogen mit „Interessiert“ oder „Nicht interessiert“ antworten kann. Der Kandidat wird getrennt informiert und jeder Versand für die Nachverfolgung registriert.",
+    changed: [
+      "Match Europe kann nun über ein konkretes Profil eine Beziehung zu einem neuen Arbeitgeber eröffnen.",
+      "Der Arbeitgeberfragebogen wird erst angeboten, wenn das Unternehmen fortfahren möchte.",
+      "Versand und Arbeitgeberantworten können im Administrationsbereich nachverfolgt werden."
+    ],
+    next: "Antworten, Fristen, Austausche, Vorstellungsgespräche und Einstellungen messen, um den Nutzen dieses neuen Kanals zu bewerten."
+  },
   {
     sort_date: "2026-07-20",
     date: "Juli 2026",
@@ -1716,1119 +3968,10 @@ const journalEntriesByLang = {
   de: journalEntriesDE,
 };
 
-const journalLabels = {
-  fr: {
-    observed: "Ce que nous avons observé",
-    decided: "Ce que nous avons décidé",
-    changed: "Ce que cela change",
-    next: "Prochaine étape",
-  },
-  en: {
-    observed: "What we observed",
-    decided: "What we decided",
-    changed: "What this changes",
-    next: "Next step",
-  },
-  de: {
-    observed: "Was wir beobachtet haben",
-    decided: "Was wir entschieden haben",
-    changed: "Was sich dadurch ändert",
-    next: "Nächster Schritt",
-  },
-};
 
-function sortJournalEntries(entries) {
-  return [...entries].sort((left, right) => {
-    const leftValue = String(left.sort_date || "");
-    const rightValue = String(right.sort_date || "");
-    return rightValue.localeCompare(leftValue);
-  });
-}
-
-const candidateTallyMeta = {
-  formId: "449blX",
-  mobilityTypes: ["Transfrontalière", "Expatriation"],
-  countryColumns: ["J'y habite", "Je veux y travailler", "J'y ai déjà travaillé"],
-  countryRows: [
-    { field: "tally_q01_f01", label: "Allemagne" },
-    { field: "tally_q01_f02", label: "France" },
-    { field: "tally_q01_f03", label: "Luxembourg" },
-    { field: "tally_q01_f04", label: "Un autre pays de l'UE" },
-    { field: "tally_q01_f05", label: "Un autre pays hors UE" }
-  ],
-  scheduleColumns: ["Matin", "Après-midi", "Soir", "Nuit"],
-  scheduleRows: [
-    { field: "tally_q07_f01", label: "Lundi" },
-    { field: "tally_q07_f02", label: "Mardi" },
-    { field: "tally_q07_f03", label: "Mercredi" },
-    { field: "tally_q07_f04", label: "Jeudi" },
-    { field: "tally_q07_f05", label: "Vendredi" },
-    { field: "tally_q07_f06", label: "Samedi" },
-    { field: "tally_q07_f07", label: "Dimanche" }
-  ],
-  documentsColumns: ["Je l'ai", "Je suis en train de le préparer", "Je ne sais pas encore"],
-  documentsRows: [
-    { field: "tally_q10_f01", label: "Carte d'identité ou passeport (en cours de validité)" },
-    { field: "tally_q10_f02", label: "CV à jour" },
-    { field: "tally_q10_f03", label: "Vos diplômes ou qualifications professionnelles" },
-    { field: "tally_q10_f04", label: "Compte bancaire / IBAN" },
-    { field: "tally_q10_f05", label: "Attestation d'affiliation à la sécurité sociale" }
-  ],
-  languageColumns: [
-    "Langue maternelle",
-    "Je peux échanger à l'oral",
-    "Je peux travailler avec cette langue",
-    "J'utilise un outil de traduction si nécessaire",
-    "Je ne la pratique pas"
-  ],
-  languageRows: [
-    { field: "tally_q18_f01", label: "Allemand" },
-    { field: "tally_q18_f02", label: "Anglais" },
-    { field: "tally_q18_f03", label: "Français" },
-    { field: "tally_q18_f04", label: "Luxembourgeois" }
-  ],
-  rankingOptions: [
-    "Trouver un logement",
-    "Trouver un emploi",
-    "Comprendre les démarches administratives/fiscales",
-    "Préparer votre budget et vos finances",
-    "Améliorer votre niveau de langue",
-    "Obtenir de l'aide à l'arrivée (installation, démarches)",
-    "Construire un réseau, vous intégrer socialement"
-  ],
-  sectors: [
-    "Vente et commerce (ex : prêt-à-porter, chaussures, commerce spécialisé)",
-    "Nettoyage et entretien (ex : bureaux, espaces collectifs)",
-    "Hôtellerie et restauration (ex : plonge, service, aide de cuisine)",
-    "Agriculture et récolte (ex : récolte de fruits, travaux saisonniers)",
-    "Missions polyvalentes et emplois accessibles rapidement"
-  ]
-};
-
-const candidateTallyCopy = {
-  fr: {
-    eyebrow: "Questionnaire candidat Match Europe",
-    heroTitle: "Mobilité européenne, transfrontalière ou expatriation",
-    heroLede: "Ce questionnaire nous aide à mieux comprendre votre projet de mobilité en Europe, que vous envisagiez de travailler dans un pays voisin ou de partir vivre et travailler dans un autre pays européen.",
-    heroHighlight: "Quelques minutes suffisent. Vos réponses nous permettent de voir plus rapidement si des opportunités peuvent correspondre à votre situation, à vos disponibilités et à vos préférences.",
-    overviewTitle: "Concernant votre projet de mobilité",
-    overviewMatrixTitle: "Sélectionner ci-dessous votre pays de résidence, le(s) pays où vous souhaitez travailler et ceux où vous avez déjà travaillé",
-    mobilityTypeTitle: "Quel type de mobilité envisagez vous ?",
-    mobilityTypeHint: "Vous pouvez choisir une seule option ou les deux.",
-    crossBorderTitle: "Votre projet de mobilité transfrontalière",
-    expatriationTitle: "Votre projet d'expatriation",
-    professionalTitle: "Votre projet professionnel",
-    contactTitle: "Pour pouvoir vous recontacter",
-    rankingTitle: "Classez du plus important au moins important pour vous ces propositions ?",
-    rankingHint: "Attribuez un rang unique à chaque proposition : 1 pour le plus important, 7 pour le moins important.",
-    sidebarWhyTitle: "Pourquoi ce questionnaire ?",
-    sidebarWhyText: "Il sert à repérer plus facilement les personnes qui peuvent être intéressées par une opportunité de mobilité européenne, en fonction du pays visé, du métier, des langues, de la disponibilité et des conditions pratiques.",
-    sidebarAfterTitle: "Et après ?",
-    sidebarAfterText: "Si votre profil semble correspondre à un besoin en cours, il pourra être étudié pour une mise en relation. Si ce n’est pas encore le bon moment, vos réponses nous aident aussi à mieux préparer les prochaines opportunités.",
-    sidebarResumeTitle: "Reprendre plus tard",
-    sidebarResumeText: "Un identifiant est conservé pour retrouver votre progression si besoin.",
-    salaryExpectationIntro: "Indiquez ici votre attente salariale pour ce métier, en euros, en précisant s'il s'agit d'un montant brut ou net.",
-    fileNote: "Le nom du fichier sera enregistré. Le fichier lui-même n’est pas encore stocké côté plateforme.",
-    consentText: "J’accepte que mes réponses soient utilisées par les équipes et partenaires EURES dans le cadre de l’accompagnement à la mobilité professionnelle et des mises en relation proposées. Vos données seront utilisées uniquement dans le cadre de votre accompagnement et conformément à la réglementation européenne sur la protection des données (RGPD).",
-    rankingError: "Chaque priorité d'expatriation doit avoir un rang unique de 1 à 7.",
-    errors: {
-      maxFour: "Vous avez déjà choisi 4 éléments pour cette section."
-    },
-    mobilityTypeOptions: ["Transfrontalière", "Expatriation"],
-    countryColumns: ["J'y habite", "Je veux y travailler", "J'y ai déjà travaillé"],
-    countryRows: ["Allemagne", "France", "Luxembourg", "Un autre pays de l'UE", "Un autre pays hors UE"],
-    scheduleColumns: ["Matin", "Après-midi", "Soir", "Nuit"],
-    scheduleRows: ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"],
-    documentsColumns: ["Je l'ai", "Je suis en train de le préparer", "Je ne sais pas encore"],
-    documentsRows: [
-      "Carte d'identité ou passeport (en cours de validité)",
-      "CV à jour",
-      "Vos diplômes ou qualifications professionnelles",
-      "Compte bancaire / IBAN",
-      "Attestation d'affiliation à la sécurité sociale"
-    ],
-    languageColumns: [
-      "Langue maternelle",
-      "Je peux échanger à l'oral",
-      "Je peux travailler avec cette langue",
-      "J'utilise un outil de traduction si nécessaire",
-      "Je ne la pratique pas"
-    ],
-    languageRows: ["Allemand", "Anglais", "Français", "Luxembourgeois"],
-    rankingOptions: [
-      "Trouver un logement",
-      "Trouver un emploi",
-      "Comprendre les démarches administratives/fiscales",
-      "Préparer votre budget et vos finances",
-      "Améliorer votre niveau de langue",
-      "Obtenir de l'aide à l'arrivée (installation, démarches)",
-      "Construire un réseau, vous intégrer socialement"
-    ],
-    sectors: [
-      "Vente et commerce (ex : prêt-à-porter, chaussures, commerce spécialisé)",
-      "Nettoyage et entretien (ex : bureaux, espaces collectifs)",
-      "Hôtellerie et restauration (ex : plonge, service, aide de cuisine)",
-      "Agriculture et récolte (ex : récolte de fruits, travaux saisonniers)",
-      "Missions polyvalentes et emplois accessibles rapidement"
-    ],
-    questions: {
-      q03: "Avez-vous déjà travaillé sous statut \"frontalier\" ?",
-      q04: "Quel temps de trajet maximum accepteriez vous de faire (aller simple) ?",
-      q05: "Comment vous vous déplaceriez au quotidien ?",
-      q06: "Quelles sont vos disponibilités horaires ?",
-      q07: "Sélectionner vos disponibilités",
-      q08: "Quels types de contrats accepteriez vous ?",
-      q09: "À partir de quand seriez-vous disponible pour commencer un emploi ?",
-      q10: "Où en êtes-vous dans la préparation de ces documents ?",
-      q10Hint: "Il n’est pas nécessaire d’avoir déjà tous les documents.",
-      q11: "Avez-vous déjà un numéro ou une affiliation à la sécurité sociale luxembourgeoise ?",
-      q12: "Avez-vous déjà un numéro ou une affiliation à la sécurité sociale allemande ?",
-      q13: "Avez-vous déjà un numéro ou une affiliation à la sécurité sociale française ?",
-      q14: "Avez-vous déjà vécu et travaillé dans pays étranger ?",
-      q15: "Quand souhaitez-vous partir ?",
-      q16: "Concernant les conditions de votre départ, vous partirez :",
-      q18: "Vos compétences linguistiques",
-      q19: "Dans quels secteurs souhaitez-vous travailler ?",
-      sectorHint: "Vous pouvez sélectionner jusqu'à 4 propositions.",
-      q21: "Avez-vous une expérience professionnelle dans le secteur de la vente et du commerce ?",
-      q23: "Avez-vous une expérience professionnelle dans le secteur du nettoyage ?",
-      q24: "Disposez-vous d’un extrait de casier judiciaire (bulletin n°3) datant de moins de 3 mois ?",
-      q26: "Avez-vous une expérience professionnelle dans le secteur de l'hôtellerie et de la restauration?",
-      q28: "Avez-vous une expérience professionnelle dans le secteur de l'agriculture et de la récolte?",
-      q30: "Avez-vous une expérience professionnelle ?",
-      salaryType: "Sous quelle forme pensez-vous à votre salaire ?",
-      salaryMin: "Quel est le minimum que vous souhaiteriez pour ce métier, en euros bruts ou nets ?",
-      firstName: "Prénom",
-      lastName: "Nom",
-      email: "Adresse e-mail",
-      phone: "Téléphone",
-      city: "Ville de résidence actuelle",
-      cv: "Souhaitez-vous transmettre votre CV ?"
-    },
-    options: {
-      yesNo: ["Oui", "Non"],
-      yesNoUnknown: ["Oui", "Non", "Je ne sais pas"],
-      commute: ["30 min", "1h", "1h30", "2h", "Plus de 2h"],
-      transport: ["Voiture", "Train", "Bus", "Covoiturage", "Je ne sais pas encore"],
-      schedule: ["Je suis disponible sur des horaires variés", "J’ai des contraintes ou préférences horaires"],
-      contracts: ["CDI", "CDD", "Intérim", "Saisonnier", "Temps plein", "Temps partiel"],
-      startDate: ["Dès que possible", "Dans les prochains jours", "Dans les prochaines semaines", "Dans 1 à 3 mois", "Je ne sais pas encore"],
-      departWhen: ["Dès que possible", "D'ici 3 mois", "Entre 3 et 6 mois", "Dans  plus de 6 mois", "Je ne sais pas"],
-      departWith: ["Uniquement vous", "En couple", "En famille"],
-      experience: ["Oui, plus de 2 ans", "Oui, entre 6 mois et 2 ans", "Oui, moins de 6 mois", "Non, mais je suis intéressé(e) par le secteur"],
-      backgroundCheck: ["Oui", "Non", "Je peux en faire la demande rapidement", "Je ne sais pas"]
-    },
-    salaryUnits: ["Par heure", "Par mois", "Par an"],
-    salaryFields: {
-      type: "Sous quelle forme pensez-vous à votre salaire ?",
-      min: "Quel est le minimum que vous souhaiteriez pour ce métier, en euros bruts ou nets ?"
-    },
-    sectorTitles: {
-      vente: "Vente et commerce",
-      nettoyage: "Nettoyage et entretien",
-      hotel: "Hôtellerie et restauration",
-      agri: "Agriculture et récolte",
-      polyvalent: "Missions polyvalentes et emplois accessibles rapidement"
-    },
-    sectorLegends: {
-      vente: "Vente et commerce — parmi les propositions suivantes, lesquelles vous correspondent le mieux ?",
-      nettoyage: "Nettoyage et entretien — parmi les propositions suivantes, lesquelles vous correspondent le mieux ?",
-      hotel: "Hôtellerie et restauration — parmi les propositions suivantes, lesquelles vous correspondent le mieux ?",
-      agri: "Agriculture et récolte — parmi les propositions suivantes, lesquelles vous correspondent le mieux ?",
-      polyvalent: "Missions polyvalentes et emplois accessibles rapidement — parmi les propositions suivantes, lesquelles vous correspondent le mieux ?"
-    },
-    sectorChoices: {
-      vente: [
-        "Accueillir et orienter les clients",
-        "Conseiller un produit ou un service",
-        "Comprendre rapidement une demande",
-        "Réaliser un encaissement",
-        "Garder son calme en période d’affluence",
-        "Travailler en équipe",
-        "Être ponctuel",
-        "S’adapter à différentes tâches",
-        "Résister au stress",
-        "Aider un collègue si nécessaire",
-        "Fidéliser la clientèle",
-        "Maintenir un espace de vente propre et organisé"
-      ],
-      nettoyage: [
-        "Travailler de manière autonome",
-        "Appliquer des consignes",
-        "Organiser son travail",
-        "Maintenir un espace propre et organisé",
-        "S'adapter à une situation imprévue",
-        "Prendre soin du matériel utilisé",
-        "Être efficace dans ses tâches",
-        "Travailler en équipe",
-        "Aider un collègue si nécessaire",
-        "Être ponctuel",
-        "Respecter des règles d’hygiène et de sécurité",
-        "Effectuer des tâches répétitives"
-      ],
-      hotel: [
-        "Accueillir et orienter les clients",
-        "Travailler en équipe",
-        "Garder son calme pendant les périodes d’affluence",
-        "Appliquer des consignes",
-        "Être ponctuel",
-        "S’adapter à différentes tâches",
-        "Mémoriser des commandes ou des informations",
-        "Aider un collègue si nécessaire",
-        "Résister au stress",
-        "Maintenir un espace propre et organisé",
-        "Conseiller un client ou répondre à une demande"
-      ],
-      agri: [
-        "Être ponctuel",
-        "Travailler en équipe",
-        "Appliquer des consignes",
-        "Prendre soin du matériel utilisé",
-        "Aider un collègue si nécessaire",
-        "Garder son calme en période d’activité intense",
-        "Réaliser des tâches physiques",
-        "Travailler en extérieur et selon les conditions météo",
-        "S’adapter à différentes tâches",
-        "Effectuer des tâches répétitives"
-      ],
-      polyvalent: [
-        "S’adapter rapidement à une nouvelle tâche",
-        "Travailler en équipe",
-        "Respecter les consignes",
-        "Respecter les horaires de travail",
-        "Réaliser un travail physique",
-        "Travailler à un rythme soutenu",
-        "Travailler dans différents environnements",
-        "Accepter des horaires variables",
-        "Aider un collègue si nécessaire",
-        "Être disponible rapidement"
-      ]
-    }
-  },
-  en: {
-    eyebrow: "EURES candidate questionnaire",
-    heroTitle: "European mobility, cross-border commuting or relocation",
-    heroLede: "This questionnaire helps us better understand your mobility plans in Europe, whether you are considering working in a neighbouring country or moving to live and work in another European country.",
-    heroHighlight: "It only takes a few minutes. Your answers help us identify more quickly whether opportunities may match your situation, availability and preferences.",
-    overviewTitle: "About your mobility plans",
-    overviewMatrixTitle: "Select below your country of residence, the country or countries where you would like to work, and those where you have already worked",
-    mobilityTypeTitle: "What type of mobility are you considering?",
-    mobilityTypeHint: "You can choose one option or both.",
-    crossBorderTitle: "Your cross-border mobility plans",
-    expatriationTitle: "Your relocation plans",
-    professionalTitle: "Your professional plans",
-    contactTitle: "So that we can contact you again",
-    rankingTitle: "Rank these items from most important to least important for you",
-    rankingHint: "Give a unique rank to each item: 1 for the most important, 7 for the least important.",
-    sidebarWhyTitle: "Why this questionnaire?",
-    sidebarWhyText: "It helps us identify more easily people who may be interested in a European mobility opportunity, based on the target country, job sector, languages, availability and practical conditions.",
-    sidebarAfterTitle: "What happens next?",
-    sidebarAfterText: "If your profile seems to match an active need, it may be reviewed for a possible introduction. If the timing is not right yet, your answers still help us prepare upcoming opportunities better.",
-    sidebarResumeTitle: "Continue later",
-    sidebarResumeText: "An identifier is kept so your progress can be found again if needed.",
-    salaryExpectationIntro: "Indicate your salary expectation for this role here, in euros, and specify whether it is gross or net.",
-    fileNote: "The file name will be recorded. The file itself is not yet stored on the platform.",
-    consentText: "I agree that my answers may be used by EURES teams and partners for professional mobility support and the proposed introductions. Your data will only be used for your support and in accordance with European data protection rules (GDPR).",
-    rankingError: "Each relocation priority must have a unique rank from 1 to 7.",
-    errors: {
-      maxFour: "You have already selected 4 items for this section."
-    },
-    mobilityTypeOptions: ["Cross-border commuting", "Relocation"],
-    countryColumns: ["I live there", "I want to work there", "I have already worked there"],
-    countryRows: ["Germany", "France", "Luxembourg", "Another EU country", "Another non-EU country"],
-    scheduleColumns: ["Morning", "Afternoon", "Evening", "Night"],
-    scheduleRows: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-    documentsColumns: ["I already have it", "I am preparing it", "I do not know yet"],
-    documentsRows: [
-      "Identity card or passport (valid)",
-      "Up-to-date CV",
-      "Your diplomas or professional qualifications",
-      "Bank account / IBAN",
-      "Social security affiliation certificate"
-    ],
-    languageColumns: [
-      "Native language",
-      "I can speak it",
-      "I can work in this language",
-      "I use a translation tool if needed",
-      "I do not use it"
-    ],
-    languageRows: ["German", "English", "French", "Luxembourgish"],
-    rankingOptions: [
-      "Finding accommodation",
-      "Finding a job",
-      "Understanding administrative and tax procedures",
-      "Planning your budget and finances",
-      "Improving your language level",
-      "Getting help on arrival (settling in, procedures)",
-      "Building a network and integrating socially"
-    ],
-    sectors: [
-      "Sales and retail (for example ready-to-wear, shoes, specialist retail)",
-      "Cleaning and maintenance (for example offices, shared spaces)",
-      "Hospitality and food service (for example dishwashing, service, kitchen support)",
-      "Agriculture and harvesting (for example fruit picking, seasonal work)",
-      "Versatile jobs and roles accessible quickly"
-    ],
-    questions: {
-      q03: "Have you already worked with cross-border commuter status?",
-      q04: "What maximum travel time would you accept (one way)?",
-      q05: "How would you travel on a daily basis?",
-      q06: "What are your schedule availabilities?",
-      q07: "Select your availabilities",
-      q08: "Which types of contract would you accept?",
-      q09: "When would you be available to start a job?",
-      q10: "Where do you stand in preparing these documents?",
-      q10Hint: "It is not necessary to already have all of them.",
-      q11: "Do you already have a Luxembourg social security number or affiliation?",
-      q12: "Do you already have a German social security number or affiliation?",
-      q13: "Do you already have a French social security number or affiliation?",
-      q14: "Have you already lived and worked in a foreign country?",
-      q15: "When would you like to leave?",
-      q16: "Regarding your departure, you would leave:",
-      q18: "Your language skills",
-      q19: "In which sectors would you like to work?",
-      sectorHint: "You can select up to 4 options.",
-      q21: "Do you have work experience in sales and retail?",
-      q23: "Do you have work experience in cleaning?",
-      q24: "Do you have a criminal record extract issued within the last 3 months?",
-      q26: "Do you have work experience in hospitality and food service?",
-      q28: "Do you have work experience in agriculture and harvesting?",
-      q30: "Do you have work experience?",
-      salaryType: "How do you think about your salary?",
-      salaryMin: "What is the minimum you would like for this role, in gross or net euros?",
-      firstName: "First name",
-      lastName: "Last name",
-      email: "Email address",
-      phone: "Phone",
-      city: "Current city of residence",
-      cv: "Would you like to provide your CV?"
-    },
-    options: {
-      yesNo: ["Yes", "No"],
-      yesNoUnknown: ["Yes", "No", "I don't know"],
-      commute: ["30 min", "1h", "1h30", "2h", "More than 2h"],
-      transport: ["Car", "Train", "Bus", "Carpooling", "I don't know yet"],
-      schedule: ["I am available on varied schedules", "I have schedule constraints or preferences"],
-      contracts: ["Permanent contract", "Fixed-term contract", "Temporary agency work", "Seasonal", "Full-time", "Part-time"],
-      startDate: ["As soon as possible", "In the next few days", "In the next few weeks", "In 1 to 3 months", "I don't know yet"],
-      departWhen: ["As soon as possible", "Within 3 months", "Between 3 and 6 months", "In more than 6 months", "I don't know"],
-      departWith: ["Only you", "As a couple", "As a family"],
-      experience: ["Yes, more than 2 years", "Yes, between 6 months and 2 years", "Yes, less than 6 months", "No, but I am interested in this sector"],
-      backgroundCheck: ["Yes", "No", "I can request it quickly", "I don't know"]
-    },
-    salaryUnits: ["Per hour", "Per month", "Per year"],
-    salaryFields: {
-      type: "How do you think about your salary?",
-      min: "What is the minimum you would like for this role, in gross or net euros?"
-    },
-    sectorTitles: {
-      vente: "Sales and retail",
-      nettoyage: "Cleaning and maintenance",
-      hotel: "Hospitality and food service",
-      agri: "Agriculture and harvesting",
-      polyvalent: "Versatile jobs and roles accessible quickly"
-    },
-    sectorLegends: {
-      vente: "Sales and retail: which of the following statements describe you best?",
-      nettoyage: "Cleaning and maintenance: which of the following statements describe you best?",
-      hotel: "Hospitality and food service: which of the following statements describe you best?",
-      agri: "Agriculture and harvesting: which of the following statements describe you best?",
-      polyvalent: "Versatile jobs and roles accessible quickly: which of the following statements describe you best?"
-    },
-    sectorChoices: {
-      vente: ["Welcoming and guiding customers", "Advising on a product or service", "Understanding a request quickly", "Handling payment", "Staying calm during busy periods", "Working as part of a team", "Being punctual", "Adapting to different tasks", "Handling stress", "Helping a colleague when needed", "Building customer loyalty", "Keeping the sales area clean and organised"],
-      nettoyage: ["Working independently", "Following instructions", "Organising your work", "Keeping an area clean and organised", "Adapting to an unexpected situation", "Taking care of the equipment used", "Being efficient in your tasks", "Working as part of a team", "Helping a colleague when needed", "Being punctual", "Following hygiene and safety rules", "Carrying out repetitive tasks"],
-      hotel: ["Welcoming and guiding customers", "Working as part of a team", "Staying calm during busy periods", "Following instructions", "Being punctual", "Adapting to different tasks", "Remembering orders or information", "Helping a colleague when needed", "Handling stress", "Keeping an area clean and organised", "Advising a customer or answering a request"],
-      agri: ["Being punctual", "Working as part of a team", "Following instructions", "Taking care of the equipment used", "Helping a colleague when needed", "Staying calm during intense periods of activity", "Doing physical tasks", "Working outdoors and depending on weather conditions", "Adapting to different tasks", "Carrying out repetitive tasks"],
-      polyvalent: ["Adapting quickly to a new task", "Working as part of a team", "Following instructions", "Respecting working hours", "Doing physical work", "Working at a sustained pace", "Working in different environments", "Accepting variable schedules", "Helping a colleague when needed", "Being available quickly"]
-    }
-  },
-  de: {
-    eyebrow: "EURES-Kandidatenfragebogen",
-    heroTitle: "Europäische Mobilität, Grenzpendeln oder Umzug",
-    heroLede: "Dieser Fragebogen hilft uns, Ihre Mobilitätspläne in Europa besser zu verstehen, egal ob Sie in einem Nachbarland arbeiten möchten oder in ein anderes europäisches Land ziehen wollen, um dort zu leben und zu arbeiten.",
-    heroHighlight: "Das dauert nur wenige Minuten. Ihre Antworten helfen uns, schneller zu erkennen, ob Chancen zu Ihrer Situation, Ihrer Verfügbarkeit und Ihren Präferenzen passen könnten.",
-    overviewTitle: "Zu Ihrem Mobilitätsprojekt",
-    overviewMatrixTitle: "Wählen Sie unten Ihr Wohnland, die Länder, in denen Sie arbeiten möchten, und die Länder, in denen Sie bereits gearbeitet haben",
-    mobilityTypeTitle: "Welche Art von Mobilität ziehen Sie in Betracht?",
-    mobilityTypeHint: "Sie können eine oder beide Optionen wählen.",
-    crossBorderTitle: "Ihr grenzüberschreitendes Mobilitätsprojekt",
-    expatriationTitle: "Ihr Umzugsprojekt",
-    professionalTitle: "Ihr berufliches Projekt",
-    contactTitle: "Damit wir Sie wieder kontaktieren können",
-    rankingTitle: "Ordnen Sie diese Punkte von am wichtigsten bis am wenigsten wichtig für Sie",
-    rankingHint: "Geben Sie jedem Punkt einen eindeutigen Rang: 1 für am wichtigsten, 7 für am wenigsten wichtig.",
-    sidebarWhyTitle: "Warum dieser Fragebogen?",
-    sidebarWhyText: "Er hilft uns, leichter Personen zu erkennen, die an einer europäischen Mobilitätschance interessiert sein könnten, je nach Zielland, Berufsfeld, Sprachen, Verfügbarkeit und praktischen Bedingungen.",
-    sidebarAfterTitle: "Wie geht es danach weiter?",
-    sidebarAfterText: "Wenn Ihr Profil zu einem aktuellen Bedarf zu passen scheint, kann es für eine mögliche Vermittlung geprüft werden. Wenn der Zeitpunkt noch nicht passt, helfen uns Ihre Antworten trotzdem dabei, kommende Chancen besser vorzubereiten.",
-    sidebarResumeTitle: "Später fortsetzen",
-    sidebarResumeText: "Eine Kennung wird gespeichert, damit Ihr Fortschritt bei Bedarf wiedergefunden werden kann.",
-    salaryExpectationIntro: "Geben Sie hier Ihre Gehaltserwartung für diesen Beruf in Euro an und präzisieren Sie, ob es sich um einen Brutto- oder Nettobetrag handelt.",
-    fileNote: "Der Dateiname wird gespeichert. Die Datei selbst wird derzeit noch nicht auf der Plattform gespeichert.",
-    consentText: "Ich stimme zu, dass meine Antworten von EURES-Teams und Partnern für die Begleitung der beruflichen Mobilität und die vorgeschlagenen Vermittlungen verwendet werden dürfen. Ihre Daten werden nur im Rahmen Ihrer Begleitung und gemäß den europäischen Datenschutzvorschriften (DSGVO) verwendet.",
-    rankingError: "Jede Umzugspriorität muss einen eindeutigen Rang von 1 bis 7 haben.",
-    errors: {
-      maxFour: "Sie haben für diesen Abschnitt bereits 4 Elemente ausgewählt."
-    },
-    mobilityTypeOptions: ["Grenzpendeln", "Umzug"],
-    countryColumns: ["Ich wohne dort", "Ich möchte dort arbeiten", "Ich habe dort bereits gearbeitet"],
-    countryRows: ["Deutschland", "Frankreich", "Luxemburg", "Ein anderes EU-Land", "Ein anderes Nicht-EU-Land"],
-    scheduleColumns: ["Morgen", "Nachmittag", "Abend", "Nacht"],
-    scheduleRows: ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"],
-    documentsColumns: ["Ich habe es bereits", "Ich bereite es gerade vor", "Ich weiß es noch nicht"],
-    documentsRows: [
-      "Personalausweis oder Reisepass (gültig)",
-      "Aktueller Lebenslauf",
-      "Ihre Diplome oder beruflichen Qualifikationen",
-      "Bankkonto / IBAN",
-      "Bescheinigung über die Sozialversicherungszugehörigkeit"
-    ],
-    languageColumns: [
-      "Muttersprache",
-      "Ich kann mich mündlich verständigen",
-      "Ich kann in dieser Sprache arbeiten",
-      "Ich nutze bei Bedarf ein Übersetzungstool",
-      "Ich nutze sie nicht"
-    ],
-    languageRows: ["Deutsch", "Englisch", "Französisch", "Luxemburgisch"],
-    rankingOptions: [
-      "Eine Unterkunft finden",
-      "Eine Arbeit finden",
-      "Verwaltungs- und Steuerverfahren verstehen",
-      "Ihr Budget und Ihre Finanzen planen",
-      "Ihr Sprachniveau verbessern",
-      "Hilfe bei der Ankunft erhalten (Einrichtung, Verfahren)",
-      "Ein Netzwerk aufbauen und sich sozial integrieren"
-    ],
-    sectors: [
-      "Verkauf und Handel (z. B. Bekleidung, Schuhe, Fachhandel)",
-      "Reinigung und Instandhaltung (z. B. Büros, Gemeinschaftsflächen)",
-      "Hotellerie und Gastronomie (z. B. Spülküche, Service, Küchenhilfe)",
-      "Landwirtschaft und Ernte (z. B. Obsternte, Saisonarbeit)",
-      "Vielseitige Tätigkeiten und Jobs mit schnellem Einstieg"
-    ],
-    questions: {
-      q03: "Haben Sie bereits mit Grenzgängerstatus gearbeitet?",
-      q04: "Welche maximale Fahrzeit würden Sie akzeptieren (einfache Strecke)?",
-      q05: "Wie würden Sie sich täglich fortbewegen?",
-      q06: "Wie sind Ihre zeitlichen Verfügbarkeiten?",
-      q07: "Wählen Sie Ihre Verfügbarkeiten",
-      q08: "Welche Vertragsarten würden Sie akzeptieren?",
-      q09: "Ab wann wären Sie verfügbar, um eine Arbeit zu beginnen?",
-      q10: "Wie weit sind Sie bei der Vorbereitung dieser Unterlagen?",
-      q10Hint: "Es ist nicht nötig, bereits alle Unterlagen zu haben.",
-      q11: "Haben Sie bereits eine luxemburgische Sozialversicherungsnummer oder Zugehörigkeit?",
-      q12: "Haben Sie bereits eine deutsche Sozialversicherungsnummer oder Zugehörigkeit?",
-      q13: "Haben Sie bereits eine französische Sozialversicherungsnummer oder Zugehörigkeit?",
-      q14: "Haben Sie bereits in einem anderen Land gelebt und gearbeitet?",
-      q15: "Wann möchten Sie aufbrechen?",
-      q16: "Unter welchen Bedingungen würden Sie aufbrechen:",
-      q18: "Ihre Sprachkenntnisse",
-      q19: "In welchen Bereichen möchten Sie arbeiten?",
-      sectorHint: "Sie können bis zu 4 Antworten auswählen.",
-      q21: "Haben Sie Berufserfahrung im Verkauf und Handel?",
-      q23: "Haben Sie Berufserfahrung in der Reinigung?",
-      q24: "Verfügen Sie über einen Strafregisterauszug, der nicht älter als 3 Monate ist?",
-      q26: "Haben Sie Berufserfahrung in Hotellerie und Gastronomie?",
-      q28: "Haben Sie Berufserfahrung in Landwirtschaft und Ernte?",
-      q30: "Haben Sie Berufserfahrung?",
-      salaryType: "In welcher Form denken Sie an Ihr Gehalt?",
-      salaryMin: "Was ist das Minimum, das Sie für diesen Beruf in Euro brutto oder netto erwarten würden?",
-      firstName: "Vorname",
-      lastName: "Nachname",
-      email: "E-Mail-Adresse",
-      phone: "Telefon",
-      city: "Aktueller Wohnort",
-      cv: "Möchten Sie Ihren Lebenslauf übermitteln?"
-    },
-    options: {
-      yesNo: ["Ja", "Nein"],
-      yesNoUnknown: ["Ja", "Nein", "Ich weiß es nicht"],
-      commute: ["30 Min.", "1 Std.", "1 Std. 30", "2 Std.", "Mehr als 2 Std."],
-      transport: ["Auto", "Zug", "Bus", "Fahrgemeinschaft", "Ich weiß es noch nicht"],
-      schedule: ["Ich bin zu unterschiedlichen Zeiten verfügbar", "Ich habe zeitliche Einschränkungen oder Präferenzen"],
-      contracts: ["Unbefristeter Vertrag", "Befristeter Vertrag", "Zeitarbeit", "Saisonarbeit", "Vollzeit", "Teilzeit"],
-      startDate: ["So schnell wie möglich", "In den nächsten Tagen", "In den nächsten Wochen", "In 1 bis 3 Monaten", "Ich weiß es noch nicht"],
-      departWhen: ["So schnell wie möglich", "Innerhalb von 3 Monaten", "Zwischen 3 und 6 Monaten", "In mehr als 6 Monaten", "Ich weiß es nicht"],
-      departWith: ["Nur Sie", "Als Paar", "Als Familie"],
-      experience: ["Ja, mehr als 2 Jahre", "Ja, zwischen 6 Monaten und 2 Jahren", "Ja, weniger als 6 Monate", "Nein, aber ich interessiere mich für diesen Bereich"],
-      backgroundCheck: ["Ja", "Nein", "Ich kann ihn schnell beantragen", "Ich weiß es nicht"]
-    },
-    salaryUnits: ["Pro Stunde", "Pro Monat", "Pro Jahr"],
-    salaryFields: {
-      type: "In welcher Form denken Sie an Ihr Gehalt?",
-      min: "Was ist das Minimum, das Sie für diesen Beruf in Euro brutto oder netto erwarten würden?"
-    },
-    sectorTitles: {
-      vente: "Verkauf und Handel",
-      nettoyage: "Reinigung und Instandhaltung",
-      hotel: "Hotellerie und Gastronomie",
-      agri: "Landwirtschaft und Ernte",
-      polyvalent: "Vielseitige Tätigkeiten und Jobs mit schnellem Einstieg"
-    },
-    sectorLegends: {
-      vente: "Verkauf und Handel: Welche der folgenden Aussagen passen am besten zu Ihnen?",
-      nettoyage: "Reinigung und Instandhaltung: Welche der folgenden Aussagen passen am besten zu Ihnen?",
-      hotel: "Hotellerie und Gastronomie: Welche der folgenden Aussagen passen am besten zu Ihnen?",
-      agri: "Landwirtschaft und Ernte: Welche der folgenden Aussagen passen am besten zu Ihnen?",
-      polyvalent: "Vielseitige Tätigkeiten und Jobs mit schnellem Einstieg: Welche der folgenden Aussagen passen am besten zu Ihnen?"
-    },
-    sectorChoices: {
-      vente: ["Kunden empfangen und orientieren", "Zu einem Produkt oder einer Dienstleistung beraten", "Eine Anfrage schnell verstehen", "Eine Zahlung durchführen", "In Stoßzeiten ruhig bleiben", "Im Team arbeiten", "Pünktlich sein", "Sich an verschiedene Aufgaben anpassen", "Stress standhalten", "Bei Bedarf einem Kollegen helfen", "Kundschaft binden", "Einen Verkaufsbereich sauber und organisiert halten"],
-      nettoyage: ["Selbstständig arbeiten", "Anweisungen befolgen", "Die eigene Arbeit organisieren", "Einen Bereich sauber und organisiert halten", "Sich an eine unvorhergesehene Situation anpassen", "Sorgfältig mit dem verwendeten Material umgehen", "In den Aufgaben effizient sein", "Im Team arbeiten", "Bei Bedarf einem Kollegen helfen", "Pünktlich sein", "Hygiene- und Sicherheitsregeln einhalten", "Wiederholende Aufgaben ausführen"],
-      hotel: ["Kunden empfangen und orientieren", "Im Team arbeiten", "Während starker Auslastung ruhig bleiben", "Anweisungen befolgen", "Pünktlich sein", "Sich an verschiedene Aufgaben anpassen", "Bestellungen oder Informationen behalten", "Bei Bedarf einem Kollegen helfen", "Stress standhalten", "Einen Bereich sauber und organisiert halten", "Einen Kunden beraten oder auf eine Anfrage antworten"],
-      agri: ["Pünktlich sein", "Im Team arbeiten", "Anweisungen befolgen", "Sorgfältig mit dem verwendeten Material umgehen", "Bei Bedarf einem Kollegen helfen", "In intensiven Arbeitsphasen ruhig bleiben", "Körperliche Aufgaben ausführen", "Im Freien und je nach Wetterbedingungen arbeiten", "Sich an verschiedene Aufgaben anpassen", "Wiederholende Aufgaben ausführen"],
-      polyvalent: ["Sich schnell an eine neue Aufgabe anpassen", "Im Team arbeiten", "Anweisungen befolgen", "Arbeitszeiten einhalten", "Körperliche Arbeit ausführen", "In hohem Tempo arbeiten", "In unterschiedlichen Umgebungen arbeiten", "Variable Arbeitszeiten akzeptieren", "Bei Bedarf einem Kollegen helfen", "Schnell verfügbar sein"]
-    }
-  }
-};
-
-function localizeOptions(values, labels) {
-  return values.map((value, index) => ({ value, label: labels[index] || value }));
-}
-
-function localizeRows(rows, labels) {
-  return rows.map((row, index) => ({ ...row, label: labels[index] || row.label }));
-}
-
-function getCandidateTallyContent(lang) {
-  const content = candidateTallyCopy[lang] || candidateTallyCopy.fr;
-  return {
-    ...content,
-    mobilityTypeOptions: localizeOptions(candidateTallyMeta.mobilityTypes, content.mobilityTypeOptions),
-    countryColumns: localizeOptions(candidateTallyMeta.countryColumns, content.countryColumns),
-    countryRows: localizeRows(candidateTallyMeta.countryRows, content.countryRows),
-    scheduleColumns: localizeOptions(candidateTallyMeta.scheduleColumns, content.scheduleColumns),
-    scheduleRows: localizeRows(candidateTallyMeta.scheduleRows, content.scheduleRows),
-    documentsColumns: localizeOptions(candidateTallyMeta.documentsColumns, content.documentsColumns),
-    documentsRows: localizeRows(candidateTallyMeta.documentsRows, content.documentsRows),
-    languageColumns: localizeOptions(candidateTallyMeta.languageColumns, content.languageColumns),
-    languageRows: localizeRows(candidateTallyMeta.languageRows, content.languageRows),
-    sectorsOptions: localizeOptions(candidateTallyMeta.sectors, content.sectors),
-    rankingDisplayOptions: content.rankingOptions
-  };
-}
-
-const employerTallyMeta = {
-  formId: "ZjZA7A",
-  sectors: [
-    "Vente et commerce",
-    "Nettoyage et entretien",
-    "Hôtellerie et restauration",
-    "Agriculture et récolte",
-    "Missions polyvalentes et emplois accessibles rapidement"
-  ],
-  languageColumns: ["Pas nécessaire", "Communication simple", "Communication professionelle", "Très important au quotidien"],
-  languageRows: [
-    { field: "tally_q02_f01", label: "Allemand" },
-    { field: "tally_q02_f02", label: "Anglais" },
-    { field: "tally_q02_f03", label: "Français" },
-    { field: "tally_q02_f04", label: "Luxembourgeois" }
-  ],
-  sectorPriorityGroups: {
-    tally_q10: [
-      "Être à l’aise avec les clients",
-      "Pouvoir communiquer simplement avec les clients",
-      "Travailler pendant les périodes d’affluence",
-      "Réaliser des opérations d'encaissements",
-      "Travailler en équipe",
-      "S’adapter à différentes tâches",
-      "Maintenir un espace de vente propre et organisé",
-      "Respecter les horaires de travail"
-    ],
-    tally_q11: [
-      "Respecter les procédures, consignes et les règles d’hygiène",
-      "Maintenir un niveau de qualité constant",
-      "Respecter les horaires de travail",
-      "Travailler de manière autonome",
-      "Travailler en équipe",
-      "Travailler à un rythme soutenu",
-      "S’adapter à différents lieux ou environnements de travail",
-      "Réaliser des tâches répétitives",
-      "Pouvoir se déplacer facilement sur les lieux d’intervention"
-    ],
-    tally_q12: [
-      "Accueillir et orienter les clients",
-      "Pouvoir communiquer simplement avec les clients",
-      "Travailler pendant les périodes d’affluence",
-      "Garder son calme en période d’activité intense",
-      "Travailler en équipe",
-      "Respecter les horaires de travail",
-      "Travailler en soirée, le week-end ou les jours fériés",
-      "Mémoriser des commandes ou des informations",
-      "S’adapter à différentes tâches",
-      "Maintenir un espace d'accueil ou de service propre et organisé"
-    ],
-    tally_q13: [
-      "Respecter les horaires et les périodes de récolte",
-      "Travailler en extérieur et selon les conditions météo",
-      "Réaliser un travail physique",
-      "Travailler à un rythme soutenu",
-      "Respecter les consignes de travail et de sécurité",
-      "Utiliser correctement le matériel ou les outils",
-      "Travailler en équipe",
-      "S’adapter à différents types de travaux",
-      "Pouvoir se déplacer facilement sur les lieux de travail",
-      "Maintenir une qualité de travail régulière"
-    ],
-    tally_q14: [
-      "S’adapter rapidement à différentes tâches",
-      "Respecter les consignes et les horaires",
-      "Réaliser un travail physique",
-      "Travailler à un rythme soutenu",
-      "Travailler dans différents environnements",
-      "Intégrer rapidement une équipe",
-      "Travailler en équipe",
-      "Accepter des horaires variables",
-      "Être disponible rapidement",
-      "Pouvoir commencer rapidement une mission"
-    ]
-  }
-};
-
-const employerTallyCopy = {
-  fr: {
-    eyebrow: "Questionnaire employeur EURES",
-    heroTitle: "Décrire un besoin de recrutement ouvert à la mobilité européenne",
-    heroLede: "Ce questionnaire nous aide à mieux comprendre votre besoin de recrutement, les profils recherchés, les langues utiles et les conditions de travail proposées.",
-    heroHighlight: "L’objectif est de rendre votre besoin plus clair et plus comparable, pour faciliter ensuite l’identification de profils compatibles.",
-    sidebarWhyTitle: "Pourquoi ce questionnaire ?",
-    sidebarWhyText: "Il sert à rendre le besoin de recrutement plus lisible : secteur, volume, langues, contraintes de travail, profils acceptés et éventuelles aides à l’installation.",
-    sidebarAfterTitle: "Et après ?",
-    sidebarAfterText: "Si des profils semblent correspondre, votre besoin peut être repris pour une mise en relation. Sinon, les réponses servent déjà à mieux structurer les prochains recrutements.",
-    sidebarResumeTitle: "Reprendre plus tard",
-    sidebarResumeText: "Un identifiant est conservé pour retrouver votre progression si besoin.",
-    salaryOfferIntro: "Indiquez ici le salaire proposé pour ce métier, en euros, en précisant s'il s'agit d'un montant brut ou net.",
-    introNote: "Ce formulaire prend 2 à 3 minutes et s’adresse aux employeurs ayant des besoins de recrutement ouverts à la mobilité européenne et aux recrutements hors frontières.",
-    introNote2: "Nous travaillons actuellement sur quelques métiers prioritaires, afin de tester le service sur des cas concrets.",
-    sections: {
-      need: "Votre besoin de recrutement",
-      conditions: "Profils, aides et conditions de travail",
-      contact: "Pour pouvoir vous recontacter"
-    },
-    questions: {
-      q01: "Dans quel secteur recrutez-vous actuellement ?",
-      q02: "Quelles langues sont impératives pour ce recrutement ?",
-      q02Hint: "Indiquez le niveau de communication attendu pour chaque langue.",
-      q03: "Combien de personnes souhaitez-vous recruter ?",
-      q04: "À partir de quand avez-vous besoin de ces recrutements ?",
-      q05: "Quelle durée de contrat proposez-vous ?",
-      q06: "Quel volume de travail hebdomadaire proposez-vous ?",
-      q07: "Quels profils êtes-vous prêts à recruter ?",
-      q08: "Pouvez-vous aider les personnes recrutées dans leur arrivée ou leur installation ?",
-      q09: "Parmi les éléments suivants, lesquels sont indispensables pour vous ?",
-      q10: "Pour ce recrutement en vente et commerce, quels éléments vous semblent les plus importants ?",
-      q11: "Pour ce recrutement en nettoyage et entretien, quels éléments vous semblent les plus importants ?",
-      q12: "Pour ce recrutement en hôtellerie et restauration, quels éléments vous semblent les plus importants ?",
-      q13: "Pour ce recrutement en agriculture et récolte, quels éléments vous semblent les plus importants ?",
-      q14: "Pour ce recrutement en missions polyvalentes et emplois accessibles rapidement, quels éléments vous semblent les plus importants ?",
-      q14Hint: "Vous pouvez sélectionner jusqu'à 4 propositions.",
-      q15: "Quelles conditions de travail les personnes recrutées doivent-elles connaître ?",
-      q16: "Prénom",
-      q17: "Nom de l'entreprise",
-      q18: "Adresse e-mail",
-      q19: "Téléphone",
-      q20: "Lieux de travail",
-      q20Extra: "Quels autres métiers souhaiteriez-vous voir proposés ici à l'avenir ?",
-      salaryType: "Sous quelle forme exprimez-vous le salaire proposé ?",
-      salaryMin: "Montant minimum proposé, en euros bruts ou nets",
-      salaryMax: "Montant maximum proposé, en euros bruts ou nets",
-      q21Title: "Protection des données",
-      q21Text: "Les informations transmises permettront à l’équipe Match Europe de mieux comprendre votre besoin de recrutement et les conditions proposées afin d’identifier des profils susceptibles de correspondre.",
-      q21Text2: "Si des profils compatibles avec votre recherche sont identifiés, vous pourrez être recontacté prochainement.",
-      q21Text3: "Pensez à répondre aux appels masqués ou inconnus et à vérifier régulièrement vos courriers indésirables (spams).",
-      consent: "J’accepte que les informations transmises soient utilisées par les équipes et partenaires EURES dans le cadre des mises en relation et des échanges liés au recrutement. Les données transmises seront utilisées uniquement dans le cadre des échanges liés au recrutement et conformément à la réglementation européenne sur la protection des données (RGPD)."
-    },
-    options: {
-      sectors: employerTallyMeta.sectors,
-      q03: ["1 personne", "2 à 5 personnes", "Plus de 5 personnes", "Je ne sais pas encore"],
-      q04: ["Dès que possible", "Dans les prochains jours", "Dans les prochaines semaines", "Pour une période saisonnière", "Je ne sais pas encore"],
-      q05: ["Moins d'un mois", "1 à 3 mois", "3 à 6 mois", "Plus de 6 mois", "Contrat sans date de fin prévue", "Je ne sais pas encore"],
-      q06: ["Moins de 20 heures par semaine", "20 à 34 heures par semaine", "35 heures ou plus par semaine", "Le volume peut varier selon l'activité", "Je ne sais pas encore"],
-      q07: ["Des travailleurs frontaliers", "Des personnes venant d’un autre pays de l’Union européenne", "Des personnes débutantes dans le métier", "Des personnes ayant besoin de temps pour s’installer", "Des personnes ne parlant pas encore parfaitement la langue", "Je ne sais pas encore"],
-      q08: ["Oui, pour le logement", "Oui, pour les démarches administratives", "Oui, pour les transports ou déplacement", "Non", "Je ne sais pas encore"],
-      q09: ["Une expérience dans le métier", "Une disponibilité rapide", "Le permis de conduire", "Une expérience de travail dans le pays", "Aucun de ces éléments n'est indispensable", "La motivation pour le poste", "Je ne sais pas encore"],
-      q15: ["Travail tôt le matin ou en horaire décalés", "Travail en soirée ou la nuit", "Travail le week-end ou les jours fériés", "Horaires variables", "Travail physique", "Travail debout prolongé", "Travail en extérieur", "Déplacement fréquents", "Travail en équipe", "Aucune condition particulière", "Je ne sais pas encore"]
-    },
-    salaryUnits: ["Par heure", "Par mois", "Par an"],
-    salaryFields: {
-      type: "Sous quelle forme exprimez-vous le salaire proposé ?",
-      min: "Montant minimum proposé, en euros bruts ou nets",
-      max: "Montant maximum proposé, en euros bruts ou nets"
-    },
-    sectorTitles: {
-      tally_q10: "Vente et commerce",
-      tally_q11: "Nettoyage et entretien",
-      tally_q12: "Hôtellerie et restauration",
-      tally_q13: "Agriculture et récolte",
-      tally_q14: "Missions polyvalentes et emplois accessibles rapidement"
-    },
-    errors: {
-      chooseAtLeastOne: "Sélectionnez au moins une réponse pour :",
-      chooseBetween: "Sélectionnez entre 1 et 4 réponses pour :",
-      maxFour: "Vous avez déjà choisi 4 éléments pour cette section."
-    }
-  },
-  en: {
-    eyebrow: "EURES employer questionnaire",
-    heroTitle: "Describe a hiring need open to European mobility",
-    heroLede: "This questionnaire helps us better understand your hiring need, the profiles you are looking for, the useful languages and the working conditions you offer.",
-    heroHighlight: "The aim is to make your need clearer and more comparable, so that compatible profiles can be identified more easily afterwards.",
-    sidebarWhyTitle: "Why this questionnaire?",
-    sidebarWhyText: "It makes the hiring need easier to read: sector, volume, languages, working constraints, accepted profiles and possible relocation support.",
-    sidebarAfterTitle: "What happens next?",
-    sidebarAfterText: "If some profiles seem compatible, your need can be used for an introduction. Otherwise, the answers already help us structure future recruitments better.",
-    sidebarResumeTitle: "Continue later",
-    sidebarResumeText: "An identifier is kept so your progress can be found again if needed.",
-    salaryOfferIntro: "Indicate the salary offered for this role here, in euros, and specify whether it is gross or net.",
-    introNote: "This form takes 2 to 3 minutes and is intended for employers with hiring needs open to European mobility and cross-border recruitment.",
-    introNote2: "We are currently working on a few priority occupations in order to test the service on concrete cases.",
-    sections: {
-      need: "Your hiring need",
-      conditions: "Profiles, support and working conditions",
-      contact: "So that we can contact you again"
-    },
-    questions: {
-      q01: "In which sector are you currently recruiting?",
-      q02: "Which languages are essential for this recruitment?",
-      q02Hint: "Indicate the expected level of communication for each language.",
-      q03: "How many people would you like to recruit?",
-      q04: "From when do you need these recruitments?",
-      q05: "What contract duration do you offer?",
-      q06: "What weekly working volume do you offer?",
-      q07: "Which profiles are you ready to recruit?",
-      q08: "Can you help recruited people with their arrival or settlement?",
-      q09: "Which of the following elements are essential for you?",
-      q10: "For this sales and retail recruitment, which elements seem most important to you?",
-      q11: "For this cleaning and maintenance recruitment, which elements seem most important to you?",
-      q12: "For this hospitality and food service recruitment, which elements seem most important to you?",
-      q13: "For this agriculture and harvesting recruitment, which elements seem most important to you?",
-      q14: "For this versatile jobs and quick-access roles recruitment, which elements seem most important to you?",
-      q14Hint: "You can select up to 4 options.",
-      q15: "Which working conditions should recruited people be aware of?",
-      q16: "First name",
-      q17: "Company name",
-      q18: "Email address",
-      q19: "Phone",
-      q20: "Work locations",
-      q20Extra: "Which other occupations would you like to see included here in the future?",
-      salaryType: "How do you express the salary offered?",
-      salaryMin: "Minimum amount offered, in gross or net euros",
-      salaryMax: "Maximum amount offered, in gross or net euros",
-      q21Title: "Data protection",
-      q21Text: "The information provided will allow the Match Europe team to better understand your hiring need and the conditions offered in order to identify profiles that may match.",
-      q21Text2: "If profiles compatible with your search are identified, you may be contacted again soon.",
-      q21Text3: "Please remember to answer hidden or unknown calls and to check your junk mail regularly.",
-      consent: "I agree that the information provided may be used by EURES teams and partners for introductions and exchanges related to recruitment. The data provided will only be used within the framework of recruitment exchanges and in accordance with European data protection rules (GDPR)."
-    },
-    options: {
-      sectors: ["Sales and retail", "Cleaning and maintenance", "Hospitality and food service", "Agriculture and harvesting", "Versatile jobs and roles accessible quickly"],
-      q02Columns: ["Not necessary", "Simple communication", "Professional communication", "Very important on a daily basis"],
-      q02Rows: ["German", "English", "French", "Luxembourgish"],
-      q03: ["1 person", "2 to 5 people", "More than 5 people", "I do not know yet"],
-      q04: ["As soon as possible", "In the next few days", "In the next few weeks", "For a seasonal period", "I do not know yet"],
-      q05: ["Less than one month", "1 to 3 months", "3 to 6 months", "More than 6 months", "Contract with no planned end date", "I do not know yet"],
-      q06: ["Less than 20 hours per week", "20 to 34 hours per week", "35 hours or more per week", "The workload may vary depending on activity", "I do not know yet"],
-      q07: ["Cross-border workers", "People coming from another European Union country", "People who are beginners in the profession", "People who need time to settle in", "People who do not yet speak the language perfectly", "I do not know yet"],
-      q08: ["Yes, for housing", "Yes, for administrative procedures", "Yes, for transport or travel", "No", "I do not know yet"],
-      q09: ["Experience in the profession", "Quick availability", "Driving licence", "Work experience in the country", "None of these elements is essential", "Motivation for the role", "I do not know yet"],
-      q15: ["Early morning work or staggered hours", "Evening or night work", "Weekend or public holiday work", "Variable hours", "Physical work", "Prolonged standing work", "Outdoor work", "Frequent travel", "Teamwork", "No particular condition", "I do not know yet"]
-    },
-    salaryUnits: ["Per hour", "Per month", "Per year"],
-    salaryFields: {
-      type: "How do you express the salary offered?",
-      min: "Minimum amount offered, in gross or net euros",
-      max: "Maximum amount offered, in gross or net euros"
-    },
-    sectorTitles: {
-      tally_q10: "Sales and retail",
-      tally_q11: "Cleaning and maintenance",
-      tally_q12: "Hospitality and food service",
-      tally_q13: "Agriculture and harvesting",
-      tally_q14: "Versatile jobs and roles accessible quickly"
-    },
-    sectorChoices: {
-      tally_q10: ["Being comfortable with customers", "Being able to communicate simply with customers", "Working during busy periods", "Handling payment operations", "Working as part of a team", "Adapting to different tasks", "Keeping a sales area clean and organised", "Respecting working hours"],
-      tally_q11: ["Following procedures, instructions and hygiene rules", "Maintaining a consistent level of quality", "Respecting working hours", "Working independently", "Working as part of a team", "Working at a sustained pace", "Adapting to different workplaces or environments", "Carrying out repetitive tasks", "Being able to travel easily to intervention sites"],
-      tally_q12: ["Welcoming and guiding customers", "Being able to communicate simply with customers", "Working during busy periods", "Staying calm during intense periods of activity", "Working as part of a team", "Respecting working hours", "Working in the evening, on weekends or on public holidays", "Remembering orders or information", "Adapting to different tasks", "Keeping a reception or service area clean and organised"],
-      tally_q13: ["Respecting schedules and harvesting periods", "Working outdoors and depending on weather conditions", "Doing physical work", "Working at a sustained pace", "Following work and safety instructions", "Using equipment or tools correctly", "Working as part of a team", "Adapting to different types of tasks", "Being able to travel easily to work sites", "Maintaining a consistent quality of work"],
-      tally_q14: ["Adapting quickly to different tasks", "Respecting instructions and schedules", "Doing physical work", "Working at a sustained pace", "Working in different environments", "Joining a team quickly", "Working as part of a team", "Accepting variable schedules", "Being available quickly", "Being able to start an assignment quickly"]
-    },
-    errors: {
-      chooseAtLeastOne: "Select at least one answer for:",
-      chooseBetween: "Select between 1 and 4 answers for:",
-      maxFour: "You have already selected 4 items for this section."
-    }
-  },
-  de: {
-    eyebrow: "EURES-Arbeitgeberfragebogen",
-    heroTitle: "Einen Personalbedarf beschreiben, der für europäische Mobilität offen ist",
-    heroLede: "Dieser Fragebogen hilft uns, Ihren Personalbedarf, die gesuchten Profile, die nützlichen Sprachen und die angebotenen Arbeitsbedingungen besser zu verstehen.",
-    heroHighlight: "Ziel ist es, Ihren Bedarf klarer und besser vergleichbar zu machen, damit anschließend passende Profile leichter erkannt werden können.",
-    sidebarWhyTitle: "Warum dieser Fragebogen?",
-    sidebarWhyText: "Er macht den Personalbedarf besser lesbar: Bereich, Volumen, Sprachen, Arbeitsbedingungen, akzeptierte Profile und mögliche Unterstützung bei der Installation.",
-    sidebarAfterTitle: "Wie geht es danach weiter?",
-    sidebarAfterText: "Wenn einige Profile kompatibel erscheinen, kann Ihr Bedarf für eine Vermittlung genutzt werden. Andernfalls helfen die Antworten bereits dabei, künftige Einstellungen besser zu strukturieren.",
-    sidebarResumeTitle: "Später fortsetzen",
-    sidebarResumeText: "Eine Kennung wird gespeichert, damit Ihr Fortschritt bei Bedarf wiedergefunden werden kann.",
-    salaryOfferIntro: "Geben Sie hier das für diesen Beruf angebotene Gehalt in Euro an und präzisieren Sie, ob es sich um einen Brutto- oder Nettobetrag handelt.",
-    introNote: "Dieses Formular dauert 2 bis 3 Minuten und richtet sich an Arbeitgeber mit Personalbedarf, der für europäische Mobilität und grenzüberschreitende Rekrutierung offen ist.",
-    introNote2: "Wir arbeiten derzeit an einigen prioritären Berufen, um den Dienst an konkreten Fällen zu testen.",
-    sections: {
-      need: "Ihr Personalbedarf",
-      conditions: "Profile, Unterstützung und Arbeitsbedingungen",
-      contact: "Damit wir Sie wieder kontaktieren können"
-    },
-    questions: {
-      q01: "In welchem Bereich rekrutieren Sie derzeit?",
-      q02: "Welche Sprachen sind für diese Rekrutierung zwingend erforderlich?",
-      q02Hint: "Geben Sie das erwartete Kommunikationsniveau für jede Sprache an.",
-      q03: "Wie viele Personen möchten Sie einstellen?",
-      q04: "Ab wann benötigen Sie diese Einstellungen?",
-      q05: "Welche Vertragsdauer bieten Sie an?",
-      q06: "Welches wöchentliche Arbeitsvolumen bieten Sie an?",
-      q07: "Welche Profile sind Sie bereit einzustellen?",
-      q08: "Können Sie den eingestellten Personen bei ihrer Ankunft oder Installation helfen?",
-      q09: "Welche der folgenden Elemente sind für Sie unverzichtbar?",
-      q10: "Welche Elemente erscheinen Ihnen bei dieser Einstellung im Verkauf und Handel am wichtigsten?",
-      q11: "Welche Elemente erscheinen Ihnen bei dieser Einstellung in Reinigung und Instandhaltung am wichtigsten?",
-      q12: "Welche Elemente erscheinen Ihnen bei dieser Einstellung in Hotellerie und Gastronomie am wichtigsten?",
-      q13: "Welche Elemente erscheinen Ihnen bei dieser Einstellung in Landwirtschaft und Ernte am wichtigsten?",
-      q14: "Welche Elemente erscheinen Ihnen bei dieser Einstellung für vielseitige Tätigkeiten und schnell zugängliche Jobs am wichtigsten?",
-      q14Hint: "Sie können bis zu 4 Antworten auswählen.",
-      q15: "Welche Arbeitsbedingungen sollten die eingestellten Personen kennen?",
-      q16: "Vorname",
-      q17: "Unternehmensname",
-      q18: "E-Mail-Adresse",
-      q19: "Telefon",
-      q20: "Arbeitsorte",
-      q20Extra: "Welche anderen Berufe würden Sie hier künftig gerne sehen?",
-      salaryType: "In welcher Form geben Sie das angebotene Gehalt an?",
-      salaryMin: "Angebotener Mindestbetrag in Euro brutto oder netto",
-      salaryMax: "Angebotener Höchstbetrag in Euro brutto oder netto",
-      q21Title: "Datenschutz",
-      q21Text: "Die übermittelten Informationen ermöglichen es dem EURES-beta-Team, Ihren Personalbedarf und die angebotenen Bedingungen besser zu verstehen, um Profile zu identifizieren, die passen könnten.",
-      q21Text2: "Wenn mit Ihrer Suche kompatible Profile identifiziert werden, können Sie in Kürze erneut kontaktiert werden.",
-      q21Text3: "Bitte denken Sie daran, anonyme oder unbekannte Anrufe anzunehmen und regelmäßig Ihren Spam-Ordner zu prüfen.",
-      consent: "Ich stimme zu, dass die übermittelten Informationen von EURES-Teams und Partnern im Rahmen von Vermittlungen und austauschbezogenen Rekrutierungen verwendet werden dürfen. Die übermittelten Daten werden nur im Rahmen des recruitmentbezogenen Austauschs und gemäß den europäischen Datenschutzvorschriften (DSGVO) verwendet."
-    },
-    options: {
-      sectors: ["Verkauf und Handel", "Reinigung und Instandhaltung", "Hotellerie und Gastronomie", "Landwirtschaft und Ernte", "Vielseitige Tätigkeiten und Jobs mit schnellem Einstieg"],
-      q02Columns: ["Nicht erforderlich", "Einfache Kommunikation", "Berufliche Kommunikation", "Im Alltag sehr wichtig"],
-      q02Rows: ["Deutsch", "Englisch", "Französisch", "Luxemburgisch"],
-      q03: ["1 Person", "2 bis 5 Personen", "Mehr als 5 Personen", "Ich weiß es noch nicht"],
-      q04: ["So schnell wie möglich", "In den nächsten Tagen", "In den nächsten Wochen", "Für einen saisonalen Zeitraum", "Ich weiß es noch nicht"],
-      q05: ["Weniger als ein Monat", "1 bis 3 Monate", "3 bis 6 Monate", "Mehr als 6 Monate", "Vertrag ohne geplantes Enddatum", "Ich weiß es noch nicht"],
-      q06: ["Weniger als 20 Stunden pro Woche", "20 bis 34 Stunden pro Woche", "35 Stunden oder mehr pro Woche", "Das Arbeitsvolumen kann je nach Aktivität variieren", "Ich weiß es noch nicht"],
-      q07: ["Grenzgänger", "Personen aus einem anderen Land der Europäischen Union", "Berufseinsteiger", "Personen, die Zeit für die Installation brauchen", "Personen, die die Sprache noch nicht perfekt sprechen", "Ich weiß es noch nicht"],
-      q08: ["Ja, beim Wohnen", "Ja, bei administrativen Verfahren", "Ja, bei Transport oder Fahrten", "Nein", "Ich weiß es noch nicht"],
-      q09: ["Berufserfahrung", "Schnelle Verfügbarkeit", "Führerschein", "Arbeitserfahrung im Land", "Keines dieser Elemente ist unverzichtbar", "Motivation für die Stelle", "Ich weiß es noch nicht"],
-      q15: ["Arbeit früh am Morgen oder zu versetzten Zeiten", "Arbeit am Abend oder in der Nacht", "Arbeit am Wochenende oder an Feiertagen", "Variable Arbeitszeiten", "Körperliche Arbeit", "Längeres Stehen", "Arbeit im Freien", "Häufige Fahrten", "Teamarbeit", "Keine besonderen Bedingungen", "Ich weiß es noch nicht"]
-    },
-    salaryUnits: ["Pro Stunde", "Pro Monat", "Pro Jahr"],
-    salaryFields: {
-      type: "In welcher Form geben Sie das angebotene Gehalt an?",
-      min: "Angebotener Mindestbetrag in Euro brutto oder netto",
-      max: "Angebotener Höchstbetrag in Euro brutto oder netto"
-    },
-    sectorTitles: {
-      tally_q10: "Verkauf und Handel",
-      tally_q11: "Reinigung und Instandhaltung",
-      tally_q12: "Hotellerie und Gastronomie",
-      tally_q13: "Landwirtschaft und Ernte",
-      tally_q14: "Vielseitige Tätigkeiten und Jobs mit schnellem Einstieg"
-    },
-    sectorChoices: {
-      tally_q10: ["Sich im Umgang mit Kunden wohlfühlen", "Einfach mit Kunden kommunizieren können", "Während Stoßzeiten arbeiten", "Kassenvorgänge durchführen", "Im Team arbeiten", "Sich an verschiedene Aufgaben anpassen", "Einen Verkaufsbereich sauber und organisiert halten", "Arbeitszeiten einhalten"],
-      tally_q11: ["Verfahren, Anweisungen und Hygieneregeln einhalten", "Ein gleichbleibendes Qualitätsniveau halten", "Arbeitszeiten einhalten", "Selbstständig arbeiten", "Im Team arbeiten", "In hohem Tempo arbeiten", "Sich an verschiedene Arbeitsorte oder Umgebungen anpassen", "Wiederholende Aufgaben ausführen", "Einsatzorte leicht erreichen können"],
-      tally_q12: ["Kunden empfangen und orientieren", "Einfach mit Kunden kommunizieren können", "Während Stoßzeiten arbeiten", "In intensiven Phasen ruhig bleiben", "Im Team arbeiten", "Arbeitszeiten einhalten", "Abends, am Wochenende oder an Feiertagen arbeiten", "Bestellungen oder Informationen behalten", "Sich an verschiedene Aufgaben anpassen", "Einen Empfangs- oder Servicebereich sauber und organisiert halten"],
-      tally_q13: ["Zeitpläne und Erntezeiten einhalten", "Im Freien und je nach Wetter arbeiten", "Körperliche Arbeit leisten", "In hohem Tempo arbeiten", "Arbeits- und Sicherheitsanweisungen einhalten", "Material oder Werkzeuge korrekt verwenden", "Im Team arbeiten", "Sich an unterschiedliche Arten von Aufgaben anpassen", "Arbeitsorte leicht erreichen können", "Eine gleichbleibende Arbeitsqualität aufrechterhalten"],
-      tally_q14: ["Sich schnell an verschiedene Aufgaben anpassen", "Anweisungen und Zeitpläne einhalten", "Körperliche Arbeit leisten", "In hohem Tempo arbeiten", "In unterschiedlichen Umgebungen arbeiten", "Sich schnell in ein Team integrieren", "Im Team arbeiten", "Variable Arbeitszeiten akzeptieren", "Schnell verfügbar sein", "Schnell eine Aufgabe beginnen können"]
-    },
-    errors: {
-      chooseAtLeastOne: "Wählen Sie mindestens eine Antwort für:",
-      chooseBetween: "Wählen Sie zwischen 1 und 4 Antworten für:",
-      maxFour: "Sie haben für diesen Abschnitt bereits 4 Elemente ausgewählt."
-    }
-  }
-};
-
-function getEmployerTallyContent(lang) {
-  const content = employerTallyCopy[lang] || employerTallyCopy.fr;
-  const frContent = employerTallyCopy.fr;
-  return {
-    ...content,
-    sectorsOptions: localizeOptions(employerTallyMeta.sectors, content.options.sectors || frContent.options.sectors || employerTallyMeta.sectors),
-    languageColumns: localizeOptions(
-      employerTallyMeta.languageColumns,
-      content.options.q02Columns || frContent.options.q02Columns || employerTallyMeta.languageColumns
-    ),
-    languageRows: localizeRows(
-      employerTallyMeta.languageRows,
-      content.options.q02Rows || frContent.options.q02Rows || employerTallyMeta.languageRows.map((row) => row.label)
-    ),
-    optionGroups: {
-      q03: localizeOptions(frContent.options.q03, content.options.q03 || frContent.options.q03),
-      q04: localizeOptions(frContent.options.q04, content.options.q04 || frContent.options.q04),
-      q05: localizeOptions(frContent.options.q05, content.options.q05 || frContent.options.q05),
-      q06: localizeOptions(frContent.options.q06, content.options.q06 || frContent.options.q06),
-      q07: localizeOptions(frContent.options.q07, content.options.q07 || frContent.options.q07),
-      q08: localizeOptions(frContent.options.q08, content.options.q08 || frContent.options.q08),
-      q09: localizeOptions(frContent.options.q09, content.options.q09 || frContent.options.q09),
-      q15: localizeOptions(frContent.options.q15, content.options.q15 || frContent.options.q15)
-    },
-    sectorPriorityOptions: Object.fromEntries(
-      Object.entries(employerTallyMeta.sectorPriorityGroups).map(([key, value]) => [
-        key,
-        localizeOptions(value, (content.sectorChoices && content.sectorChoices[key]) || value)
-      ])
-    )
-  };
-}
-
-function currentLang() {
-  const params = new URLSearchParams(window.location.search);
-  const lang = params.get("lang");
-  return LANGS.includes(lang) ? lang : DEFAULT_LANG;
-}
-
-function setDocumentLang(lang) {
-  document.documentElement.lang = lang;
-}
-
-function pageUrl(page, lang) {
-  const map = {
-    home: `${BASE_PATH}/`,
-    "candidate-landing": `${BASE_PATH}/candidate`,
-    "employer-landing": `${BASE_PATH}/employer`,
-    stat: `${BASE_PATH}/stat`,
-    project: `${BASE_PATH}/le-projet`,
-    journal: `${BASE_PATH}/journal`,
-    "candidate-questionnaire": `${BASE_PATH}/questionnaire-candidate`,
-    "employer-questionnaire": `${BASE_PATH}/questionnaire-employer`,
-    privacy: `${BASE_PATH}/privacy`
-  };
-  return `${map[page]}?lang=${lang}`;
-}
-
-function nav(page, lang, t) {
-  const activeGroupByPage = {
-    home: "home",
-    "candidate-landing": "candidate",
-    "candidate-questionnaire": "candidate",
-    "employer-landing": "employer",
-    "employer-questionnaire": "employer",
-    stat: "stat",
-    project: "project",
-    journal: "journal",
-    privacy: "privacy",
-  };
-  const activeGroup = activeGroupByPage[page] || "";
-  const navPillClass = (group) => `nav-pill${activeGroup === group ? " is-active" : ""}`;
-  return `
-    <header class="site-header">
-      <div class="shell">
-        <a class="brand" href="${pageUrl("home", lang)}">
-          <span class="brand-copy">
-            <strong>${t.common.brandTitle}</strong>
-            <span>${t.common.brandSubtitle}</span>
-          </span>
-        </a>
-        <nav class="nav" aria-label="Primary">
-          <div class="nav-links">
-            <a class="${navPillClass("home")}" href="${pageUrl("home", lang)}">${t.common.navHome}</a>
-            <a class="${navPillClass("candidate")}" href="${pageUrl("candidate-landing", lang)}">${t.common.navCandidate}</a>
-            <a class="${navPillClass("employer")}" href="${pageUrl("employer-landing", lang)}">${t.common.navEmployer}</a>
-            <a class="${navPillClass("stat")}" href="${pageUrl("stat", lang)}">${t.common.navStats}</a>
-          </div>
-          <div class="nav-links nav-links-secondary">
-            <a class="${navPillClass("project")}" href="${pageUrl("project", lang)}">${t.common.navProject}</a>
-            <a class="${navPillClass("journal")}" href="${pageUrl("journal", lang)}">${t.common.navJournal}</a>
-          </div>
-          <div class="lang-switch" aria-label="${t.common.langLabel}">
-            ${LANGS.map((choice) => `
-              <a class="lang-link${choice === lang ? " is-active" : ""}" href="${pageUrl(page, choice)}">${choice.toUpperCase()}</a>
-            `).join("")}
-          </div>
-        </nav>
-      </div>
-    </header>
-  `;
-}
-
-function footer(page, t) {
-  const current = currentLang();
-  const isProjectPage = page === "project";
-  const isJournalPage = page === "journal";
-  const isPrivacyPage = page === "privacy";
-  const privacy = privacyCopy[current] || privacyCopy.fr;
-  return `
-    <footer class="footer">
-      <div class="shell footer-grid">
-        <div>${t.common.footer}</div>
-        <div class="footer-links">
-          <strong>${t.common.footerProjectTitle}</strong>
-          <p>${t.common.footerProjectText}</p>
-          <div class="footer-actions">
-            <a class="nav-pill${isProjectPage ? " is-active" : ""}" href="${pageUrl("project", current)}">${t.common.navProject}</a>
-            <a class="nav-pill${isJournalPage ? " is-active" : ""}" href="${pageUrl("journal", current)}">${t.common.navJournal}</a>
-            <a class="nav-pill${isPrivacyPage ? " is-active" : ""}" href="${pageUrl("privacy", current)}">${privacy.navLabel}</a>
-            <a class="nav-pill" href="/admin/eures-beta/login">${t.common.navAdmin}</a>
-          </div>
-        </div>
-      </div>
-    </footer>
-  `;
-}
-
-function privacyTemplate(lang, t) {
-  const content = privacyCopy[lang] || privacyCopy.fr;
-  return `
-    ${nav("privacy", lang, t)}
-    <main class="section privacy-page">
-      <div class="shell privacy-shell">
-        <header class="panel privacy-hero">
-          <div class="eyebrow">${content.eyebrow}</div>
-          <h1>${content.title}</h1>
-          <p class="lede">${content.lead}</p>
-          <p class="privacy-draft"><strong>${content.draft}</strong></p>
-        </header>
-        <div class="privacy-sections">
-          ${content.sections.map(([title, items], index) => `
-            <section class="panel privacy-section">
-              <span class="privacy-index">${String(index + 1).padStart(2, "0")}</span>
-              <div>
-                <h2>${title}</h2>
-                ${list(items)}
-              </div>
-            </section>
-          `).join("")}
-        </div>
-        <a class="ghost-action" href="${pageUrl("home", lang)}">${content.back}</a>
-      </div>
-    </main>
-    ${footer("privacy", t)}
-  `;
-}
 
 function list(items) {
   return `<ul>${items.map((item) => `<li>${item}</li>`).join("")}</ul>`;
-}
-
-function partnerLogosMarkup(lang) {
-  const logos = (copy[lang] || copy.fr).candidateLanding.logos;
-  return `
-    <div class="candidate-logos partner-logos" aria-label="Partners">
-      <img src="${logos.eures.src}" alt="${logos.eures.alt}" class="logo-eures">
-      <div class="candidate-badge">
-        <img src="${logos.franceTravail.src}" alt="${logos.franceTravail.alt}" class="logo-france-travail">
-        <span>France Travail</span>
-      </div>
-      <img src="${logos.europeanUnion.src}" alt="${logos.europeanUnion.alt}" class="logo-eu">
-    </div>
-  `;
 }
 
 function escapeHtml(value) {
@@ -2868,29 +4011,44 @@ function renderBreakdownList(rows, emptyLabel) {
   }
   const max = Math.max(...rows.map((row) => Number(row.count || 0)), 1);
   return `
-    <div class="breakdown-list">
+    <ul class="breakdown-list">
       ${rows.map((row) => {
         const count = Number(row.count || 0);
         const width = Math.max(8, Math.round((count / max) * 100));
         return `
-          <div class="breakdown-row">
+          <li class="breakdown-row">
             <div class="breakdown-head">
               <span>${escapeHtml(row.label)}</span>
               <strong>${count}</strong>
             </div>
             <div class="breakdown-bar"><span style="width:${width}%"></span></div>
-          </div>
+          </li>
         `;
       }).join("")}
-    </div>
+    </ul>
   `;
+}
+
+function formatDurationHours(value, lang, t) {
+  const hours = Number(value);
+  if (!Number.isFinite(hours)) return t.statPage.noDurationData;
+  if (hours >= 48) {
+    return `${(hours / 24).toLocaleString(lang, { maximumFractionDigits: 1 })} ${t.statPage.daysUnit}`;
+  }
+  return `${hours.toLocaleString(lang, { maximumFractionDigits: 1 })} ${t.statPage.hoursUnit}`;
 }
 
 function statTemplate(lang, t, data) {
   const totals = data?.totals || {};
   const monthly = Array.isArray(data?.monthly) ? data.monthly : [];
   const breakdowns = data?.breakdowns || {};
+  const durations = data?.durations || {};
   const manualConfigured = Boolean(data?.manual_stats_table?.configured);
+  const monthlyColumnKeys = Object.keys(t.statPage.monthlyColumns);
+  const introParagraphs = t.statPage.lede
+    .split("\n\n")
+    .map((paragraph) => `<p>${paragraph}</p>`)
+    .join("");
   const totalCards = Object.entries(t.statPage.totals).map(([key, label]) => `
     <article class="stat-card kpi-card">
       <p>${label}</p>
@@ -2900,39 +4058,130 @@ function statTemplate(lang, t, data) {
 
   const breakdownPanels = Object.entries(t.statPage.breakdownLabels).map(([key, label]) => `
     <article class="panel breakdown-panel">
-      <h2>${label}</h2>
+      <h3>${label}</h3>
       ${renderBreakdownList(breakdowns[key], t.statPage.emptyBreakdown)}
     </article>
   `).join("");
 
+  const observationPanels = [
+    {
+      title: t.statPage.observationsCards.sectors,
+      text: t.statPage.observationsTexts.sectors,
+      content: renderBreakdownList(breakdowns.secteurs, t.statPage.emptyBreakdown)
+    },
+    {
+      title: t.statPage.observationsCards.mobility,
+      text: t.statPage.observationsTexts.mobility,
+      content: renderBreakdownList(breakdowns.mobilite_candidats, t.statPage.emptyBreakdown)
+    },
+    {
+      title: t.statPage.observationsCards.territories,
+      text: t.statPage.observationsTexts.territories,
+      content: renderBreakdownList(breakdowns.besoins_par_pays, t.statPage.emptyBreakdown)
+    }
+  ].map(({ title, text, content }) => `
+    <article class="surface-card">
+      <h3>${title}</h3>
+      <p>${text}</p>
+      ${content}
+    </article>
+  `).join("");
+
+  const learningPanels = t.statPage.learnings.map(([title, text]) => `
+    <article class="surface-card">
+      <h3>${title}</h3>
+      <p>${text}</p>
+    </article>
+  `).join("");
+
+  const durationPanels = Object.entries(t.statPage.durationLabels).map(([key, label]) => {
+    const row = durations[key] || {};
+    return `
+      <article class="panel breakdown-panel">
+        <h3>${label}</h3>
+        <ul class="breakdown-list">
+          <li class="breakdown-row"><div class="breakdown-head"><span>${t.statPage.durationMetrics.count}</span><strong>${Number(row.count || 0).toLocaleString(lang)}</strong></div></li>
+          <li class="breakdown-row"><div class="breakdown-head"><span>${t.statPage.durationMetrics.avg}</span><strong>${formatDurationHours(row.avg_hours, lang, t)}</strong></div></li>
+          <li class="breakdown-row"><div class="breakdown-head"><span>${t.statPage.durationMetrics.median}</span><strong>${formatDurationHours(row.median_hours, lang, t)}</strong></div></li>
+          <li class="breakdown-row"><div class="breakdown-head"><span>${t.statPage.durationMetrics.min}</span><strong>${formatDurationHours(row.min_hours, lang, t)}</strong></div></li>
+          <li class="breakdown-row"><div class="breakdown-head"><span>${t.statPage.durationMetrics.max}</span><strong>${formatDurationHours(row.max_hours, lang, t)}</strong></div></li>
+        </ul>
+      </article>
+    `;
+  }).join("");
+
   return `
     ${nav("stat", lang, t)}
-    <main>
+    <main id="main-content" tabindex="-1">
       <section class="hero">
-        <div class="shell hero-grid">
-          <article class="hero-card hero">
-            ${partnerLogosMarkup(lang)}
+        <div class="shell hero-grid hero-grid-stat">
+          <article class="hero-card hero hero-card-stat">
             <div class="eyebrow">${t.statPage.eyebrow}</div>
             <h1>${t.statPage.title}</h1>
-            <p class="lede">${t.statPage.lede}</p>
+            <div class="lede">${introParagraphs}</div>
+            <div class="updated-card">
+              <span class="updated-label">${t.statPage.updatedPrefix}</span>
+              <strong>${formatTimestamp(data?.generated_at, lang)}</strong>
+            </div>
             <div class="stat-meta">
-              <div><strong>${t.statPage.updatedPrefix}:</strong> ${formatTimestamp(data?.generated_at, lang)}</div>
               <div>${t.statPage.methodology}</div>
               <div>${manualConfigured ? t.statPage.manualNote : t.statPage.manualMissing}</div>
             </div>
           </article>
-          <aside class="story-card">
-            <h2>${t.statPage.keyFiguresTitle}</h2>
-            <p>${t.statPage.monthlyLead}</p>
-          </aside>
         </div>
       </section>
 
       <section class="section">
         <div class="shell">
-          <div class="panel"><h2>${t.statPage.keyFiguresTitle}</h2></div>
+          <div class="panel">
+            <h2>${t.statPage.keyFiguresTitle}</h2>
+            <p>${t.statPage.keyFiguresLead}</p>
+          </div>
           <div class="stats-grid" style="margin-top: 1rem;">
             ${totalCards}
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="shell">
+          <div class="panel">
+            <h2>${t.statPage.observationsTitle}</h2>
+            <p>${t.statPage.observationsLead}</p>
+          </div>
+          <div class="principles-grid" style="margin-top: 1rem;">
+            ${observationPanels}
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="shell">
+          <div class="panel"><h2>${t.statPage.learningsTitle}</h2></div>
+          <div class="principles-grid" style="margin-top: 1rem;">
+            ${learningPanels}
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="shell">
+          <article class="surface-card">
+            <h2>${t.statPage.transparencyTitle}</h2>
+            <p>${t.statPage.transparencyLead}</p>
+            ${list(t.statPage.transparencyBullets)}
+            <div class="hero-actions" style="margin-top: 1rem;">
+              <a class="primary-action" href="${pageUrl("matching", lang)}">${t.statPage.transparencyCta}</a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="shell">
+          <div class="panel">
+            <h2>${t.statPage.detailedTitle}</h2>
+            <p>${t.statPage.detailedLead}</p>
           </div>
         </div>
       </section>
@@ -2945,21 +4194,18 @@ function statTemplate(lang, t, data) {
           </div>
           <div class="table-wrap">
             <table class="stats-table">
+              <caption class="sr-only">${t.statPage.monthlyTitle}</caption>
               <thead>
                 <tr>
-                  ${Object.values(t.statPage.monthlyColumns).map((label) => `<th>${label}</th>`).join("")}
+                  ${Object.values(t.statPage.monthlyColumns).map((label) => `<th scope="col">${label}</th>`).join("")}
                 </tr>
               </thead>
               <tbody>
                 ${monthly.map((row) => `
                   <tr>
-                    <th>${formatMonth(row.mois, lang)}</th>
-                    <td>${Number(row.besoins_employeurs || 0).toLocaleString(lang)}</td>
-                    <td>${Number(row.candidats_contactes || 0).toLocaleString(lang)}</td>
-                    <td>${Number(row.candidatures_recues || 0).toLocaleString(lang)}</td>
-                    <td>${Number(row.matchings || 0).toLocaleString(lang)}</td>
-                    <td>${Number(row.candidatures_transmises_employeur || 0).toLocaleString(lang)}</td>
-                    <td>${Number(row.embauches || 0).toLocaleString(lang)}</td>
+                    ${monthlyColumnKeys.map((key, index) => index === 0
+                      ? `<th scope="row">${formatMonth(row[key], lang)}</th>`
+                      : `<td>${Number(row[key] || 0).toLocaleString(lang)}</td>`).join("")}
                   </tr>
                 `).join("")}
               </tbody>
@@ -2976,8 +4222,24 @@ function statTemplate(lang, t, data) {
           </div>
         </div>
       </section>
+
+      <section class="section">
+        <div class="shell">
+          <details class="panel" open>
+            <summary><span class="summary-title">${t.statPage.methodologyTitle}</span></summary>
+            <div style="margin-top: 1rem;">
+              <p>${t.statPage.methodology}</p>
+              <p>${manualConfigured ? t.statPage.manualNote : t.statPage.manualMissing}</p>
+              <div class="panel" style="margin-top: 1rem;"><h2>${t.statPage.durationsTitle}</h2></div>
+              <div class="dashboard-grid" style="margin-top: 1rem;">
+                ${durationPanels}
+              </div>
+            </div>
+          </details>
+        </div>
+      </section>
     </main>
-    ${footer("stat", t)}
+    ${footer(t)}
   `;
 }
 
@@ -2992,13 +4254,17 @@ async function loadPublicStats() {
 }
 
 function homeTemplate(lang, t) {
+  const storyParagraphs = t.home.storyText
+    .split("\n\n")
+    .map((paragraph) => `<p>${paragraph}</p>`)
+    .join("");
+
   return `
     ${nav("home", lang, t)}
-    <main>
+    <main id="main-content" tabindex="-1">
       <section class="hero">
         <div class="shell hero-grid">
           <article class="hero-card hero">
-            ${partnerLogosMarkup(lang)}
             <div class="eyebrow">${t.home.eyebrow}</div>
             <h1>${t.home.title}</h1>
             <p class="lede">${t.home.lede}</p>
@@ -3009,13 +4275,14 @@ function homeTemplate(lang, t) {
           </article>
           <aside class="story-card">
             <h2>${t.home.storyTitle}</h2>
-            <p>${t.home.storyText}</p>
+            ${storyParagraphs}
           </aside>
         </div>
       </section>
 
-      <section class="section">
+      <section class="section" aria-labelledby="home-stats-title">
         <div class="shell stats-grid">
+          <h2 id="home-stats-title" class="sr-only">${t.home.statsTitle}</h2>
           ${t.home.stats.map(([value, text]) => `
             <article class="stat-card">
               <strong>${value}</strong>
@@ -3030,14 +4297,14 @@ function homeTemplate(lang, t) {
           <div class="panel"><h2>${t.home.tracksTitle}</h2></div>
           <div class="tracks-grid" style="margin-top: 1rem;">
             <article class="surface-card">
-              <h2>${t.home.candidateTitle}</h2>
+              <h3>${t.home.candidateTitle}</h3>
               <p>${t.home.candidateText}</p>
               <div class="hero-actions">
                 <a class="primary-action" href="${pageUrl("candidate-landing", lang)}">${t.common.ctaSeeCandidate}</a>
               </div>
             </article>
             <article class="surface-card">
-              <h2>${t.home.employerTitle}</h2>
+              <h3>${t.home.employerTitle}</h3>
               <p>${t.home.employerText}</p>
               <div class="hero-actions">
                 <a class="primary-action" href="${pageUrl("employer-landing", lang)}">${t.common.ctaSeeEmployer}</a>
@@ -3048,46 +4315,204 @@ function homeTemplate(lang, t) {
       </section>
 
       <section class="section">
-        <div class="shell principles-grid">
-          ${t.home.principles.map(([title, text]) => `
-            <article class="surface-card">
-              <h2>${title}</h2>
-              <p>${text}</p>
-            </article>
-          `).join("")}
+        <div class="shell">
+          <div class="panel"><h2>${t.home.principlesTitle}</h2></div>
+          <div class="principles-grid" style="margin-top: 1rem;">
+            ${t.home.principles.map(([title, text]) => `
+              <article class="surface-card">
+                <h3>${title}</h3>
+                <p>${text}</p>
+              </article>
+            `).join("")}
+          </div>
         </div>
       </section>
 
       <section class="section">
-        <div class="shell dashboard-grid">
+        <div class="shell">
           <article class="panel">
-            <h2>${t.common.matchingTitle}</h2>
-            ${list(t.common.matchingBullets)}
+            <h2>${t.home.perspectivesTitle}</h2>
+            ${list(t.home.perspectivesBullets)}
           </article>
-          <article class="panel">
-            <h2>${t.common.futureTitle}</h2>
-            ${list(t.common.futureBullets)}
+        </div>
+      </section>
+    </main>
+    ${footer(t)}
+  `;
+}
+
+function matchingTemplate(lang, t) {
+  const data = t.matchingPage;
+  const criteriaCards = data.criteria.map(([title, points, text]) => `
+    <article class="surface-card">
+      <div class="breakdown-head" style="gap:1rem; align-items:flex-start;">
+        <h3 style="margin:0;">${title}</h3>
+        <strong style="white-space:nowrap;">${points}</strong>
+      </div>
+      <p>${text}</p>
+    </article>
+  `).join("");
+  const thresholdRows = data.thresholds.map(([label, text]) => `
+    <article class="panel breakdown-panel">
+      <h3>${label}</h3>
+      <p>${text}</p>
+    </article>
+  `).join("");
+
+  return `
+    ${nav("stat", lang, t)}
+    <main id="main-content" tabindex="-1">
+      <section class="hero">
+        <div class="shell hero-grid hero-grid-stat">
+          <article class="hero-card hero hero-card-stat">
+            <div class="eyebrow">${data.eyebrow}</div>
+            <h1>${data.title}</h1>
+            <p class="lede">${data.intro}</p>
+            <div class="hero-actions">
+              <a class="secondary-action" href="${pageUrl("stat", lang)}">${data.cta}</a>
+            </div>
           </article>
         </div>
       </section>
 
       <section class="section">
         <div class="shell">
-          <article class="panel institutional-panel">
-            <div class="institutional-copy">
-              <div class="eyebrow">${t.common.institutionalKicker}</div>
-              <h2>${t.common.institutionalTitle}</h2>
-              <p>${t.common.institutionalText}</p>
-            </div>
-            <div class="institutional-actions">
-              <a class="secondary-action" href="${pageUrl("project", lang)}">${t.common.ctaSeeProject}</a>
-              <a class="ghost-action" href="${pageUrl("journal", lang)}">${t.common.ctaSeeJournal}</a>
-            </div>
+          <div class="panel">
+            <h2>${data.criteriaTitle}</h2>
+            <p>${data.criteriaLead}</p>
+          </div>
+          <div class="principles-grid" style="margin-top: 1rem;">
+            ${criteriaCards}
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="shell">
+          <div class="panel">
+            <h2>${data.thresholdsTitle}</h2>
+            <p>${data.thresholdsLead}</p>
+          </div>
+          <div class="dashboard-grid" style="margin-top: 1rem;">
+            ${thresholdRows}
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="shell principles-grid">
+          <article class="surface-card">
+            <h2>${data.processTitle}</h2>
+            ${list(data.processBullets)}
+          </article>
+          <article class="surface-card">
+            <h2>${data.noteTitle}</h2>
+            <p>${data.noteText}</p>
           </article>
         </div>
       </section>
     </main>
-    ${footer("home", t)}
+    ${footer(t)}
+  `;
+}
+
+function privacyTemplate(lang, t) {
+  const data = t.privacyPage;
+  return `
+    ${nav("privacy", lang, t)}
+    <main id="main-content" tabindex="-1">
+      <section class="hero">
+        <div class="shell hero-grid">
+          <article class="hero-card hero">
+            <div class="eyebrow">${data.eyebrow}</div>
+            <h1>${data.title}</h1>
+            <p class="lede">${data.intro}</p>
+          </article>
+          <aside class="story-card">
+            <h2>${data.sections.retention}</h2>
+            <p>${data.note}</p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="shell principles-grid">
+          <article class="surface-card">
+            <h2>${data.sections.controller}</h2>
+            <p>${data.controllerText}</p>
+          </article>
+          <article class="surface-card">
+            <h2>${data.sections.matching}</h2>
+            <p>${data.matchingText}</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="shell tracks-grid">
+          <article class="surface-card">
+            <h2>${data.sections.purposes}</h2>
+            ${list(data.purposesList)}
+          </article>
+          <article class="surface-card">
+            <h2>${data.sections.recipients}</h2>
+            ${list(data.recipientsList)}
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="shell">
+          <div class="panel">
+            <h2>${data.sections.retention}</h2>
+          </div>
+          <div class="table-wrap">
+            <table class="stats-table">
+              <caption class="sr-only">${data.sections.retention}</caption>
+              <thead>
+                <tr>
+                  <th scope="col">${data.retentionColumns[0]}</th>
+                  <th scope="col">${data.retentionColumns[1]}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.retentionRows.map(([label, value]) => `
+                  <tr>
+                    <th scope="row">${label}</th>
+                    <td>${value}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="shell">
+          <article class="panel">
+            <h2>${data.sections.rights}</h2>
+            <p>${data.rightsText}</p>
+            <p class="mini-note">${data.note}</p>
+          </article>
+        </div>
+      </section>
+    </main>
+    ${footer(t)}
+  `;
+}
+
+function partnerLogosMarkup(lang) {
+  const logos = (copy[lang] || copy.fr).candidateLanding.logos;
+  return `
+    <div class="candidate-logos partner-logos" aria-label="Partners">
+      <img src="${logos.eures.src}" alt="${logos.eures.alt}" class="logo-eures">
+      <div class="candidate-badge">
+        <img src="${logos.franceTravail.src}" alt="${logos.franceTravail.alt}" class="logo-france-travail">
+        <span>France Travail</span>
+      </div>
+      <img src="${logos.europeanUnion.src}" alt="${logos.europeanUnion.alt}" class="logo-eu">
+    </div>
   `;
 }
 
@@ -3287,7 +4712,7 @@ function projectTemplate(lang, t) {
         </div>
       </section>
     </main>
-    ${footer("project", t)}
+    ${footer(t)}
   `;
 }
 
@@ -3305,7 +4730,7 @@ function journalTemplate(lang, t) {
         </div>
       </section>
     </main>
-    ${footer("journal", t)}
+    ${footer(t)}
   `;
 }
 
@@ -3314,10 +4739,10 @@ function landingTemplate(page, lang, t, data) {
   if (page === "candidate-landing") {
     return `
       ${nav(page, lang, t)}
-      <main class="section candidate-landing-page">
+      <main id="main-content" class="section candidate-landing-page" tabindex="-1">
         <div class="shell candidate-landing-layout">
           <article class="candidate-letter">
-            <div class="candidate-logos" aria-label="Partners">
+            <div class="candidate-logos" role="group" aria-label="${t.common.partnersLabel}">
               <img src="${data.logos.eures.src}" alt="${data.logos.eures.alt}" class="logo-eures">
               <div class="candidate-badge">
                 <img src="${data.logos.franceTravail.src}" alt="${data.logos.franceTravail.alt}" class="logo-france-travail">
@@ -3340,52 +4765,52 @@ function landingTemplate(page, lang, t, data) {
               <div class="landing-actions">
                 <a class="primary-action" href="${pageUrl(questionnairePage, lang)}">${t.common.ctaQuestionnaire}</a>
               </div>
-              <p>${data.messageOutcome}</p>
-              <p><strong>${data.signatureTitle}</strong><br>${data.signatureName}<br>${data.signatureRole}</p>
             </section>
 
             <section class="candidate-about">
-              <h2>${data.sideTitle}</h2>
-              <p>${data.sideText}</p>
+              <h2>${data.benefitsTitle || data.sideTitle}</h2>
+              ${data.benefits ? list(data.benefits) : `<p>${data.sideText}</p>`}
             </section>
           </article>
 
           <aside class="candidate-sidebar">
             <article class="surface-card candidate-info-card">
               <h2>${data.bulletsTitle}</h2>
+              ${data.bulletsLead ? `<p>${data.bulletsLead}</p>` : ""}
               ${list(data.bullets)}
-              <div class="tag-row">
-                ${data.tags.map((tag) => `<span class="tag">${tag}</span>`).join("")}
-              </div>
+              <ul class="tag-row" aria-label="${t.common.tagsLabel}">
+                ${data.tags.map((tag) => `<li><span class="tag">${tag}</span></li>`).join("")}
+              </ul>
             </article>
 
             <article class="surface-card candidate-info-card">
               <h2>${data.disclaimerTitle}</h2>
+              ${data.processBullets ? list(data.processBullets) : ""}
               <p>${data.disclaimerText}</p>
             </article>
 
             <article class="panel candidate-info-card">
-              <h2>${t.common.matchingTitle}</h2>
-              ${list(t.common.matchingBullets)}
+              <h2>${data.sideTitle}</h2>
+              <p>${data.sideText}</p>
             </article>
           </aside>
         </div>
       </main>
-      ${footer(page, t)}
+      ${footer(t)}
     `;
   }
 
   return `
     ${nav(page, lang, t)}
-    <main class="section">
+    <main id="main-content" class="section" tabindex="-1">
       <div class="shell landing-grid">
         <article class="hero-card landing-card">
           <div class="kicker">${data.kicker}</div>
           <h1>${data.title}</h1>
           <p class="lede">${data.lede}</p>
-          <div class="tag-row">
-            ${data.tags.map((tag) => `<span class="tag">${tag}</span>`).join("")}
-          </div>
+          <ul class="tag-row" aria-label="${t.common.tagsLabel}">
+            ${data.tags.map((tag) => `<li><span class="tag">${tag}</span></li>`).join("")}
+          </ul>
           <div class="landing-actions">
             <a class="primary-action" href="${pageUrl(questionnairePage, lang)}">${t.common.ctaQuestionnaire}</a>
             <a class="secondary-action" href="${pageUrl("home", lang)}">${t.common.ctaBackHome}</a>
@@ -3414,7 +4839,7 @@ function landingTemplate(page, lang, t, data) {
         </article>
       </div>
     </main>
-    ${footer(page, t)}
+    ${footer(t)}
   `;
 }
 
@@ -3450,31 +4875,37 @@ function radioPills(name, options) {
   `;
 }
 
-function matrixQuestion(title, rows, columns, hint = "", inputType = "checkbox") {
+function matrixQuestion(title, rows, columns, hint = "", inputType = "checkbox", mobileHint = "") {
+  const captionId = nextFieldErrorId();
   return `
-    <div class="field">
-      <span>${title}</span>
+    <fieldset class="fieldset matrix-question">
+      <legend>${title}</legend>
       ${hint ? `<p class="mini-note">${hint}</p>` : ""}
+      ${mobileHint ? `<p class="mini-note matrix-mobile-hint">${mobileHint}</p>` : ""}
       <div class="matrix-wrap">
-        <table class="matrix-table">
+        <table class="matrix-table" aria-describedby="${captionId}">
+          <caption id="${captionId}" class="sr-only">${title}</caption>
           <thead>
             <tr>
-              <th></th>
+              <th scope="col"><span class="sr-only">${title}</span></th>
               ${columns.map((column) => {
                 const item = typeof column === "string" ? { value: column, label: column } : column;
-                return `<th>${item.label}</th>`;
+                return `<th scope="col">${item.label}</th>`;
               }).join("")}
             </tr>
           </thead>
           <tbody>
             ${rows.map((row) => `
               <tr>
-                <th>${row.label}</th>
+                <th scope="row">${row.label}</th>
                 ${columns.map((column) => {
                   const item = typeof column === "string" ? { value: column, label: column } : column;
                   return `
-                  <td>
-                    <input type="${inputType}" name="${row.field}" value="${item.value}">
+                  <td data-column-label="${escapeHtml(item.label)}">
+                    <label class="matrix-option">
+                      <span class="matrix-option-label">${item.label}</span>
+                      <input type="${inputType}" name="${row.field}" value="${item.value}" aria-label="${escapeHtml(`${title} - ${row.label} - ${item.label}`)}">
+                    </label>
                   </td>
                 `;
                 }).join("")}
@@ -3483,29 +4914,29 @@ function matrixQuestion(title, rows, columns, hint = "", inputType = "checkbox")
           </tbody>
         </table>
       </div>
-    </div>
+    </fieldset>
   `;
 }
 
 function rankingQuestion(content) {
   return `
-    <div class="field">
-      <span>${content.rankingTitle}</span>
+    <fieldset class="fieldset rank-question">
+      <legend>${content.rankingTitle}</legend>
       <p class="mini-note">${content.rankingHint}</p>
       <div class="ranking-grid">
         ${content.rankingDisplayOptions.map((option, index) => `
-          <label class="field rank-field">
-            <span>${option}</span>
-            <select name="rank__tally_q17__${index}" required>
+          <div class="field rank-field">
+            <label for="rank__tally_q17__${index}">${option}</label>
+            <select id="rank__tally_q17__${index}" name="rank__tally_q17__${index}" required>
               <option value=""></option>
               ${content.rankingDisplayOptions.map((_, rankIndex) => `
                 <option value="${rankIndex + 1}">${rankIndex + 1}</option>
               `).join("")}
             </select>
-          </label>
+          </div>
         `).join("")}
       </div>
-    </div>
+    </fieldset>
   `;
 }
 
@@ -3515,15 +4946,28 @@ function salaryExpectationFields(baseName, content) {
       <p class="mini-note">${content.salaryExpectationIntro}</p>
     </div>
     <div class="form-grid">
-      <div class="field">
-        <span>${content.salaryFields.type}</span>
+      <fieldset class="fieldset">
+        <legend>${content.salaryFields.type}</legend>
         ${radioPills(`${baseName}_salary_type`, content.salaryUnits)}
-      </div>
+      </fieldset>
+      <fieldset class="fieldset">
+        <legend>${content.salaryFields.amountType}</legend>
+        ${radioPills(`${baseName}_salary_amount_type`, content.salaryAmountTypes)}
+      </fieldset>
       <label class="field">
         <span>${content.salaryFields.min}</span>
-        <input type="number" name="${baseName}_salary_min" min="0" step="0.01">
+        <input type="number" name="${baseName}_salary_min" min="0" step="0.01" required>
       </label>
     </div>
+  `;
+}
+
+function jobTitleField(baseName, label) {
+  return `
+    <label class="field">
+      <span>${label}</span>
+      <input type="text" name="${baseName}_job_title" required>
+    </label>
   `;
 }
 
@@ -3533,17 +4977,40 @@ function salaryOfferFields(baseName, content) {
       <p class="mini-note">${content.salaryOfferIntro}</p>
     </div>
     <div class="form-grid">
-      <div class="field">
-        <span>${content.salaryFields.type}</span>
+      <fieldset class="fieldset">
+        <legend>${content.salaryFields.type}</legend>
         ${radioPills(`${baseName}_salary_type`, content.salaryUnits)}
-      </div>
+      </fieldset>
+      <fieldset class="fieldset">
+        <legend>${content.salaryFields.amountType}</legend>
+        ${radioPills(`${baseName}_salary_amount_type`, content.salaryAmountTypes)}
+      </fieldset>
       <label class="field">
         <span>${content.salaryFields.min}</span>
-        <input type="number" name="${baseName}_salary_min" min="0" step="0.01">
+        <input type="number" name="${baseName}_salary_min" min="0" step="0.01" required>
       </label>
       <label class="field">
         <span>${content.salaryFields.max}</span>
-        <input type="number" name="${baseName}_salary_max" min="0" step="0.01">
+        <input type="number" name="${baseName}_salary_max" min="0" step="0.01" required>
+      </label>
+    </div>
+  `;
+}
+
+function permitQuestionFields(toggleKey, yesNoName, permitName, otherName, questionLabel, permitLabel, otherLabel, yesNoOptions, permitOptions) {
+  return `
+    <fieldset class="fieldset">
+      <legend>${questionLabel}</legend>
+      ${radioPills(yesNoName, yesNoOptions)}
+    </fieldset>
+    <div data-condition="${toggleKey}-details">
+      <fieldset class="fieldset">
+        <legend>${permitLabel}</legend>
+        ${choicePills(permitName, permitOptions)}
+      </fieldset>
+      <label class="field" data-condition="${toggleKey}-other">
+        <span>${otherLabel}</span>
+        <input type="text" name="${otherName}">
       </label>
     </div>
   `;
@@ -3554,7 +5021,7 @@ function candidateTallyQuestionnaireTemplate(lang, t) {
   const content = getCandidateTallyContent(lang);
   return `
     ${nav("candidate-questionnaire", lang, t)}
-    <main class="questionnaire-shell">
+    <main id="main-content" class="questionnaire-shell" tabindex="-1">
       <div class="shell questionnaire-grid">
         <section class="questionnaire-card candidate-letter questionnaire-letter">
           <div class="questionnaire-hero">
@@ -3572,190 +5039,232 @@ function candidateTallyQuestionnaireTemplate(lang, t) {
             <div class="candidate-highlight">${content.heroHighlight}</div>
           </div>
 
-          <form class="questionnaire-form" id="candidate-tally-form" data-role="candidate">
+          <form class="questionnaire-form" id="candidate-tally-form" data-role="candidate" novalidate>
             <section class="form-section">
-              <h3>${content.overviewTitle}</h3>
+              <h2>${content.overviewTitle}</h2>
               ${matrixQuestion(
                 content.overviewMatrixTitle,
                 content.countryRows,
-                content.countryColumns
+                content.countryColumns,
+                "",
+                "checkbox",
+                content.matrixMobileHint
               )}
 
-              <div class="field">
-                <span>${content.mobilityTypeTitle}</span>
+              <fieldset class="fieldset">
+                <legend>${content.mobilityTypeTitle}</legend>
                 <p class="mini-note">${content.mobilityTypeHint}</p>
                 ${choicePills("tally_q02", content.mobilityTypeOptions)}
-              </div>
+              </fieldset>
             </section>
 
             <section class="form-section" data-condition="transfrontaliere">
-              <h3>${content.crossBorderTitle}</h3>
-              <div class="field">
-                <span>${content.questions.q03}</span>
+              <h2>${content.crossBorderTitle}</h2>
+              <fieldset class="fieldset">
+                <legend>${content.questions.q03}</legend>
                 ${radioPills("tally_q03", localizeOptions(["Oui", "Non"], content.options.yesNo))}
-              </div>
-              <div class="field">
-                <span>${content.questions.q04}</span>
+              </fieldset>
+              <fieldset class="fieldset">
+                <legend>${content.questions.q04}</legend>
                 ${radioPills("tally_q04", localizeOptions(["30 min", "1h", "1h30", "2h", "Plus de 2h"], content.options.commute))}
-              </div>
+              </fieldset>
               <fieldset class="fieldset">
                 <legend>${content.questions.q05}</legend>
                 ${choicePills("tally_q05", localizeOptions(["Voiture", "Train", "Bus", "Covoiturage", "Je ne sais pas encore"], content.options.transport))}
               </fieldset>
-              <div class="field">
-                <span>${content.questions.q06}</span>
+              <fieldset class="fieldset">
+                <legend>${content.questions.q06}</legend>
                 ${radioPills("tally_q06", localizeOptions(["Je suis disponible sur des horaires variés", "J’ai des contraintes ou préférences horaires"], content.options.schedule))}
-              </div>
+              </fieldset>
               <div data-condition="horaire-precis">
-                ${matrixQuestion(content.questions.q07, content.scheduleRows, content.scheduleColumns)}
+                ${matrixQuestion(content.questions.q07, content.scheduleRows, content.scheduleColumns, "", "checkbox", content.matrixMobileHint)}
               </div>
               <fieldset class="fieldset">
                 <legend>${content.questions.q08}</legend>
                 ${choicePills("tally_q08", localizeOptions(["CDI", "CDD", "Intérim", "Saisonnier", "Temps plein", "Temps partiel"], content.options.contracts))}
               </fieldset>
-              <div class="field">
-                <span>${content.questions.q09}</span>
+              <fieldset class="fieldset">
+                <legend>${content.questions.q09}</legend>
                 ${radioPills("tally_q09", localizeOptions(["Dès que possible", "Dans les prochains jours", "Dans les prochaines semaines", "Dans 1 à 3 mois", "Je ne sais pas encore"], content.options.startDate))}
-              </div>
+              </fieldset>
               ${matrixQuestion(
                 content.questions.q10,
                 content.documentsRows,
                 content.documentsColumns,
                 content.questions.q10Hint,
-                "radio"
+                "radio",
+                content.matrixMobileHint
               )}
-              <div class="field" data-condition="show-lu-social">
-                <span>${content.questions.q11}</span>
+              <fieldset class="fieldset" data-condition="show-lu-social">
+                <legend>${content.questions.q11}</legend>
                 ${radioPills("tally_q11", localizeOptions(["Oui", "Non", "Je ne sais pas"], content.options.yesNoUnknown))}
-              </div>
-              <div class="field" data-condition="show-de-social">
-                <span>${content.questions.q12}</span>
+              </fieldset>
+              <fieldset class="fieldset" data-condition="show-de-social">
+                <legend>${content.questions.q12}</legend>
                 ${radioPills("raw_tally_q12", localizeOptions(["Oui", "Non", "Je ne sais pas"], content.options.yesNoUnknown))}
-              </div>
-              <div class="field" data-condition="show-fr-social">
-                <span>${content.questions.q13}</span>
+              </fieldset>
+              <fieldset class="fieldset" data-condition="show-fr-social">
+                <legend>${content.questions.q13}</legend>
                 ${radioPills("raw_tally_q13", localizeOptions(["Oui", "Non", "Je ne sais pas"], content.options.yesNoUnknown))}
-              </div>
+              </fieldset>
             </section>
 
             <section class="form-section" data-condition="expatriation">
-              <h3>${content.expatriationTitle}</h3>
-              <div class="field">
-                <span>${content.questions.q14}</span>
+              <h2>${content.expatriationTitle}</h2>
+              <fieldset class="fieldset">
+                <legend>${content.questions.q14}</legend>
                 ${radioPills("tally_q14", localizeOptions(["Oui", "Non"], content.options.yesNo))}
-              </div>
-              <div class="field">
-                <span>${content.questions.q15}</span>
+              </fieldset>
+              <fieldset class="fieldset">
+                <legend>${content.questions.q15}</legend>
                 ${radioPills("tally_q15", localizeOptions(["Dès que possible", "D'ici 3 mois", "Entre 3 et 6 mois", "Dans  plus de 6 mois", "Je ne sais pas"], content.options.departWhen))}
-              </div>
-              <div class="field">
-                <span>${content.questions.q16}</span>
+              </fieldset>
+              <fieldset class="fieldset">
+                <legend>${content.questions.q16}</legend>
                 ${radioPills("tally_q16", localizeOptions(["Uniquement vous", "En couple", "En famille"], content.options.departWith))}
-              </div>
+              </fieldset>
               ${rankingQuestion(content)}
             </section>
 
             <section class="form-section">
-              <h3>${content.professionalTitle}</h3>
-              ${matrixQuestion(content.questions.q18, content.languageRows, content.languageColumns, "", "radio")}
+              <h2>${content.professionalTitle}</h2>
+              ${matrixQuestion(content.questions.q18, content.languageRows, content.languageColumns, "", "radio", content.matrixMobileHint)}
               <fieldset class="fieldset">
                 <legend>${content.questions.q19}</legend>
                 ${choicePills("tally_q19", content.sectorsOptions)}
               </fieldset>
+              <label class="field" data-condition="sector-other">
+                <span>${content.questions.q19Other}</span>
+                <input type="text" name="tally_q19_other_job" autocomplete="off" data-required-when-visible="true">
+              </label>
+              <fieldset class="fieldset">
+                <legend>${content.questions.q43}</legend>
+                ${choicePills("tally_q43", content.workConditionsOptions)}
+              </fieldset>
+              ${permitQuestionFields(
+                "candidate-permits",
+                "tally_q41",
+                "tally_q42",
+                "tally_q42_extra",
+                content.questions.q41,
+                content.questions.q42,
+                content.questions.q42Extra,
+                content.permitYesNoOptions,
+                content.permitOptions
+              )}
             </section>
 
             <section class="form-section" data-condition="sector-vente">
               <h3>${content.sectorTitles.vente}</h3>
+              ${jobTitleField("tally_q20", content.questions.jobTitle)}
               <fieldset class="fieldset">
                 <legend>${content.sectorLegends.vente} <span class="mini-note">${content.questions.sectorHint}</span></legend>
                 ${choicePills("tally_q20", localizeOptions(candidateTallyCopy.fr.sectorChoices.vente, content.sectorChoices.vente))}
               </fieldset>
-              <div class="field">
-                <span>${content.questions.q21}</span>
+              <fieldset class="fieldset">
+                <legend>${content.questions.q21}</legend>
                 ${radioPills("tally_q21", localizeOptions(["Oui, plus de 2 ans", "Oui, entre 6 mois et 2 ans", "Oui, moins de 6 mois", "Non, mais je suis intéressé(e) par le secteur"], content.options.experience))}
-              </div>
+              </fieldset>
               ${salaryExpectationFields("tally_q20", content)}
             </section>
 
             <section class="form-section" data-condition="sector-nettoyage">
               <h3>${content.sectorTitles.nettoyage}</h3>
+              ${jobTitleField("tally_q22", content.questions.jobTitle)}
               <fieldset class="fieldset">
                 <legend>${content.sectorLegends.nettoyage} <span class="mini-note">${content.questions.sectorHint}</span></legend>
                 ${choicePills("tally_q22", localizeOptions(candidateTallyCopy.fr.sectorChoices.nettoyage, content.sectorChoices.nettoyage))}
               </fieldset>
-              <div class="field">
-                <span>${content.questions.q23}</span>
+              <fieldset class="fieldset">
+                <legend>${content.questions.q23}</legend>
                 ${radioPills("tally_q23", localizeOptions(["Oui, plus de 2 ans", "Oui, entre 6 mois et 2 ans", "Oui, moins de 6 mois", "Non, mais je suis intéressé(e) par le secteur"], content.options.experience))}
-              </div>
-              <div class="field">
-                <span>${content.questions.q24}</span>
+              </fieldset>
+              <fieldset class="fieldset">
+                <legend>${content.questions.q24}</legend>
                 ${radioPills("tally_q24", localizeOptions(["Oui", "Non", "Je peux en faire la demande rapidement", "Je ne sais pas"], content.options.backgroundCheck))}
-              </div>
+              </fieldset>
               ${salaryExpectationFields("tally_q22", content)}
             </section>
 
             <section class="form-section" data-condition="sector-hotel">
               <h3>${content.sectorTitles.hotel}</h3>
+              ${jobTitleField("tally_q25", content.questions.jobTitle)}
               <fieldset class="fieldset">
                 <legend>${content.sectorLegends.hotel} <span class="mini-note">${content.questions.sectorHint}</span></legend>
                 ${choicePills("tally_q25", localizeOptions(candidateTallyCopy.fr.sectorChoices.hotel, content.sectorChoices.hotel))}
               </fieldset>
-              <div class="field">
-                <span>${content.questions.q26}</span>
+              <fieldset class="fieldset">
+                <legend>${content.questions.q26}</legend>
                 ${radioPills("tally_q26", localizeOptions(["Oui, plus de 2 ans", "Oui, entre 6 mois et 2 ans", "Oui, moins de 6 mois", "Non, mais je suis intéressé(e) par le secteur"], content.options.experience))}
-              </div>
+              </fieldset>
               ${salaryExpectationFields("tally_q25", content)}
             </section>
 
             <section class="form-section" data-condition="sector-agri">
               <h3>${content.sectorTitles.agri}</h3>
+              ${jobTitleField("tally_q27", content.questions.jobTitle)}
               <fieldset class="fieldset">
                 <legend>${content.sectorLegends.agri} <span class="mini-note">${content.questions.sectorHint}</span></legend>
                 ${choicePills("tally_q27", localizeOptions(candidateTallyCopy.fr.sectorChoices.agri, content.sectorChoices.agri))}
               </fieldset>
-              <div class="field">
-                <span>${content.questions.q28}</span>
+              <fieldset class="fieldset">
+                <legend>${content.questions.q28}</legend>
                 ${radioPills("tally_q28", localizeOptions(["Oui, plus de 2 ans", "Oui, entre 6 mois et 2 ans", "Oui, moins de 6 mois", "Non, mais je suis intéressé(e) par le secteur"], content.options.experience))}
-              </div>
+              </fieldset>
               ${salaryExpectationFields("tally_q27", content)}
             </section>
 
             <section class="form-section" data-condition="sector-polyvalent">
               <h3>${content.sectorTitles.polyvalent}</h3>
+              ${jobTitleField("tally_q29", content.questions.jobTitle)}
               <fieldset class="fieldset">
                 <legend>${content.sectorLegends.polyvalent} <span class="mini-note">${content.questions.sectorHint}</span></legend>
                 ${choicePills("tally_q29", localizeOptions(candidateTallyCopy.fr.sectorChoices.polyvalent, content.sectorChoices.polyvalent))}
               </fieldset>
-              <div class="field">
-                <span>${content.questions.q30}</span>
+              <fieldset class="fieldset">
+                <legend>${content.questions.q30}</legend>
                 ${radioPills("tally_q30", localizeOptions(["Oui, plus de 2 ans", "Oui, entre 6 mois et 2 ans", "Oui, moins de 6 mois", "Non, mais je suis intéressé(e) par le secteur"], content.options.experience))}
-              </div>
+              </fieldset>
               ${salaryExpectationFields("tally_q29", content)}
             </section>
 
+            <section class="form-section" data-condition="sector-industrie_production">
+              <h3>${content.sectorTitles.industrie_production}</h3>
+              ${jobTitleField("tally_q38", content.questions.jobTitle)}
+              <fieldset class="fieldset">
+                <legend>${content.sectorLegends.industrie_production} <span class="mini-note">${content.questions.sectorHint}</span></legend>
+                ${choicePills("tally_q38", localizeOptions(candidateTallyCopy.fr.sectorChoices.industrie_production, content.sectorChoices.industrie_production))}
+              </fieldset>
+              <fieldset class="fieldset">
+                <legend>${content.questions.q39}</legend>
+                ${radioPills("tally_q39", localizeOptions(["Oui, plus de 2 ans", "Oui, entre 6 mois et 2 ans", "Oui, moins de 6 mois", "Non, mais je suis intéressé(e) par le secteur"], content.options.experience))}
+              </fieldset>
+              ${salaryExpectationFields("tally_q38", content)}
+            </section>
+
             <section class="form-section">
-              <h3>${content.contactTitle}</h3>
+              <h2>${content.contactTitle}</h2>
               <div class="form-grid">
                 <label class="field">
                   <span>${content.questions.firstName}</span>
-                  <input type="text" name="tally_q31" required>
+                  <input type="text" name="tally_q31" autocomplete="given-name" required>
                 </label>
                 <label class="field">
                   <span>${content.questions.lastName}</span>
-                  <input type="text" name="tally_q32" required>
+                  <input type="text" name="tally_q32" autocomplete="family-name" required>
                 </label>
                 <label class="field">
                   <span>${content.questions.email}</span>
-                  <input type="email" name="tally_q33" required>
+                  <input type="email" name="tally_q33" autocomplete="email" inputmode="email" required>
                 </label>
                 <label class="field">
                   <span>${content.questions.phone}</span>
-                  <input type="tel" name="tally_q34">
+                  <input type="tel" name="tally_q34" autocomplete="tel" inputmode="tel" required>
                 </label>
               </div>
               <label class="field">
                 <span>${content.questions.city}</span>
-                <input type="text" name="tally_q35" required>
+                <input type="text" name="tally_q35" autocomplete="address-level2" required>
               </label>
               <label class="field">
                 <span>${content.questions.cv}</span>
@@ -3765,21 +5274,25 @@ function candidateTallyQuestionnaireTemplate(lang, t) {
             </section>
 
             <section class="form-section">
+              <fieldset class="fieldset">
+                <legend>${content.whatsappTitle}</legend>
+                ${radioPills("whatsapp_consent", content.whatsappOptions)}
+                <p class="mini-note">${content.whatsappHint}</p>
+              </fieldset>
+            </section>
+
+            <section class="form-section">
               <label class="checkbox-pill consent-pill">
                 <input type="checkbox" name="tally_q37" value="yes" required>
                 <span>${content.consentText}</span>
               </label>
-              <p class="privacy-inline-link">
-                <a href="${pageUrl("privacy", lang)}" target="_blank" rel="noopener">${privacyCopy[lang].navLabel}</a>.
-                ${privacyCopy[lang].separateConsent}
-              </p>
             </section>
 
             <div class="questionnaire-actions">
               <button class="primary-action" type="submit" id="save-btn">${t.common.submit}</button>
               <a class="ghost-action" href="${pageUrl("candidate-landing", lang)}">${t.common.ctaBackHome}</a>
             </div>
-            <div class="status" id="status" aria-live="polite"></div>
+            <div class="status" id="status" role="status" aria-live="polite"></div>
           </form>
         </section>
 
@@ -3800,19 +5313,63 @@ function candidateTallyQuestionnaireTemplate(lang, t) {
         </aside>
       </div>
     </main>
-    ${footer("candidate-questionnaire", t)}
+    ${footer(t)}
   `;
 }
 
 function employerLandingTemplate(lang, t) {
   const data = t.employerLanding;
   const logos = t.candidateLanding.logos;
+  const inviteToken = currentInviteToken();
+  const inviteSection = inviteToken ? `
+          <section class="candidate-about">
+            <h2>${data.inviteTitle}</h2>
+            <p>${data.inviteLead}</p>
+            <form class="questionnaire-form" id="employer-referral-form" novalidate>
+              <div class="form-grid">
+                <label class="field">
+                  <span>${data.inviteScopeLabel}</span>
+                  <select name="invite_scope" required>
+                    <option value="same_company">${data.inviteScopeOptions.same_company}</option>
+                    <option value="new_company">${data.inviteScopeOptions.new_company}</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>${data.inviteFirstName}</span>
+                  <input type="text" name="first_name">
+                </label>
+                <label class="field">
+                  <span>${data.inviteLastName}</span>
+                  <input type="text" name="last_name">
+                </label>
+                <label class="field">
+                  <span>${data.inviteEmail}</span>
+                  <input type="email" name="email" autocomplete="email" required>
+                </label>
+                <label class="field">
+                  <span>${data.inviteCompany}</span>
+                  <input type="text" name="company_name" autocomplete="organization">
+                </label>
+              </div>
+              <label class="field">
+                <span>${data.inviteNote}</span>
+                <textarea name="notes" rows="3"></textarea>
+              </label>
+              <div class="questionnaire-actions">
+                <button class="primary-action" type="submit" id="employer-referral-submit">${data.inviteSend}</button>
+              </div>
+              <p class="mini-note">${data.inviteHint}</p>
+              <p class="mini-note">${data.inviteCompanyHint}</p>
+              <div class="status" id="employer-referral-status" role="status" aria-live="polite"></div>
+            </form>
+          </section>
+  ` : "";
   return `
     ${nav("employer-landing", lang, t)}
-    <main class="section candidate-landing-page">
+    <main id="main-content" class="section candidate-landing-page" tabindex="-1">
       <div class="shell candidate-landing-layout">
         <article class="candidate-letter">
-          <div class="candidate-logos" aria-label="Partners">
+          <div class="candidate-logos" role="group" aria-label="${t.common.partnersLabel}">
             <img src="${logos.eures.src}" alt="${logos.eures.alt}" class="logo-eures">
             <div class="candidate-badge">
               <img src="${logos.franceTravail.src}" alt="${logos.franceTravail.alt}" class="logo-france-travail">
@@ -3840,34 +5397,121 @@ function employerLandingTemplate(lang, t) {
           </section>
 
           <section class="candidate-about">
-            <h2>${data.sideTitle}</h2>
-            <p>${data.sideText}</p>
+            <h2>${data.benefitsTitle || data.sideTitle}</h2>
+            ${data.benefits ? list(data.benefits) : `<p>${data.sideText}</p>`}
           </section>
+          ${inviteSection}
         </article>
 
         <aside class="candidate-sidebar">
           <article class="surface-card candidate-info-card">
             <h2>${data.bulletsTitle}</h2>
+            ${data.bulletsLead ? `<p>${data.bulletsLead}</p>` : ""}
             ${list(data.bullets)}
-            <div class="tag-row">
-              ${data.tags.map((tag) => `<span class="tag">${tag}</span>`).join("")}
-            </div>
+            <ul class="tag-row" aria-label="${t.common.tagsLabel}">
+              ${data.tags.map((tag) => `<li><span class="tag">${tag}</span></li>`).join("")}
+            </ul>
           </article>
 
           <article class="surface-card candidate-info-card">
             <h2>${data.disclaimerTitle || t.common.futureTitle}</h2>
+            ${data.processBullets ? list(data.processBullets) : ""}
             <p>${data.disclaimerText || data.sideText}</p>
           </article>
 
           <article class="panel candidate-info-card">
-            <h2>${t.common.matchingTitle}</h2>
-            ${list(t.common.matchingBullets)}
+            <h2>${data.sideTitle}</h2>
+            <p>${data.sideText}</p>
           </article>
         </aside>
       </div>
     </main>
-    ${footer("employer-landing", t)}
+    ${footer(t)}
   `;
+}
+
+function attachEmployerLandingBehavior(lang, t) {
+  const form = document.getElementById("employer-referral-form");
+  if (!form) {
+    return;
+  }
+  const statusEl = document.getElementById("employer-referral-status");
+  const submitBtn = document.getElementById("employer-referral-submit");
+  const messages = lang === "en"
+    ? {
+        email: "Enter a valid email address.",
+        company: "Enter the invited company name.",
+        success: "Invitation sent. The recipient receives a reusable link to submit multiple hiring needs."
+      }
+    : (lang === "de"
+      ? {
+          email: "Geben Sie eine gültige E-Mail-Adresse ein.",
+          company: "Geben Sie den Namen des eingeladenen Unternehmens ein.",
+          success: "Einladung gesendet. Der Empfänger erhält einen wiederverwendbaren Link, um mehrere Personalbedarfe zu übermitteln."
+        }
+      : {
+          email: "Indiquez une adresse e-mail valide.",
+          company: "Indiquez le nom de l'entreprise invitée.",
+          success: "Invitation envoyée. Le destinataire reçoit un lien réutilisable pour déposer plusieurs besoins."
+        });
+
+  function setStatus(message, state = "") {
+    setStatusMessage(statusEl, message, state);
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const data = new FormData(form);
+    const inviteScope = String(data.get("invite_scope") || "same_company").trim();
+    const email = String(data.get("email") || "").trim();
+    const companyName = String(data.get("company_name") || "").trim();
+    if (!email) {
+      setStatus(messages.email, "error");
+      return;
+    }
+    if (inviteScope === "new_company" && !companyName) {
+      setStatus(messages.company, "error");
+      return;
+    }
+
+    submitBtn.disabled = true;
+    setStatus(t.common.saving);
+    try {
+      const writeToken = await getWriteToken("employer", t);
+      const response = await fetch(`/api/forms/${FORM_ID}/employer-referrals`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          invite_token: currentInviteToken(),
+          write_token: writeToken,
+          invite_scope: inviteScope,
+          email,
+          first_name: String(data.get("first_name") || "").trim(),
+          last_name: String(data.get("last_name") || "").trim(),
+          company_name: companyName,
+          notes: String(data.get("notes") || "").trim(),
+          language: lang,
+        })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (response.status === 403) {
+          resetWriteToken("employer");
+        }
+        throw new Error(payload.error || `${t.common.saveErrorPrefix} (${response.status})`);
+      }
+      form.reset();
+      setStatus(messages.success, "success");
+    } catch (error) {
+      const message = error && error.message ? error.message : t.common.saveErrorPrefix;
+      setStatus(`${t.common.saveErrorPrefix}: ${message}`, "error");
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
 }
 
 function employerTallyQuestionnaireTemplate(lang, t) {
@@ -3875,7 +5519,7 @@ function employerTallyQuestionnaireTemplate(lang, t) {
   const content = getEmployerTallyContent(lang);
   return `
     ${nav("employer-questionnaire", lang, t)}
-    <main class="questionnaire-shell">
+    <main id="main-content" class="questionnaire-shell" tabindex="-1">
       <div class="shell questionnaire-grid">
         <section class="questionnaire-card candidate-letter questionnaire-letter">
           <div class="questionnaire-hero">
@@ -3893,9 +5537,9 @@ function employerTallyQuestionnaireTemplate(lang, t) {
             <div class="candidate-highlight">${content.heroHighlight}</div>
           </div>
 
-          <form class="questionnaire-form" id="employer-tally-form" data-role="employer">
+          <form class="questionnaire-form" id="employer-tally-form" data-role="employer" novalidate>
             <section class="form-section">
-              <h3>${content.sections.need}</h3>
+              <h2>${content.sections.need}</h2>
               <div class="section-intro">
                 <p class="mini-note">${content.introNote}</p>
                 <p class="mini-note">${content.introNote2}</p>
@@ -3904,15 +5548,15 @@ function employerTallyQuestionnaireTemplate(lang, t) {
                 <legend>${content.questions.q01}</legend>
                 ${choicePills("tally_q01", content.sectorsOptions)}
               </fieldset>
-              ${matrixQuestion(content.questions.q02, content.languageRows, content.languageColumns, content.questions.q02Hint, "radio")}
-              <div class="field">
-                <span>${content.questions.q03}</span>
+              ${matrixQuestion(content.questions.q02, content.languageRows, content.languageColumns, content.questions.q02Hint, "radio", content.matrixMobileHint)}
+              <fieldset class="fieldset">
+                <legend>${content.questions.q03}</legend>
                 ${radioPills("tally_q03", content.optionGroups.q03)}
-              </div>
-              <div class="field">
-                <span>${content.questions.q04}</span>
+              </fieldset>
+              <fieldset class="fieldset">
+                <legend>${content.questions.q04}</legend>
                 ${radioPills("tally_q04", content.optionGroups.q04)}
-              </div>
+              </fieldset>
               <label class="field">
                 <span>${content.questions.q20}</span>
                 <input type="text" name="tally_q20" required>
@@ -3928,7 +5572,7 @@ function employerTallyQuestionnaireTemplate(lang, t) {
             </section>
 
             <section class="form-section">
-              <h3>${content.sections.conditions}</h3>
+              <h2>${content.sections.conditions}</h2>
               <div class="section-intro">
                 <p class="mini-note">Décrivez ici les profils que vous pouvez accueillir, les aides éventuelles à l’arrivée et les critères qui comptent vraiment pour vous.</p>
               </div>
@@ -3946,11 +5590,12 @@ function employerTallyQuestionnaireTemplate(lang, t) {
               </fieldset>
             </section>
 
-            ${["tally_q10", "tally_q11", "tally_q12", "tally_q13", "tally_q14"].map((name, index) => `
+            ${["tally_q10", "tally_q11", "tally_q12", "tally_q13", "tally_q14", "tally_q40"].map((name, index) => `
               <section class="form-section" data-condition="employer-sector-${index}">
                 <h3>${content.sectorTitles[name]}</h3>
+                ${jobTitleField(name, content.questions.jobTitle)}
                 <fieldset class="fieldset">
-                  <legend>${index === 4 ? content.questions.q14 : content.questions[`q${10 + index}`]} <span class="mini-note">${content.questions.q14Hint}</span></legend>
+                  <legend>${name === "tally_q14" ? content.questions.q14 : name === "tally_q40" ? content.questions.q40 : content.questions[`q${10 + index}`]} <span class="mini-note">${content.questions.q14Hint}</span></legend>
                   ${choicePills(name, content.sectorPriorityOptions[name])}
                 </fieldset>
                 ${salaryOfferFields(name, content)}
@@ -3958,10 +5603,10 @@ function employerTallyQuestionnaireTemplate(lang, t) {
             `).join("")}
 
             <section class="form-section">
-              <label class="field">
-                <span>${content.questions.q20Extra}</span>
-                <textarea name="tally_q20_extra" rows="3"></textarea>
-              </label>
+              <div class="field">
+                <label for="tally_q20_extra">${content.questions.q20Extra}</label>
+                <textarea id="tally_q20_extra" name="tally_q20_extra" rows="3"></textarea>
+              </div>
             </section>
 
             <section class="form-section">
@@ -3969,35 +5614,46 @@ function employerTallyQuestionnaireTemplate(lang, t) {
                 <legend>${content.questions.q15}</legend>
                 ${choicePills("tally_q15", content.optionGroups.q15)}
               </fieldset>
+              ${permitQuestionFields(
+                "employer-permits",
+                "tally_q22",
+                "tally_q23",
+                "tally_q23_extra",
+                content.questions.q22,
+                content.questions.q23,
+                content.questions.q23Extra,
+                content.permitYesNoOptions,
+                content.permitOptions
+              )}
             </section>
 
             <section class="form-section">
-              <h3>${content.sections.contact}</h3>
+              <h2>${content.sections.contact}</h2>
               <div class="section-intro">
                 <p class="mini-note">Ces informations nous permettent de vous recontacter rapidement si des profils semblent compatibles avec votre besoin.</p>
               </div>
               <div class="form-grid">
                 <label class="field">
                   <span>${content.questions.q16}</span>
-                  <input type="text" name="tally_q16" required>
+                  <input type="text" name="tally_q16" autocomplete="name" required>
                 </label>
                 <label class="field">
                   <span>${content.questions.q17}</span>
-                  <input type="text" name="tally_q17" required>
+                  <input type="text" name="tally_q17" autocomplete="organization" required>
                 </label>
                 <label class="field">
                   <span>${content.questions.q18}</span>
-                  <input type="email" name="tally_q18" required>
+                  <input type="email" name="tally_q18" autocomplete="email" inputmode="email" required>
                 </label>
                 <label class="field">
                   <span>${content.questions.q19}</span>
-                  <input type="tel" name="tally_q19" required>
+                  <input type="tel" name="tally_q19" autocomplete="tel" inputmode="tel" required>
                 </label>
               </div>
             </section>
 
             <section class="form-section">
-              <h3>${content.questions.q21Title}</h3>
+              <h2>${content.questions.q21Title}</h2>
               <p class="mini-note">${content.questions.q21Text}</p>
               <p class="mini-note">${content.questions.q21Text2}</p>
               <p class="mini-note"><strong>${content.questions.q21Text3}</strong></p>
@@ -4005,17 +5661,13 @@ function employerTallyQuestionnaireTemplate(lang, t) {
                 <input type="checkbox" name="tally_q21" value="yes" required>
                 <span>${content.questions.consent}</span>
               </label>
-              <p class="privacy-inline-link">
-                <a href="${pageUrl("privacy", lang)}" target="_blank" rel="noopener">${privacyCopy[lang].navLabel}</a>.
-                ${privacyCopy[lang].separateConsent}
-              </p>
             </section>
 
             <div class="questionnaire-actions">
               <button class="primary-action" type="submit" id="save-btn">${t.common.submit}</button>
               <a class="ghost-action" href="${pageUrl("employer-landing", lang)}">${t.common.ctaBackHome}</a>
             </div>
-            <div class="status" id="status" aria-live="polite"></div>
+            <div class="status" id="status" role="status" aria-live="polite"></div>
           </form>
         </section>
 
@@ -4036,7 +5688,7 @@ function employerTallyQuestionnaireTemplate(lang, t) {
         </aside>
       </div>
     </main>
-    ${footer("employer-questionnaire", t)}
+    ${footer(t)}
   `;
 }
 
@@ -4048,24 +5700,31 @@ function toggleConditionBlocks(form) {
   const transfrontaliere = isCheckedValue(form, "tally_q02", "Transfrontalière");
   const expatriation = isCheckedValue(form, "tally_q02", "Expatriation");
   const horairePrecis = (form.querySelector('input[name="tally_q06"]:checked') || {}).value === "J’ai des contraintes ou préférences horaires";
+  const candidatePermits = (form.querySelector('input[name="tally_q41"]:checked') || {}).value === "yes";
+  const candidatePermitOther = Array.from(form.querySelectorAll('input[name="tally_q42"]:checked')).some((input) => input.value === "Autre");
 
   const q01lu = Array.from(form.querySelectorAll('input[name="tally_q01_f03"]:checked')).map((input) => input.value);
   const q01de = Array.from(form.querySelectorAll('input[name="tally_q01_f01"]:checked')).map((input) => input.value);
   const q01fr = Array.from(form.querySelectorAll('input[name="tally_q01_f02"]:checked')).map((input) => input.value);
   const selectedSectors = Array.from(form.querySelectorAll('input[name="tally_q19"]:checked')).map((input) => input.value);
+  const selectedOtherSector = selectedSectors.includes(candidateTallyMeta.otherSectorValue);
 
   const visibility = {
     transfrontaliere,
     expatriation,
     "horaire-precis": horairePrecis,
-    "show-lu-social": q01lu.includes("Je veux y travailler") && !q01lu.includes("J'y habite"),
-    "show-de-social": q01de.includes("Je veux y travailler") && !q01de.includes("J'y habite"),
-    "show-fr-social": q01fr.includes("Je veux y travailler") && !q01fr.includes("J'y habite"),
+    "show-lu-social": q01lu.includes("Je veux y travailler"),
+    "show-de-social": q01de.includes("Je veux y travailler"),
+    "show-fr-social": q01fr.includes("Je veux y travailler"),
+    "candidate-permits-details": candidatePermits,
+    "candidate-permits-other": candidatePermits && candidatePermitOther,
     "sector-vente": selectedSectors.includes(candidateTallyMeta.sectors[0]),
     "sector-nettoyage": selectedSectors.includes(candidateTallyMeta.sectors[1]),
     "sector-hotel": selectedSectors.includes(candidateTallyMeta.sectors[2]),
     "sector-agri": selectedSectors.includes(candidateTallyMeta.sectors[3]),
-    "sector-polyvalent": selectedSectors.includes(candidateTallyMeta.sectors[4])
+    "sector-polyvalent": selectedSectors.includes(candidateTallyMeta.sectors[4]),
+    "sector-industrie_production": selectedSectors.includes(candidateTallyMeta.sectors[5]),
+    "sector-other": selectedOtherSector
   };
 
   function shouldShow(element) {
@@ -4088,6 +5747,9 @@ function toggleConditionBlocks(form) {
         return;
       }
       control.disabled = !shown;
+      if (control.dataset.requiredWhenVisible === "true") {
+        control.required = shown;
+      }
     });
   });
 }
@@ -4123,7 +5785,6 @@ function humanizeCandidateRawAnswers(fields, fileMeta, rankingSummary) {
         cv: fields.tally_q10_f02 || [],
         diplomes: fields.tally_q10_f03 || [],
         iban: fields.tally_q10_f04 || [],
-        securite_sociale: fields.tally_q10_f05 || []
       },
       secu_lux: fields.tally_q11 || "",
       secu_de: fields.raw_tally_q12 || "",
@@ -4142,31 +5803,49 @@ function humanizeCandidateRawAnswers(fields, fileMeta, rankingSummary) {
       luxembourgeois: fields.tally_q18_f04 || []
     },
     secteurs: fields.tally_q19 || [],
+    metier_libre: fields.metier_libre || fields.tally_q19_other_job || "",
+    conditions_travail: fields.tally_q43 || [],
+    permis_autorisations: {
+      reponse: fields.tally_q41 || "",
+      choix: fields.tally_q42 || [],
+      autre: fields.tally_q42_extra || ""
+    },
     vente: {
+      intitule_poste: fields.tally_q20_job_title || "",
       qualites: fields.tally_q20 || [],
       experience: fields.tally_q21 || "",
-      salaire: { type: fields.tally_q20_salary_type || "", minimum: fields.tally_q20_salary_min || "", note: fields.tally_q20_salary_note || "" }
+      salaire: { type: fields.tally_q20_salary_type || "", brut_net: fields.tally_q20_salary_amount_type || "", minimum: fields.tally_q20_salary_min || "", note: fields.tally_q20_salary_note || "" }
     },
     nettoyage: {
+      intitule_poste: fields.tally_q22_job_title || "",
       qualites: fields.tally_q22 || [],
       experience: fields.tally_q23 || "",
       casier: fields.tally_q24 || "",
-      salaire: { type: fields.tally_q22_salary_type || "", minimum: fields.tally_q22_salary_min || "", note: fields.tally_q22_salary_note || "" }
+      salaire: { type: fields.tally_q22_salary_type || "", brut_net: fields.tally_q22_salary_amount_type || "", minimum: fields.tally_q22_salary_min || "", note: fields.tally_q22_salary_note || "" }
     },
     hotel_restaurant: {
+      intitule_poste: fields.tally_q25_job_title || "",
       qualites: fields.tally_q25 || [],
       experience: fields.tally_q26 || "",
-      salaire: { type: fields.tally_q25_salary_type || "", minimum: fields.tally_q25_salary_min || "", note: fields.tally_q25_salary_note || "" }
+      salaire: { type: fields.tally_q25_salary_type || "", brut_net: fields.tally_q25_salary_amount_type || "", minimum: fields.tally_q25_salary_min || "", note: fields.tally_q25_salary_note || "" }
     },
     agriculture: {
+      intitule_poste: fields.tally_q27_job_title || "",
       qualites: fields.tally_q27 || [],
       experience: fields.tally_q28 || "",
-      salaire: { type: fields.tally_q27_salary_type || "", minimum: fields.tally_q27_salary_min || "", note: fields.tally_q27_salary_note || "" }
+      salaire: { type: fields.tally_q27_salary_type || "", brut_net: fields.tally_q27_salary_amount_type || "", minimum: fields.tally_q27_salary_min || "", note: fields.tally_q27_salary_note || "" }
     },
     missions_polyvalentes: {
+      intitule_poste: fields.tally_q29_job_title || "",
       qualites: fields.tally_q29 || [],
       experience: fields.tally_q30 || "",
-      salaire: { type: fields.tally_q29_salary_type || "", minimum: fields.tally_q29_salary_min || "", note: fields.tally_q29_salary_note || "" }
+      salaire: { type: fields.tally_q29_salary_type || "", brut_net: fields.tally_q29_salary_amount_type || "", minimum: fields.tally_q29_salary_min || "", note: fields.tally_q29_salary_note || "" }
+    },
+    industrie_production: {
+      intitule_poste: fields.tally_q38_job_title || "",
+      qualites: fields.tally_q38 || [],
+      experience: fields.tally_q39 || "",
+      salaire: { type: fields.tally_q38_salary_type || "", brut_net: fields.tally_q38_salary_amount_type || "", minimum: fields.tally_q38_salary_min || "", note: fields.tally_q38_salary_note || "" }
     },
     contact: {
       prenom: fields.tally_q31 || "",
@@ -4174,6 +5853,10 @@ function humanizeCandidateRawAnswers(fields, fileMeta, rankingSummary) {
       email: fields.tally_q33 || "",
       telephone: fields.tally_q34 || "",
       ville: fields.tally_q35 || ""
+    },
+    whatsapp: {
+      consentement: fields.whatsapp_consent || "",
+      telephone: fields.tally_q34 || ""
     },
     cv: fileMeta,
     consentement_rgpd: fields.tally_q37 || ""
@@ -4221,14 +5904,42 @@ function enforceCheckboxLimit(form, groupNames, max, setStatus, message, changed
   });
 }
 
+function summarizePermitSelections(enabledValue, selectionsValue, otherValue) {
+  if (String(enabledValue || "").trim() !== "yes") {
+    return { summary: "", other: "" };
+  }
+  const selections = Array.isArray(selectionsValue)
+    ? selectionsValue.filter(Boolean)
+    : (selectionsValue ? [selectionsValue] : []);
+  return {
+    summary: selections.join(" | "),
+    other: selections.includes("Autre") ? String(otherValue || "").trim() : ""
+  };
+}
+
+function asArray(value) {
+  if (Array.isArray(value)) {
+    return value.filter(Boolean);
+  }
+  if (value === undefined || value === null || value === "") {
+    return [];
+  }
+  return [value];
+}
+
 function toggleEmployerConditionBlocks(form) {
   const selectedSectors = Array.from(form.querySelectorAll('input[name="tally_q01"]:checked')).map((input) => input.value);
+  const employerPermits = (form.querySelector('input[name="tally_q22"]:checked') || {}).value === "yes";
+  const employerPermitOther = Array.from(form.querySelectorAll('input[name="tally_q23"]:checked')).some((input) => input.value === "Autre");
   const visibility = {
+    "employer-permits-details": employerPermits,
+    "employer-permits-other": employerPermits && employerPermitOther,
     "employer-sector-0": selectedSectors.includes(employerTallyMeta.sectors[0]),
     "employer-sector-1": selectedSectors.includes(employerTallyMeta.sectors[1]),
     "employer-sector-2": selectedSectors.includes(employerTallyMeta.sectors[2]),
     "employer-sector-3": selectedSectors.includes(employerTallyMeta.sectors[3]),
-    "employer-sector-4": selectedSectors.includes(employerTallyMeta.sectors[4])
+    "employer-sector-4": selectedSectors.includes(employerTallyMeta.sectors[4]),
+    "employer-sector-5": selectedSectors.includes(employerTallyMeta.sectors[5])
   };
 
   form.querySelectorAll("[data-condition]").forEach((element) => {
@@ -4261,26 +5972,41 @@ function humanizeEmployerRawAnswers(fields) {
     aides_installation: fields.tally_q08 || [],
     indispensables: fields.tally_q09 || [],
     priorites_vente: {
+      intitule_poste: fields.tally_q10_job_title || "",
       choix: fields.tally_q10 || [],
-      salaire: { type: fields.tally_q10_salary_type || "", minimum: fields.tally_q10_salary_min || "", maximum: fields.tally_q10_salary_max || "", note: fields.tally_q10_salary_note || "" }
+      salaire: { type: fields.tally_q10_salary_type || "", brut_net: fields.tally_q10_salary_amount_type || "", minimum: fields.tally_q10_salary_min || "", maximum: fields.tally_q10_salary_max || "", note: fields.tally_q10_salary_note || "" }
     },
     priorites_nettoyage: {
+      intitule_poste: fields.tally_q11_job_title || "",
       choix: fields.tally_q11 || [],
-      salaire: { type: fields.tally_q11_salary_type || "", minimum: fields.tally_q11_salary_min || "", maximum: fields.tally_q11_salary_max || "", note: fields.tally_q11_salary_note || "" }
+      salaire: { type: fields.tally_q11_salary_type || "", brut_net: fields.tally_q11_salary_amount_type || "", minimum: fields.tally_q11_salary_min || "", maximum: fields.tally_q11_salary_max || "", note: fields.tally_q11_salary_note || "" }
     },
     priorites_hotel: {
+      intitule_poste: fields.tally_q12_job_title || "",
       choix: fields.tally_q12 || [],
-      salaire: { type: fields.tally_q12_salary_type || "", minimum: fields.tally_q12_salary_min || "", maximum: fields.tally_q12_salary_max || "", note: fields.tally_q12_salary_note || "" }
+      salaire: { type: fields.tally_q12_salary_type || "", brut_net: fields.tally_q12_salary_amount_type || "", minimum: fields.tally_q12_salary_min || "", maximum: fields.tally_q12_salary_max || "", note: fields.tally_q12_salary_note || "" }
     },
     priorites_agriculture: {
+      intitule_poste: fields.tally_q13_job_title || "",
       choix: fields.tally_q13 || [],
-      salaire: { type: fields.tally_q13_salary_type || "", minimum: fields.tally_q13_salary_min || "", maximum: fields.tally_q13_salary_max || "", note: fields.tally_q13_salary_note || "" }
+      salaire: { type: fields.tally_q13_salary_type || "", brut_net: fields.tally_q13_salary_amount_type || "", minimum: fields.tally_q13_salary_min || "", maximum: fields.tally_q13_salary_max || "", note: fields.tally_q13_salary_note || "" }
     },
     priorites_polyvalent: {
+      intitule_poste: fields.tally_q14_job_title || "",
       choix: fields.tally_q14 || [],
-      salaire: { type: fields.tally_q14_salary_type || "", minimum: fields.tally_q14_salary_min || "", maximum: fields.tally_q14_salary_max || "", note: fields.tally_q14_salary_note || "" }
+      salaire: { type: fields.tally_q14_salary_type || "", brut_net: fields.tally_q14_salary_amount_type || "", minimum: fields.tally_q14_salary_min || "", maximum: fields.tally_q14_salary_max || "", note: fields.tally_q14_salary_note || "" }
+    },
+    priorites_industrie_production: {
+      intitule_poste: fields.tally_q40_job_title || "",
+      choix: fields.tally_q40 || [],
+      salaire: { type: fields.tally_q40_salary_type || "", brut_net: fields.tally_q40_salary_amount_type || "", minimum: fields.tally_q40_salary_min || "", maximum: fields.tally_q40_salary_max || "", note: fields.tally_q40_salary_note || "" }
     },
     conditions_travail: fields.tally_q15 || [],
+    permis_autorisations: {
+      reponse: fields.tally_q22 || "",
+      choix: fields.tally_q23 || [],
+      autre: fields.tally_q23_extra || ""
+    },
     contact: {
       prenom: fields.tally_q16 || "",
       entreprise: fields.tally_q17 || "",
@@ -4299,18 +6025,23 @@ function attachEmployerTallyBehavior(lang, t) {
     return;
   }
   const content = getEmployerTallyContent(lang);
-  const uuid = getUuid("employer");
+  const inviteToken = currentInviteToken();
+  let uuid = getUuid("employer");
   const statusEl = document.getElementById("status");
   const uuidBox = document.getElementById("uuid-box");
   const saveBtn = document.getElementById("save-btn");
   uuidBox.textContent = `${t.common.uuidPrefix}: ${uuid}`;
+  const reuseSuccessMessage = lang === "en"
+    ? "Need saved. You can submit another need with this same link or invite a colleague / another company from the employer page."
+    : (lang === "de"
+      ? "Der Bedarf wurde gespeichert. Sie können mit demselben Link einen weiteren Bedarf einreichen oder von der Arbeitgeberseite aus einen Kollegen / ein anderes Unternehmen einladen."
+      : "Besoin enregistré. Vous pouvez déposer un nouveau besoin avec ce même lien ou inviter un collaborateur / une autre entreprise depuis la page employeur.");
 
   function setStatus(message, state = "") {
-    statusEl.textContent = message;
-    statusEl.dataset.state = state;
+    setStatusMessage(statusEl, message, state);
   }
 
-  const limitedGroups = ["tally_q10", "tally_q11", "tally_q12", "tally_q13", "tally_q14"];
+  const limitedGroups = ["tally_q10", "tally_q11", "tally_q12", "tally_q13", "tally_q14", "tally_q40"];
 
   function collectValues() {
     const data = new FormData(form);
@@ -4334,17 +6065,12 @@ function attachEmployerTallyBehavior(lang, t) {
   }
 
   function validateCheckboxGroup(name, label, min = 1, max = Infinity) {
-    const visibleInputs = Array.from(form.querySelectorAll(`input[name="${name}"]`)).filter((input) => !input.disabled);
-    if (!visibleInputs.length) {
-      return true;
-    }
-    const checkedCount = visibleInputs.filter((input) => input.checked).length;
-    if (checkedCount < min) {
-      setStatus(`${content.errors.chooseAtLeastOne} ${label}`, "error");
-      return false;
-    }
-    if (checkedCount > max) {
-      setStatus(`${content.errors.chooseBetween} ${label}`, "error");
+    if (!validateVisibleCheckboxGroup(form, name, label, setStatus, t, min, max)) {
+      if (min === 1 && max === Infinity) {
+        setStatus(`${content.errors.chooseAtLeastOne} ${label}. ${t.common.validation.checkHighlighted}`, "error");
+      } else if (max !== Infinity) {
+        setStatus(`${content.errors.chooseBetween} ${label}. ${t.common.validation.checkHighlighted}`, "error");
+      }
       return false;
     }
     return true;
@@ -4352,6 +6078,12 @@ function attachEmployerTallyBehavior(lang, t) {
 
   form.addEventListener("change", () => toggleEmployerConditionBlocks(form));
   form.addEventListener("input", () => toggleEmployerConditionBlocks(form));
+  form.addEventListener("change", (event) => {
+    clearFieldErrorState(event.target);
+  });
+  form.addEventListener("input", (event) => {
+    clearFieldErrorState(event.target);
+  });
   toggleEmployerConditionBlocks(form);
   enforceCheckboxLimit(form, limitedGroups, 4, setStatus, content.errors.maxFour);
 
@@ -4363,8 +6095,13 @@ function attachEmployerTallyBehavior(lang, t) {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
+    if (showFirstInvalidControl(form, setStatus, t)) {
+      return;
+    }
+
     const validations = [
       ["tally_q01", content.questions.q01],
+      ...employerTallyMeta.languageRows.map((row) => [row.field, `${content.questions.q02} - ${row.label}`, 1, 1]),
       ["tally_q05", content.questions.q05],
       ["tally_q06", content.questions.q06],
       ["tally_q07", content.questions.q07],
@@ -4375,6 +6112,7 @@ function attachEmployerTallyBehavior(lang, t) {
       ["tally_q12", content.questions.q12, 1, 4],
       ["tally_q13", content.questions.q13, 1, 4],
       ["tally_q14", content.questions.q14, 1, 4],
+      ["tally_q40", content.questions.q40, 1, 4],
       ["tally_q15", content.questions.q15]
     ];
     for (const [name, label, min, max] of validations) {
@@ -4382,11 +6120,29 @@ function attachEmployerTallyBehavior(lang, t) {
         return;
       }
     }
+    if (!validateCheckboxGroup("tally_q22", content.questions.q22, 1, 1)) {
+      return;
+    }
+    if ((form.querySelector('input[name="tally_q22"]:checked') || {}).value === "yes") {
+      if (!validateCheckboxGroup("tally_q23", content.questions.q23, 1)) {
+        return;
+      }
+      const hasOtherPermit = Array.from(form.querySelectorAll('input[name="tally_q23"]:checked')).some((input) => input.value === "Autre");
+      if (hasOtherPermit && !String((form.querySelector('input[name="tally_q23_extra"]') || {}).value || "").trim()) {
+        setStatus(`${t.common.validation.required} ${content.questions.q23Extra}. ${t.common.validation.checkHighlighted}`, "error");
+        focusField(form.querySelector('input[name="tally_q23_extra"]'));
+        return;
+      }
+    }
 
     const normalized = collectValues();
     const rawAnswers = humanizeEmployerRawAnswers(normalized);
+    const permitSummary = summarizePermitSelections(normalized.tally_q22, normalized.tally_q23, normalized.tally_q23_extra);
     const languageSummary = employerTallyMeta.languageRows
-      .map((row) => `${row.label}: ${Array.isArray(normalized[row.field]) ? normalized[row.field].join(", ") : ""}`)
+      .map((row) => {
+        const selections = asArray(normalized[row.field]);
+        return `${row.label}: ${selections.join(", ")}`;
+      })
       .filter((line) => !line.endsWith(": "));
     const prioritySummary = [
       normalized.tally_q09 || [],
@@ -4394,7 +6150,8 @@ function attachEmployerTallyBehavior(lang, t) {
       normalized.tally_q11 || [],
       normalized.tally_q12 || [],
       normalized.tally_q13 || [],
-      normalized.tally_q14 || []
+      normalized.tally_q14 || [],
+      normalized.tally_q40 || []
     ].flat();
 
     const fields = {
@@ -4414,12 +6171,14 @@ function attachEmployerTallyBehavior(lang, t) {
       lieu_travail_normalise: normalized.tally_q20 || "",
       competences_clefs: Array.isArray(normalized.tally_q09) ? normalized.tally_q09.join(" | ") : (normalized.tally_q09 || ""),
       contraintes_travail: Array.isArray(normalized.tally_q15) ? normalized.tally_q15.join(" | ") : (normalized.tally_q15 || ""),
+      permis_autorisations: permitSummary.summary,
+      permis_autorisations_autre: permitSummary.other,
       profils_acceptes: Array.isArray(normalized.tally_q07) ? normalized.tally_q07.join(" | ") : (normalized.tally_q07 || ""),
       aides_installation: Array.isArray(normalized.tally_q08) ? normalized.tally_q08.join(" | ") : (normalized.tally_q08 || ""),
       flow_role: "employer",
       ui_language: lang,
       source_page: "employer-questionnaire",
-      form_version: "2026-06-tally-employer-v1",
+      form_version: "2026-08-tally-employer-salary-v3",
       ...Object.fromEntries(
         Object.entries(normalized).map(([key, value]) => [
           key,
@@ -4427,11 +6186,15 @@ function attachEmployerTallyBehavior(lang, t) {
         ])
       )
     };
+    if (inviteToken) {
+      fields.invite_token = inviteToken;
+    }
 
     saveBtn.disabled = true;
     setStatus(t.common.saving);
 
     try {
+      fields.write_token = await getWriteToken("employer", t);
       const response = await fetch(`/api/forms/${FORM_ID}/record`, {
         method: "POST",
         headers: {
@@ -4442,9 +6205,16 @@ function attachEmployerTallyBehavior(lang, t) {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
+        if (response.status === 403) {
+          resetWriteToken("employer");
+        }
         throw new Error(payload.error || `${t.common.saveErrorPrefix} (${response.status})`);
       }
-      setStatus(t.common.saved, "success");
+      uuid = resetUuid("employer");
+      uuidBox.textContent = `${t.common.uuidPrefix}: ${uuid}`;
+      form.reset();
+      toggleEmployerConditionBlocks(form);
+      setStatus(reuseSuccessMessage, "success");
     } catch (error) {
       const message = error && error.message ? error.message : t.common.saveErrorPrefix;
       setStatus(`${t.common.saveErrorPrefix}: ${message}`, "error");
@@ -4460,6 +6230,7 @@ function attachCandidateTallyBehavior(lang, t) {
     return;
   }
   const content = getCandidateTallyContent(lang);
+  const inviteToken = currentInviteToken();
 
   const uuid = getUuid("candidate");
   const statusEl = document.getElementById("status");
@@ -4468,11 +6239,10 @@ function attachCandidateTallyBehavior(lang, t) {
   uuidBox.textContent = `${t.common.uuidPrefix}: ${uuid}`;
 
   function setStatus(message, state = "") {
-    statusEl.textContent = message;
-    statusEl.dataset.state = state;
+    setStatusMessage(statusEl, message, state);
   }
 
-  const limitedGroups = ["tally_q20", "tally_q22", "tally_q25", "tally_q27", "tally_q29"];
+  const limitedGroups = ["tally_q20", "tally_q22", "tally_q25", "tally_q27", "tally_q29", "tally_q38"];
 
   function collectValues() {
     const data = new FormData(form);
@@ -4484,9 +6254,8 @@ function attachCandidateTallyBehavior(lang, t) {
         if (!rawValue.name) {
           continue;
         }
-        const meta = { name: rawValue.name, size: rawValue.size, type: rawValue.type || "" };
-        files[key] = meta;
-        values[key] = meta.name;
+        files[key] = rawValue;
+        values[key] = rawValue.name;
         continue;
       }
 
@@ -4509,8 +6278,66 @@ function attachCandidateTallyBehavior(lang, t) {
     return { values, files };
   }
 
+  async function readCandidateCvFile(file) {
+    if (!file) {
+      return null;
+    }
+    function inferMime(name, mime) {
+      if (mime) {
+        return mime;
+      }
+      const lower = String(name || "").toLowerCase();
+      if (lower.endsWith(".pdf")) return "application/pdf";
+      if (lower.endsWith(".doc")) return "application/msword";
+      if (lower.endsWith(".docx")) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+      if (lower.endsWith(".odt")) return "application/vnd.oasis.opendocument.text";
+      return "";
+    }
+    const allowedTypes = new Set([
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.oasis.opendocument.text"
+    ]);
+    const maxBytes = 3 * 1024 * 1024;
+    const resolvedType = inferMime(file.name, file.type || "");
+    if (!allowedTypes.has(resolvedType)) {
+      throw new Error("Le CV doit etre au format PDF, DOC, DOCX ou ODT.");
+    }
+    if (file.size > maxBytes) {
+      throw new Error("Le CV depasse la taille autorisee de 3 Mo.");
+    }
+    const fileBase64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = String(reader.result || "");
+        const marker = "base64,";
+        const index = result.indexOf(marker);
+        if (index === -1) {
+          reject(new Error("Le CV n'a pas pu etre lu correctement."));
+          return;
+        }
+        resolve(result.slice(index + marker.length));
+      };
+      reader.onerror = () => reject(new Error("Le CV n'a pas pu etre lu correctement."));
+      reader.readAsDataURL(file);
+    });
+    return {
+      name: file.name,
+      size: file.size,
+      type: resolvedType,
+      base64: fileBase64
+    };
+  }
+
   form.addEventListener("change", () => toggleConditionBlocks(form));
   form.addEventListener("input", () => toggleConditionBlocks(form));
+  form.addEventListener("change", (event) => {
+    clearFieldErrorState(event.target);
+  });
+  form.addEventListener("input", (event) => {
+    clearFieldErrorState(event.target);
+  });
   toggleConditionBlocks(form);
   enforceCheckboxLimit(form, limitedGroups, 4, setStatus, content.errors.maxFour);
 
@@ -4521,6 +6348,71 @@ function attachCandidateTallyBehavior(lang, t) {
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+
+    if (showFirstInvalidControl(form, setStatus, t)) {
+      return;
+    }
+
+    const hasTargetCountry = candidateTallyMeta.countryRows.some((row) => {
+      return Array.from(form.querySelectorAll(`input[name="${row.field}"]`)).some((input) => input.checked);
+    });
+    if (!hasTargetCountry) {
+      setStatus(`${t.common.validation.required} ${content.overviewMatrixTitle}. ${t.common.validation.checkHighlighted}`, "error");
+      focusField(form.querySelector(`input[name="${candidateTallyMeta.countryRows[0].field}"]`));
+      return;
+    }
+    if (!validateVisibleCheckboxGroup(form, "tally_q02", content.mobilityTypeTitle, setStatus, t, 1, 2)) {
+      return;
+    }
+    if (!validateVisibleCheckboxGroup(form, "tally_q19", content.questions.q19, setStatus, t, 1, candidateTallyMeta.sectors.length)) {
+      return;
+    }
+    if (!validateVisibleCheckboxGroup(form, "tally_q43", content.questions.q43, setStatus, t, 1)) {
+      return;
+    }
+    if (!validateVisibleCheckboxGroup(form, "tally_q41", content.questions.q41, setStatus, t, 1, 1)) {
+      return;
+    }
+    if ((form.querySelector('input[name="tally_q41"]:checked') || {}).value === "yes") {
+      if (!validateVisibleCheckboxGroup(form, "tally_q42", content.questions.q42, setStatus, t, 1)) {
+        return;
+      }
+      const hasOtherPermit = Array.from(form.querySelectorAll('input[name="tally_q42"]:checked')).some((input) => input.value === "Autre");
+      if (hasOtherPermit && !String((form.querySelector('input[name="tally_q42_extra"]') || {}).value || "").trim()) {
+        setStatus(`${t.common.validation.required} ${content.questions.q42Extra}. ${t.common.validation.checkHighlighted}`, "error");
+        focusField(form.querySelector('input[name="tally_q42_extra"]'));
+        return;
+      }
+    }
+    if (
+      (form.querySelector('input[name="tally_q06"]:checked') || {}).value === "J’ai des contraintes ou préférences horaires" &&
+      !candidateTallyMeta.scheduleRows.every((row) => validateVisibleCheckboxGroup(form, row.field, `${content.questions.q07} - ${row.label}`, setStatus, t))
+    ) {
+      return;
+    }
+    for (const row of candidateTallyMeta.documentsRows) {
+      if (!validateVisibleCheckboxGroup(form, row.field, `${content.questions.q10} - ${row.label}`, setStatus, t, 1, 1)) {
+        return;
+      }
+    }
+    for (const row of candidateTallyMeta.languageRows) {
+      if (!validateVisibleCheckboxGroup(form, row.field, `${content.questions.q18} - ${row.label}`, setStatus, t, 1, 1)) {
+        return;
+      }
+    }
+    const sectorGroupValidations = [
+      ["tally_q20", content.sectorTitles.vente],
+      ["tally_q22", content.sectorTitles.nettoyage],
+      ["tally_q25", content.sectorTitles.hotel],
+      ["tally_q27", content.sectorTitles.agri],
+      ["tally_q29", content.sectorTitles.polyvalent],
+      ["tally_q38", content.sectorTitles.industrie_production],
+    ];
+    for (const [name, label] of sectorGroupValidations) {
+      if (!validateVisibleCheckboxGroup(form, name, label, setStatus, t, 1, 4)) {
+        return;
+      }
+    }
 
     const { values, files } = collectValues();
     const activeRankingIndexes = candidateTallyMeta.rankingOptions
@@ -4539,7 +6431,9 @@ function attachCandidateTallyBehavior(lang, t) {
       const seenRanks = rankSelections.map((item) => item.rank).filter(Boolean);
       const uniqueRanks = new Set(seenRanks);
       if (seenRanks.length !== activeRankingIndexes.length || uniqueRanks.size !== seenRanks.length) {
-        setStatus(content.rankingError, "error");
+        setStatus(`${content.rankingError} ${t.common.validation.checkHighlighted}`, "error");
+        const firstRankingField = form.querySelector(`select[name="rank__tally_q17__${activeRankingIndexes[0]}"]`);
+        focusField(firstRankingField);
         return;
       }
 
@@ -4562,15 +6456,28 @@ function attachCandidateTallyBehavior(lang, t) {
 
     normalized.tally_q17 = rankingSummary.join(" > ");
     normalized.tally_q36 = files["file__tally_q36"] ? files["file__tally_q36"].name : "";
+    const selectedReferenceSectors = asArray(normalized.tally_q19)
+      .filter((value) => value !== candidateTallyMeta.otherSectorValue);
+    const selectedOtherSector = asArray(values.tally_q19).includes(candidateTallyMeta.otherSectorValue);
+    const otherJob = selectedOtherSector ? String(normalized.tally_q19_other_job || "").trim() : "";
+    normalized.tally_q19 = selectedReferenceSectors;
+    normalized.tally_q19_other_job = otherJob;
+    normalized.metier_libre = otherJob;
 
-    const rawAnswers = humanizeCandidateRawAnswers(normalized, files["file__tally_q36"] || null, rankingSummary);
+    const cvPayload = await readCandidateCvFile(files["file__tally_q36"] || null);
+    const cvMeta = cvPayload ? { name: cvPayload.name, size: cvPayload.size, type: cvPayload.type } : null;
+    const rawAnswers = humanizeCandidateRawAnswers(normalized, cvMeta, rankingSummary);
+    const permitSummary = summarizePermitSelections(normalized.tally_q41, normalized.tally_q42, normalized.tally_q42_extra);
 
     const targetCountries = candidateTallyMeta.countryRows
-      .filter((row) => Array.isArray(normalized[row.field]) && normalized[row.field].includes("Je veux y travailler"))
+      .filter((row) => asArray(normalized[row.field]).includes("Je veux y travailler"))
       .map((row) => row.label);
 
     const languageSummary = candidateTallyMeta.languageRows
-      .map((row) => `${row.label}: ${Array.isArray(normalized[row.field]) ? normalized[row.field].join(", ") : ""}`)
+      .map((row) => {
+        const selections = asArray(normalized[row.field]);
+        return `${row.label}: ${selections.join(", ")}`;
+      })
       .filter((line) => !line.endsWith(": "));
 
     const skillsSummary = [
@@ -4578,7 +6485,8 @@ function attachCandidateTallyBehavior(lang, t) {
       normalized.tally_q22 || [],
       normalized.tally_q25 || [],
       normalized.tally_q27 || [],
-      normalized.tally_q29 || []
+      normalized.tally_q29 || [],
+      normalized.tally_q38 || []
     ].flat();
 
     const fields = {
@@ -4592,11 +6500,17 @@ function attachCandidateTallyBehavior(lang, t) {
       email: normalized.tally_q33 || "",
       pays: targetCountries.join(" | "),
       metier: Array.isArray(normalized.tally_q19) ? normalized.tally_q19.join(" | ") : (normalized.tally_q19 || ""),
+      metier_libre: normalized.metier_libre || "",
       competences: skillsSummary.join(" | "),
       langues: languageSummary.join(" | "),
       mobilite: Array.isArray(normalized.tally_q02) ? normalized.tally_q02.join(" | ") : (normalized.tally_q02 || ""),
-      disponibilite: [normalized.tally_q09 || "", ...(Array.isArray(normalized.tally_q08) ? normalized.tally_q08 : [])].filter(Boolean).join(" | "),
-      form_version: "2026-06-tally-candidate-v1",
+      disponibilite: [normalized.tally_q09 || "", ...asArray(normalized.tally_q08)].filter(Boolean).join(" | "),
+      contraintes_travail: Array.isArray(normalized.tally_q43) ? normalized.tally_q43.join(" | ") : (normalized.tally_q43 || ""),
+      permis_autorisations: permitSummary.summary,
+      permis_autorisations_autre: permitSummary.other,
+      whatsapp_consent: normalized.whatsapp_consent || "",
+      whatsapp_phone: normalized.tally_q34 || "",
+      form_version: "2026-08-tally-candidate-salary-v4",
       source_page: "candidate-questionnaire",
       ui_language: lang,
       flow_role: "candidate",
@@ -4607,11 +6521,22 @@ function attachCandidateTallyBehavior(lang, t) {
         ])
       )
     };
+    if (cvPayload) {
+      fields.cv_file_name = cvPayload.name;
+      fields.cv_file_size = String(cvPayload.size);
+      fields.cv_file_mime = cvPayload.type;
+      fields.cv_file_base64 = cvPayload.base64;
+      fields.cv_uploaded_at = new Date().toISOString();
+    }
+    if (inviteToken) {
+      fields.invite_token = inviteToken;
+    }
 
     saveBtn.disabled = true;
     setStatus(t.common.saving);
 
     try {
+      fields.write_token = await getWriteToken("candidate", t);
       const response = await fetch(`/api/forms/${FORM_ID}/record`, {
         method: "POST",
         headers: {
@@ -4622,6 +6547,9 @@ function attachCandidateTallyBehavior(lang, t) {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
+        if (response.status === 403) {
+          resetWriteToken("candidate");
+        }
         throw new Error(payload.error || `${t.common.saveErrorPrefix} (${response.status})`);
       }
       setStatus(t.common.saved, "success");
@@ -4638,7 +6566,7 @@ function questionnaireTemplate(page, lang, t, data) {
   const isCandidate = page === "candidate-questionnaire";
   return `
     ${nav(page, lang, t)}
-    <main class="questionnaire-shell">
+    <main id="main-content" class="questionnaire-shell" tabindex="-1">
       <div class="shell questionnaire-grid">
         <section class="questionnaire-card">
           <div class="questionnaire-hero">
@@ -4648,7 +6576,7 @@ function questionnaireTemplate(page, lang, t, data) {
           </div>
           <p class="mini-note">${t.common.questionnaireNote}</p>
 
-          <form class="questionnaire-form" id="questionnaire-form" data-role="${isCandidate ? "candidate" : "employer"}">
+          <form class="questionnaire-form" id="questionnaire-form" data-role="${isCandidate ? "candidate" : "employer"}" novalidate>
             ${isCandidate ? `
               <section class="form-section">
                 <h3>${data.sections.mobility}</h3>
@@ -4704,19 +6632,19 @@ function questionnaireTemplate(page, lang, t, data) {
                 <div class="form-grid">
                   <label class="field">
                     <span>${data.fields.fullName}</span>
-                    <input type="text" name="candidate_full_name" required>
+                    <input type="text" name="candidate_full_name" autocomplete="name" required>
                   </label>
                   <label class="field">
                     <span>${data.fields.email}</span>
-                    <input type="email" name="email" required>
+                    <input type="email" name="email" autocomplete="email" inputmode="email" required>
                   </label>
                   <label class="field">
                     <span>${data.fields.phone}</span>
-                    <input type="tel" name="candidate_phone">
+                    <input type="tel" name="candidate_phone" autocomplete="tel" inputmode="tel" required>
                   </label>
                   <label class="field">
                     <span>${data.fields.city}</span>
-                    <input type="text" name="candidate_city" required>
+                    <input type="text" name="candidate_city" autocomplete="address-level2" required>
                   </label>
                 </div>
                 <label class="field">
@@ -4730,7 +6658,7 @@ function questionnaireTemplate(page, lang, t, data) {
                 <div class="form-grid">
                   <label class="field">
                     <span>${data.fields.companyName}</span>
-                    <input type="text" name="employer_company_name" required>
+                    <input type="text" name="employer_company_name" autocomplete="organization" required>
                   </label>
                   <label class="field">
                     <span>${data.fields.workLocation}</span>
@@ -4794,15 +6722,15 @@ function questionnaireTemplate(page, lang, t, data) {
                 <div class="form-grid">
                   <label class="field">
                     <span>${data.fields.contactName}</span>
-                    <input type="text" name="employer_contact_name" required>
+                    <input type="text" name="employer_contact_name" autocomplete="name" required>
                   </label>
                   <label class="field">
                     <span>${data.fields.email}</span>
-                    <input type="email" name="email" required>
+                    <input type="email" name="email" autocomplete="email" inputmode="email" required>
                   </label>
                   <label class="field">
                     <span>${data.fields.phone}</span>
-                    <input type="tel" name="employer_phone">
+                    <input type="tel" name="employer_phone" autocomplete="tel" inputmode="tel" required>
                   </label>
                 </div>
                 <label class="field">
@@ -4823,7 +6751,7 @@ function questionnaireTemplate(page, lang, t, data) {
               <button class="primary-action" type="submit" id="save-btn">${t.common.submit}</button>
               <a class="ghost-action" href="${pageUrl(isCandidate ? "candidate-landing" : "employer-landing", lang)}">${t.common.ctaBackHome}</a>
             </div>
-            <div class="status" id="status" aria-live="polite"></div>
+            <div class="status" id="status" role="status" aria-live="polite"></div>
           </form>
         </section>
 
@@ -4839,7 +6767,7 @@ function questionnaireTemplate(page, lang, t, data) {
         </aside>
       </div>
     </main>
-    ${footer(page, t)}
+    ${footer(t)}
   `;
 }
 
@@ -4865,6 +6793,15 @@ function getUuid(role) {
     localStorage.setItem(storageKey(role), uuid);
   }
   return uuid;
+}
+
+function setUuid(role, uuid) {
+  localStorage.setItem(storageKey(role), uuid);
+  return uuid;
+}
+
+function resetUuid(role) {
+  return setUuid(role, createUuid());
 }
 
 function aggregateFormData(form) {
@@ -4906,12 +6843,44 @@ function attachQuestionnaireBehavior(page, lang, t) {
   uuidBox.textContent = `${t.common.uuidPrefix}: ${uuid}`;
 
   function setStatus(message, state = "") {
-    statusEl.textContent = message;
-    statusEl.dataset.state = state;
+    setStatusMessage(statusEl, message, state);
   }
+
+  form.addEventListener("change", (event) => {
+    clearFieldErrorState(event.target);
+  });
+  form.addEventListener("input", (event) => {
+    clearFieldErrorState(event.target);
+  });
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+
+    if (showFirstInvalidControl(form, setStatus, t)) {
+      return;
+    }
+
+    if (role === "candidate") {
+      if (!validateVisibleCheckboxGroup(form, "candidate_target_countries", data.fields.targetCountries, setStatus, t)) {
+        return;
+      }
+      if (!validateVisibleCheckboxGroup(form, "candidate_sectors", data.fields.sectors, setStatus, t)) {
+        return;
+      }
+      if (!validateVisibleCheckboxGroup(form, "candidate_languages", data.fields.languages, setStatus, t)) {
+        return;
+      }
+    } else {
+      if (!validateVisibleCheckboxGroup(form, "employer_languages_required", data.fields.languagesRequired, setStatus, t)) {
+        return;
+      }
+      if (!validateVisibleCheckboxGroup(form, "employer_installation_support", data.fields.installationSupport, setStatus, t)) {
+        return;
+      }
+      if (!validateVisibleCheckboxGroup(form, "employer_critical_criteria", data.fields.criticalCriteria, setStatus, t)) {
+        return;
+      }
+    }
 
     const fields = aggregateFormData(form);
     fields.uuid = uuid;
@@ -4920,11 +6889,13 @@ function attachQuestionnaireBehavior(page, lang, t) {
     fields.source_page = page;
     fields.submitted_at = new Date().toISOString();
     fields.form_version = "2026-06-home-landing-v1";
+    fields.analytics_session_id = getAnalyticsSessionId();
 
     saveBtn.disabled = true;
     setStatus(t.common.saving);
 
     try {
+      fields.write_token = await getWriteToken(role, t);
       const response = await fetch(`/api/forms/${FORM_ID}/record`, {
         method: "POST",
         headers: {
@@ -4935,6 +6906,9 @@ function attachQuestionnaireBehavior(page, lang, t) {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
+        if (response.status === 403) {
+          resetWriteToken(role);
+        }
         throw new Error(payload.error || `${t.common.saveErrorPrefix} (${response.status})`);
       }
       setStatus(t.common.saved, "success");
@@ -4959,39 +6933,6 @@ function render() {
     return;
   }
 
-  if (page === "stat") {
-    root.innerHTML = `
-      ${nav("stat", lang, t)}
-      <main class="section">
-        <div class="shell">
-          <div class="panel"><p>${t.statPage.loading}</p></div>
-        </div>
-      </main>
-      ${footer("stat", t)}
-    `;
-    loadPublicStats()
-      .then((data) => {
-        root.innerHTML = statTemplate(lang, t, data);
-      })
-      .catch(() => {
-        root.innerHTML = `
-          ${nav("stat", lang, t)}
-          <main class="section">
-            <div class="shell">
-              <div class="panel"><p>${t.statPage.error}</p></div>
-            </div>
-          </main>
-          ${footer("stat", t)}
-        `;
-      });
-    return;
-  }
-
-  if (page === "candidate-landing") {
-    root.innerHTML = landingTemplate(page, lang, t, t.candidateLanding);
-    return;
-  }
-
   if (page === "project") {
     root.innerHTML = projectTemplate(lang, t);
     return;
@@ -5007,8 +6948,53 @@ function render() {
     return;
   }
 
+  if (page === "matching") {
+    root.innerHTML = matchingTemplate(lang, t);
+    return;
+  }
+
+  if (page === "stat") {
+    root.innerHTML = `
+      ${nav("stat", lang, t)}
+      <main id="main-content" class="section" tabindex="-1">
+        <div class="shell">
+          <div class="panel">
+            <h1>${t.statPage.title}</h1>
+            <p>${t.statPage.loading}</p>
+          </div>
+        </div>
+      </main>
+      ${footer(t)}
+    `;
+    loadPublicStats()
+      .then((data) => {
+        root.innerHTML = statTemplate(lang, t, data);
+      })
+      .catch(() => {
+        root.innerHTML = `
+          ${nav("stat", lang, t)}
+          <main id="main-content" class="section" tabindex="-1">
+            <div class="shell">
+              <div class="panel">
+                <h1>${t.statPage.title}</h1>
+                <p>${t.statPage.error}</p>
+              </div>
+            </div>
+          </main>
+          ${footer(t)}
+        `;
+      });
+    return;
+  }
+
+  if (page === "candidate-landing") {
+    root.innerHTML = landingTemplate(page, lang, t, t.candidateLanding);
+    return;
+  }
+
   if (page === "employer-landing") {
     root.innerHTML = employerLandingTemplate(lang, t);
+    attachEmployerLandingBehavior(lang, t);
     return;
   }
 
@@ -5025,3 +7011,4 @@ function render() {
 }
 
 render();
+attachAnalyticsBehavior();

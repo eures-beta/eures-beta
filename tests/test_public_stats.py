@@ -8,6 +8,12 @@ class PublicStatsTest(unittest.TestCase):
     def setUp(self):
         self.client = app.app.test_client()
 
+    def test_public_breakdown_label_normalizes_raw_values(self):
+        self.assertEqual(app._public_breakdown_label('matchings_par_statut', 'a_valider'), 'A valider')
+        self.assertEqual(app._public_breakdown_label('mobilite_candidats', 'type: Transfrontalière'), 'Transfrontalière')
+        self.assertEqual(app._public_breakdown_label('mobilite_candidats', 'pays souhaités: Luxembourg'), 'Pays vises : Luxembourg')
+        self.assertEqual(app._public_breakdown_label('mobilite_candidats', 'expérience pays: Luxembourg'), 'Experience dans : Luxembourg')
+
     @patch.object(app, 'fetch_table_records')
     @patch.object(app, 'get_eures_stats_config')
     @patch.object(app, 'get_form_config')
@@ -81,19 +87,24 @@ class PublicStatsTest(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.get_json()
         self.assertTrue(payload['ok'])
-        self.assertEqual(payload['totals']['candidats'], 2)
-        self.assertEqual(payload['totals']['besoins_employeurs'], 1)
-        self.assertEqual(payload['totals']['candidats_contactes'], 3)
-        self.assertEqual(payload['totals']['matchings'], 2)
-        self.assertEqual(payload['totals']['candidatures_transmises_employeur'], 2)
-        self.assertEqual(payload['totals']['embauches'], 1)
+        self.assertEqual(payload['totals'], {
+            'candidats': 2,
+            'besoins_employeurs': 1,
+            'matchings': 2,
+            'candidats_contactes': 3,
+            'candidatures_transmises_employeur': 2,
+            'contacts_acceptes_employeur': 0,
+            'contacts_refuses_employeur': 0,
+            'contacts_sans_reponse_employeur': 0,
+            'embauches': 1,
+        })
         self.assertEqual(payload['monthly'], [
             {
                 'mois': '2026-01',
                 'candidats': 1,
                 'besoins_employeurs': 1,
-                'candidats_contactes': 3,
                 'matchings': 1,
+                'candidats_contactes': 3,
                 'candidatures_transmises_employeur': 2,
                 'contacts_acceptes_employeur': 0,
                 'contacts_refuses_employeur': 0,
@@ -104,8 +115,8 @@ class PublicStatsTest(unittest.TestCase):
                 'mois': '2026-02',
                 'candidats': 1,
                 'besoins_employeurs': 0,
-                'candidats_contactes': 0,
                 'matchings': 1,
+                'candidats_contactes': 0,
                 'candidatures_transmises_employeur': 0,
                 'contacts_acceptes_employeur': 0,
                 'contacts_refuses_employeur': 0,

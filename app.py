@@ -13,8 +13,8 @@ Environment variables:
 
 import os
 import base64
-import hashlib
 import hmac
+import hashlib
 import re
 import json
 import time
@@ -32,7 +32,7 @@ from urllib.parse import urljoin, urlparse
 from itsdangerous import BadSignature, SignatureExpired, URLSafeSerializer, URLSafeTimedSerializer
 from dotenv import load_dotenv
 import requests
-from flask import Flask, request, jsonify, redirect, send_file, send_from_directory, Response, session, url_for
+from flask import Flask, request, jsonify, redirect, send_file, send_from_directory, Response, session, url_for, g
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from eures_beta_email_templates import (
     get_candidate_invitation_template,
@@ -45,6 +45,16 @@ BASE_DIR = Path(__file__).parent
 FORMS_DIR = BASE_DIR / 'forms'
 ASSETS_DIR = BASE_DIR / 'assets'
 DOCS_DIR = BASE_DIR / 'docs'
+PRIVATE_DOCUMENTS_DIR = BASE_DIR / 'private_documents'
+
+EURES_PRIVATE_DOCUMENTS = {
+    'note-conception-eten-v0.pdf': ('Note_de_conception_ETEN_V0.pdf', 'application/pdf'),
+    'note-conception-eten-v0.docx': (
+        'Note_de_conception_ETEN_V0.docx',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ),
+    'note-technique-eten-v0.pdf': ('Note_technique_ETEN_V0.pdf', 'application/pdf'),
+}
 
 app = Flask(__name__)
 app.config.update(
@@ -66,6 +76,8 @@ _ADMIN_MAGIC_LINK_REQUESTS: dict[tuple[str, str], float] = {}
 _ADMIN_MAGIC_LINK_USED: dict[str, float] = {}
 _EURES_PUBLIC_WRITE_ATTEMPTS: dict[tuple[str, str], list[float]] = {}
 _EURES_TRACKING_SAVE_LOCK = threading.Lock()
+_EURES_DOCUMENTATION_SAVE_LOCK = threading.Lock()
+_EURES_VISIT_ANALYTICS_LOCK = threading.Lock()
 
 GRIST_BASE_URL = os.environ.get('GRIST_BASE_URL', 'https://grist.numerique.gouv.fr').rstrip('/')
 APP_MODE = os.environ.get('APP_MODE', 'eures-beta').strip().lower() or 'eures-beta'
@@ -74,10 +86,42 @@ _TABLE_COLUMNS_CACHE_TTL_SECONDS = 60
 EURES_CANDIDATS_TABLE = 'Candidats'
 EURES_BESOINS_TABLE = 'Besoins_Employeurs'
 EURES_MATCHINGS_TABLE = 'Matchings'
+EURES_ENTREPRISES_TABLE = 'Entreprises'
+EURES_CONTACTS_ENTREPRISES_TABLE = 'Contacts_Entreprises'
 EURES_INVITATIONS_TABLE_DEFAULT = 'Invitations'
 EURES_STATS_TABLE_DEFAULT = 'Pilotage_EURES_Mensuel'
 EURES_TRACKING_TABLE_DEFAULT = 'Suivi_Projet'
+EURES_DOCUMENTATION_TABLE_DEFAULT = 'Documentation_Projet'
+EURES_SPONTANEOUS_TABLE_DEFAULT = 'Candidatures_spontanees'
+EURES_VISIT_ANALYTICS_TABLE_DEFAULT = 'Visites_Match_Europe'
 EURES_PUBLIC_PROXY_BASE_URL = os.environ.get('EURES_PUBLIC_PROXY_BASE_URL', 'https://eures-beta.osc-fr1.scalingo.io').rstrip('/')
+EURES_VISIT_ANALYTICS_ENABLED = str(os.environ.get('EURES_VISIT_ANALYTICS_ENABLED', 'true')).strip().lower() not in {'0', 'false', 'no', 'off'}
+EURES_VISIT_ANALYTICS_FILE = Path(os.environ.get('EURES_VISIT_ANALYTICS_FILE', '/tmp/eures_beta_visit_analytics.jsonl'))
+EURES_VISIT_ANALYTICS_EVENT_TYPES = {
+    'page_view',
+    'cta_click',
+    'questionnaire_started',
+    'questionnaire_submitted',
+}
+EURES_VISIT_ANALYTICS_TABLE_COLUMNS = {
+    'event_id': 'Text',
+    'event_type': 'Text',
+    'occurred_at': 'Text',
+    'form_id': 'Text',
+    'page': 'Text',
+    'path': 'Text',
+    'lang': 'Text',
+    'source': 'Text',
+    'medium': 'Text',
+    'campaign': 'Text',
+    'content': 'Text',
+    'term': 'Text',
+    'target': 'Text',
+    'role': 'Text',
+    'session_id': 'Text',
+    'referrer_host': 'Text',
+    'metadata_json': 'Text',
+}
 EURES_TRACKING_STATUSES = (
     'a_qualifier',
     'a_faire',
@@ -173,6 +217,31 @@ EURES_TRACKING_TABLE_COLUMNS = {
     'production_deployed_at': 'Text',
     'created_at': 'Text',
     'updated_at': 'Text',
+}
+EURES_DOCUMENTATION_CATEGORIES = (
+    'vision',
+    'produit_metier',
+    'technique',
+    'decisions',
+    'reunions',
+    'procedures',
+    'ressources',
+)
+EURES_DOCUMENTATION_STATUSES = ('draft', 'published', 'archived')
+EURES_DOCUMENTATION_TABLE_COLUMNS = {
+    'document_id': 'Text',
+    'titre': 'Text',
+    'resume': 'Text',
+    'contenu_markdown': 'Text',
+    'categorie': 'Text',
+    'statut': 'Text',
+    'langue_source': 'Text',
+    'cartes_liees_json': 'Text',
+    'liens_json': 'Text',
+    'auteur': 'Text',
+    'created_at': 'Text',
+    'updated_at': 'Text',
+    'historique_json': 'Text',
 }
 EURES_TRACKING_UI_LABELS = {
     'fr': {
@@ -389,23 +458,42 @@ EURES_MATCHING_ADMIN_FIELDS = {
     'employer_response',
     'employer_response_at',
     'employer_response_source',
+    'employer_whatsapp_consent',
+    'employer_whatsapp_phone',
+    'employer_whatsapp_confirmed_at',
     'mise_en_relation_at',
     'mise_en_relation_by',
+    'relation_channel',
+    'relation_channel_updated_at',
+    'relation_channel_updated_by',
+    'relation_result',
+    'relation_result_at',
+    'relation_result_by',
+    'relation_result_note',
     'embauche_confirmee_at',
     'embauche_confirmee_by',
-    'whatsapp_candidate_consent_status',
-    'whatsapp_candidate_consent_at',
-    'whatsapp_employer_consent_status',
-    'whatsapp_employer_consent_at',
-    'whatsapp_alternative_channel',
-    'whatsapp_group_status',
-    'whatsapp_group_opened_at',
-    'whatsapp_group_closed_at',
-    'whatsapp_outcome',
-    'whatsapp_notice_version',
-    'whatsapp_note',
-    'whatsapp_updated_at',
-    'whatsapp_updated_by',
+}
+EURES_SPONTANEOUS_COLUMNS = {
+    'candidate_record_id': 'Int',
+    'candidate_id': 'Text',
+    'candidate_name': 'Text',
+    'candidate_email': 'Text',
+    'employer_company': 'Text',
+    'employer_contact': 'Text',
+    'employer_email': 'Text',
+    'employer_need': 'Text',
+    'employer_comment': 'Text',
+    'candidate_comment': 'Text',
+    'status': 'Text',
+    'sent_at': 'Text',
+    'sent_by': 'Text',
+    'employer_email_status': 'Text',
+    'candidate_email_status': 'Text',
+    'employer_response_at': 'Text',
+    'employer_response_source': 'Text',
+    'status_note': 'Text',
+    'updated_at': 'Text',
+    'updated_by': 'Text',
 }
 EURES_NO_MATCH_NOTIFICATION_FIELDS = {
     'no_match_notification_status',
@@ -514,10 +602,16 @@ EURES_INVITATION_FIELDS = {
     'duplicate_followup_processed_at',
     'duplicate_followup_processed_by',
     'duplicate_followup_note',
+    'campaign_type',
     'target_job_keys',
     'notes',
 }
 EURES_INVITATION_ALLOWED_ROLES = {'candidate', 'employer'}
+EURES_INVITATION_ALLOWED_CAMPAIGN_TYPES = {
+    '',
+    'generic',
+    'eures_cv_deposit',
+}
 EURES_INVITATION_ALLOWED_STATUSES = {
     'invitation_a_envoyer',
     'invitation_envoyee',
@@ -531,6 +625,8 @@ EURES_INVITATION_ALLOWED_STATUSES = {
 }
 EURES_INVITATION_SENDABLE_STATUSES = {'invitation_a_envoyer', 'erreur_envoi'}
 EURES_DUPLICATE_FOLLOWUP_ALLOWED_STATUSES = {'pending', 'reminded', 'ignored'}
+EURES_MANUAL_FT_INVITATION_SOURCES = {'ft_manual_email', 'france_travail_manual_email'}
+EURES_MANUAL_FT_INVITATION_SENDERS = {'admin_ft_email_manual', 'france_travail_email_manual'}
 EURES_SECTOR_CANONICAL_MAP = {
     'vente': 'vente',
     'commerce': 'vente',
@@ -560,12 +656,12 @@ EURES_SECTOR_CANONICAL_MAP = {
     'accessible rapidement': 'polyvalent',
 }
 EURES_CANDIDAT_SECTOR_SALARY_FIELDS = {
-    'vente': ('tally_q20_salary_type', 'tally_q20_salary_min'),
-    'nettoyage': ('tally_q22_salary_type', 'tally_q22_salary_min'),
-    'hotellerie': ('tally_q25_salary_type', 'tally_q25_salary_min'),
-    'agriculture': ('tally_q27_salary_type', 'tally_q27_salary_min'),
-    'polyvalent': ('tally_q29_salary_type', 'tally_q29_salary_min'),
-    'industrie_production': ('tally_q38_salary_type', 'tally_q38_salary_min'),
+    'vente': ('tally_q20_salary_type', 'tally_q20_salary_amount_type', 'tally_q20_salary_min'),
+    'nettoyage': ('tally_q22_salary_type', 'tally_q22_salary_amount_type', 'tally_q22_salary_min'),
+    'hotellerie': ('tally_q25_salary_type', 'tally_q25_salary_amount_type', 'tally_q25_salary_min'),
+    'agriculture': ('tally_q27_salary_type', 'tally_q27_salary_amount_type', 'tally_q27_salary_min'),
+    'polyvalent': ('tally_q29_salary_type', 'tally_q29_salary_amount_type', 'tally_q29_salary_min'),
+    'industrie_production': ('tally_q38_salary_type', 'tally_q38_salary_amount_type', 'tally_q38_salary_min'),
 }
 EURES_CANDIDAT_SECTOR_JOB_TITLE_FIELDS = {
     'vente': 'tally_q20_job_title',
@@ -576,12 +672,12 @@ EURES_CANDIDAT_SECTOR_JOB_TITLE_FIELDS = {
     'industrie_production': 'tally_q38_job_title',
 }
 EURES_EMPLOYEUR_SECTOR_SALARY_FIELDS = {
-    'vente': ('tally_q10_salary_type', 'tally_q10_salary_min', 'tally_q10_salary_max'),
-    'nettoyage': ('tally_q11_salary_type', 'tally_q11_salary_min', 'tally_q11_salary_max'),
-    'hotellerie': ('tally_q12_salary_type', 'tally_q12_salary_min', 'tally_q12_salary_max'),
-    'agriculture': ('tally_q13_salary_type', 'tally_q13_salary_min', 'tally_q13_salary_max'),
-    'polyvalent': ('tally_q14_salary_type', 'tally_q14_salary_min', 'tally_q14_salary_max'),
-    'industrie_production': ('tally_q40_salary_type', 'tally_q40_salary_min', 'tally_q40_salary_max'),
+    'vente': ('tally_q10_salary_type', 'tally_q10_salary_amount_type', 'tally_q10_salary_min', 'tally_q10_salary_max'),
+    'nettoyage': ('tally_q11_salary_type', 'tally_q11_salary_amount_type', 'tally_q11_salary_min', 'tally_q11_salary_max'),
+    'hotellerie': ('tally_q12_salary_type', 'tally_q12_salary_amount_type', 'tally_q12_salary_min', 'tally_q12_salary_max'),
+    'agriculture': ('tally_q13_salary_type', 'tally_q13_salary_amount_type', 'tally_q13_salary_min', 'tally_q13_salary_max'),
+    'polyvalent': ('tally_q14_salary_type', 'tally_q14_salary_amount_type', 'tally_q14_salary_min', 'tally_q14_salary_max'),
+    'industrie_production': ('tally_q40_salary_type', 'tally_q40_salary_amount_type', 'tally_q40_salary_min', 'tally_q40_salary_max'),
 }
 EURES_EMPLOYEUR_SECTOR_JOB_TITLE_FIELDS = {
     'vente': 'tally_q10_job_title',
@@ -811,22 +907,6 @@ EXPORT_KEY_LABELS = {
 }
 
 # Public mount for the daily capture tool.
-try:
-    from tools.fagerh_suivi_local.app import app as fagerh_suivi_app
-except Exception:
-    fagerh_suivi_app = None
-
-
-def is_eures_beta_only_mode() -> bool:
-    """Return True when this deployment must only expose EURES beta."""
-    return APP_MODE in {'eures-beta', 'eures_beta', 'eures-only', 'eures_only'}
-
-
-def is_form_enabled(form_id: str) -> bool:
-    """Restrict exposed forms for single-purpose deployments."""
-    if is_eures_beta_only_mode():
-        return form_id == 'eures-beta'
-    return True
 
 
 def _resolve_form_path(form_id: str, raw_path: str) -> str | None:
@@ -936,9 +1016,25 @@ def get_admin_magic_link_serializer(form_id: str) -> URLSafeTimedSerializer:
     return URLSafeTimedSerializer(secret_key=secret, salt=f'admin-magic-link:{form_id}')
 
 
-def _get_admin_magic_link_serializer(form_id: str) -> URLSafeTimedSerializer:
-    """Compatibility wrapper for existing tests and older call sites."""
-    return get_admin_magic_link_serializer(form_id)
+def is_form_enabled(form_id: str) -> bool:
+    """Restrict exposed forms for single-purpose deployments."""
+    if is_eures_beta_only_mode():
+        return form_id == 'eures-beta'
+    return True
+
+
+@app.before_request
+def restrict_dedicated_form_routes():
+    """Keep non-EURES form routes inaccessible in the dedicated deployment."""
+    form_id = (request.view_args or {}).get('form_id')
+    if form_id is not None and not is_form_enabled(form_id):
+        return jsonify({'error': f'Unknown form: {form_id}'}), 404
+
+
+def is_eures_beta_only_mode() -> bool:
+    """Return True when this deployment must only expose EURES beta."""
+    return APP_MODE in {'eures-beta', 'eures_beta', 'eures-only', 'eures_only'}
+
 
 
 def _admin_session_key(form_id: str) -> str:
@@ -1104,6 +1200,13 @@ def build_admin_magic_link_email(form_id: str, email: str, login_link: str) -> t
     return normalize_email(email), subject, text_body, html_body
 
 
+def build_admin_magic_login_link(form_id: str, token: str) -> str:
+    path = url_for('admin_magic_link_consume', form_id=form_id, token=token)
+    if form_id == 'eures-beta':
+        return f"{get_public_app_base_url()}{path}"
+    return url_for('admin_magic_link_consume', form_id=form_id, token=token, _external=True)
+
+
 def _render_admin_login_page(form_id: str, message: str = '', error: str = '') -> Response:
     html = f"""<!doctype html>
 <html lang="fr">
@@ -1162,6 +1265,22 @@ def admin_required(fn):
     return wrapper
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def get_form_config(form_id: str, role: str | None = None) -> dict:
     """Get configuration for a form from environment variables."""
     form_id_upper = form_id.replace('-', '_').upper()
@@ -1183,6 +1302,58 @@ def get_form_config(form_id: str, role: str | None = None) -> dict:
         'table_id': _env_with_role('GRIST_TABLE') or 'Reponses',
         'api_key': _env_with_role('GRIST_API_KEY') or os.environ.get('GRIST_API_KEY'),
     }
+
+
+
+def _eures_permission_session():
+    """Validated personal identity only; legacy sessions have no version yet."""
+    current = _current_admin_session('eures-beta')
+    if not current:
+        return None
+    return {
+        'email': current['email'],
+        'Version_session': session.get(_admin_session_key('eures-beta'), {}).get('Version_session'),
+    }
+
+
+def _eures_permission_reader():
+    from eures_permissions import GristAuthorizationReader
+    return GristAuthorizationReader(
+        lambda: get_form_config('eures-beta', 'candidate') or get_form_config('eures-beta'),
+        lambda: GRIST_BASE_URL,
+    )
+
+
+def get_eures_authorization():
+    """Phase 1 diagnostic on demand; no automatic checks on current routes."""
+    from eures_permissions import resolve_authorization
+    return resolve_authorization(_eures_permission_session(), _eures_permission_reader())
+
+
+def has_permission(permission):
+    from eures_permissions import has_permission as check
+    return check(permission, _eures_permission_session(), _eures_permission_reader())
+
+
+def require_permission(permission):
+    """Ready for Phase 2, deliberately unused by current routes."""
+    from eures_permissions import require_permission as check
+    return check(permission, _eures_permission_session(), _eures_permission_reader())
+
+
+def eures_permission_http_response(permission):
+    """Future route adapter: None on success, generic 403/503 on failure.
+
+    Deliberately not attached to business routes during Phase 2A.
+    """
+    from eures_permissions import PermissionDenied
+    try:
+        require_permission(permission)
+    except PermissionDenied as error:
+        unavailable = str(error) == 'grist_unavailable'
+        return jsonify({'error': 'Authorization unavailable' if unavailable
+                        else 'Access denied'}), 503 if unavailable else 403
+    return None
 
 
 def get_form_access_settings(form_id: str) -> dict:
@@ -1234,6 +1405,18 @@ def get_eures_matching_config() -> dict | None:
     }
 
 
+def get_eures_spontaneous_config() -> dict | None:
+    """Get configuration for spontaneous candidate outreach tracking."""
+    base = get_form_config('eures-beta', 'candidate') or get_form_config('eures-beta')
+    if not base:
+        return None
+    return {
+        'doc_id': base['doc_id'],
+        'table_id': os.environ.get('GRIST_TABLE_EURES_BETA_SPONTANEOUS', EURES_SPONTANEOUS_TABLE_DEFAULT),
+        'api_key': base.get('api_key'),
+    }
+
+
 def get_eures_invitations_config() -> dict | None:
     """Get configuration for the optional EURES invitations table."""
     base = get_form_config('eures-beta', 'candidate') or get_form_config('eures-beta')
@@ -1246,38 +1429,60 @@ def get_eures_invitations_config() -> dict | None:
     }
 
 
-def get_eures_tracking_config() -> dict | None:
-    """Get configuration for the EURES project tracking table."""
-    base = get_form_config('eures-beta', 'candidate') or get_form_config('eures-beta')
-    if not base:
-        return None
-    return {
-        'doc_id': base['doc_id'],
-        'table_id': os.environ.get('GRIST_TABLE_EURES_BETA_TRACKING', EURES_TRACKING_TABLE_DEFAULT),
-        'api_key': base.get('api_key'),
-    }
-
-
 def get_brevo_config() -> dict:
     return {
         'api_key': os.environ.get('BREVO_API_KEY', '').strip(),
         'from_email': os.environ.get('BREVO_FROM_EMAIL', '').strip(),
         'from_name': os.environ.get('BREVO_FROM_NAME', 'EURES beta').strip() or 'EURES beta',
+        'reply_to_email': os.environ.get('BREVO_REPLY_TO_EMAIL', '').strip(),
+        'reply_to_name': os.environ.get('BREVO_REPLY_TO_NAME', '').strip(),
     }
 
 
 def get_brevo_health(check_api: bool = False, timeout: int = 8) -> dict:
     """Return a sanitized Brevo health snapshot suitable for admin and health checks."""
     brevo = get_brevo_config()
-    configured = bool(brevo['api_key'] and brevo['from_email'])
+    api_key_configured = bool(brevo['api_key'])
+    from_email_configured = bool(brevo['from_email'])
+    from_name_configured = bool(brevo['from_name'])
+    configured = bool(api_key_configured and from_email_configured)
     result = {
         'configured': configured,
+        'api_key_configured': api_key_configured,
+        'from_email_configured': from_email_configured,
+        'from_name_configured': from_name_configured,
         'from_email': brevo['from_email'],
         'from_name': brevo['from_name'],
         'api_ok': None,
         'http_status': None,
         'status': 'ok' if configured else 'missing_config',
         'message': 'Brevo configuration complete.' if configured else 'BREVO_API_KEY or BREVO_FROM_EMAIL is missing.',
+        'checks': [
+            {
+                'key': 'api_key',
+                'label': 'Clé API Brevo',
+                'status': 'ok' if api_key_configured else 'error',
+                'detail': 'Présente dans la configuration serveur.' if api_key_configured else 'Variable BREVO_API_KEY manquante.',
+            },
+            {
+                'key': 'from_email',
+                'label': 'Adresse expéditrice',
+                'status': 'ok' if from_email_configured else 'error',
+                'detail': brevo['from_email'] or 'Variable BREVO_FROM_EMAIL manquante.',
+            },
+            {
+                'key': 'from_name',
+                'label': 'Nom expéditeur',
+                'status': 'ok' if from_name_configured else 'warning',
+                'detail': brevo['from_name'] or 'Nom expéditeur non configuré.',
+            },
+            {
+                'key': 'api_reachability',
+                'label': 'Connexion à l’API Brevo',
+                'status': 'pending' if check_api and configured else 'not_checked',
+                'detail': 'Vérification en cours.' if check_api and configured else 'Non vérifiée dans cet appel.',
+            },
+        ],
     }
     if not configured or not check_api:
         return result
@@ -1296,6 +1501,12 @@ def get_brevo_health(check_api: bool = False, timeout: int = 8) -> dict:
             result['api_ok'] = True
             result['status'] = 'ok'
             result['message'] = 'Brevo API reachable.'
+            result['checks'][-1] = {
+                'key': 'api_reachability',
+                'label': 'Connexion à l’API Brevo',
+                'status': 'ok',
+                'detail': f'API joignable. Code HTTP {response.status_code}.',
+            }
             return result
 
         result['api_ok'] = False
@@ -1305,11 +1516,23 @@ def get_brevo_health(check_api: bool = False, timeout: int = 8) -> dict:
         except ValueError:
             payload = {}
         result['message'] = str(payload.get('message') or payload.get('error') or f'Brevo API returned HTTP {response.status_code}.')
+        result['checks'][-1] = {
+            'key': 'api_reachability',
+            'label': 'Connexion à l’API Brevo',
+            'status': 'error',
+            'detail': f"{result['message']} Code HTTP {response.status_code}.",
+        }
         return result
     except requests.RequestException as exc:
         result['api_ok'] = False
         result['status'] = 'request_error'
         result['message'] = str(exc)
+        result['checks'][-1] = {
+            'key': 'api_reachability',
+            'label': 'Connexion à l’API Brevo',
+            'status': 'error',
+            'detail': str(exc),
+        }
         return result
 
 
@@ -1378,6 +1601,9 @@ def _matching_workflow_update_fields(target_status: str, actor: str) -> dict:
     elif target_status == 'embauche_confirmee':
         fields['embauche_confirmee_at'] = now
         fields['embauche_confirmee_by'] = actor
+    elif target_status == 'relation_terminee':
+        fields.setdefault('relation_result_at', now)
+        fields.setdefault('relation_result_by', actor)
     return fields
 
 
@@ -1392,6 +1618,7 @@ def _matching_workflow_label(status: str) -> str:
         'refuse_employeur': 'refusé employeur',
         'mise_en_relation_faite': 'mise en relation faite',
         'embauche_confirmee': 'embauche confirmée',
+        'relation_terminee': 'relation terminée',
     }.get(str(status or '').strip().lower(), str(status or '').strip() or 'inconnu')
 
 
@@ -1505,6 +1732,7 @@ def should_proxy_eures_public_request(form_id: str) -> bool:
     return host == 'formulaires.inclusion.gouv.fr'
 
 
+
 def maybe_proxy_eures_request(form_id: str) -> Response | None:
     """Proxy only the EURES beta public surface when served by Fagerh."""
     if should_proxy_eures_public_request(form_id):
@@ -1527,6 +1755,400 @@ def get_default_home_form_id() -> str:
     }:
         return 'eures-beta'
     return 'fagerh'
+
+
+
+def get_eures_tracking_config() -> dict | None:
+    """Get configuration for the EURES project tracking table."""
+    base = get_form_config('eures-beta', 'candidate') or get_form_config('eures-beta')
+    if not base:
+        return None
+    return {
+        'doc_id': base['doc_id'],
+        'table_id': os.environ.get('GRIST_TABLE_EURES_BETA_TRACKING', EURES_TRACKING_TABLE_DEFAULT),
+        'api_key': base.get('api_key'),
+    }
+
+
+def get_eures_documentation_config() -> dict | None:
+    """Get configuration for the EURES project documentation table."""
+    base = get_form_config('eures-beta', 'candidate') or get_form_config('eures-beta')
+    if not base:
+        return None
+    return {
+        'doc_id': base['doc_id'],
+        'table_id': os.environ.get(
+            'GRIST_TABLE_EURES_BETA_DOCUMENTATION',
+            EURES_DOCUMENTATION_TABLE_DEFAULT,
+        ),
+        'api_key': base.get('api_key'),
+    }
+
+
+def get_eures_visit_analytics_config() -> dict | None:
+    """Get configuration for the durable Match Europe public visit analytics table."""
+    base = get_form_config('eures-beta', 'candidate') or get_form_config('eures-beta')
+    if not base:
+        return None
+    return {
+        'doc_id': base['doc_id'],
+        'table_id': os.environ.get('GRIST_TABLE_EURES_BETA_VISIT_ANALYTICS', EURES_VISIT_ANALYTICS_TABLE_DEFAULT),
+        'api_key': base.get('api_key'),
+    }
+
+
+def get_brevo_config() -> dict:
+    return {
+        'api_key': os.environ.get('BREVO_API_KEY', '').strip(),
+        'from_email': os.environ.get('BREVO_FROM_EMAIL', '').strip(),
+        'from_name': os.environ.get('BREVO_FROM_NAME', 'EURES beta').strip() or 'EURES beta',
+        'reply_to_email': os.environ.get('BREVO_REPLY_TO_EMAIL', '').strip(),
+        'reply_to_name': os.environ.get('BREVO_REPLY_TO_NAME', '').strip(),
+    }
+
+
+def get_brevo_health(check_api: bool = False, timeout: int = 8) -> dict:
+    """Return a sanitized Brevo health snapshot suitable for admin and health checks."""
+    brevo = get_brevo_config()
+    api_key_configured = bool(brevo['api_key'])
+    from_email_configured = bool(brevo['from_email'])
+    from_name_configured = bool(brevo['from_name'])
+    configured = bool(api_key_configured and from_email_configured)
+    result = {
+        'configured': configured,
+        'api_key_configured': api_key_configured,
+        'from_email_configured': from_email_configured,
+        'from_name_configured': from_name_configured,
+        'from_email': brevo['from_email'],
+        'from_name': brevo['from_name'],
+        'api_ok': None,
+        'http_status': None,
+        'status': 'ok' if configured else 'missing_config',
+        'message': 'Brevo configuration complete.' if configured else 'BREVO_API_KEY or BREVO_FROM_EMAIL is missing.',
+        'checks': [
+            {
+                'key': 'api_key',
+                'label': 'Clé API Brevo',
+                'status': 'ok' if api_key_configured else 'error',
+                'detail': 'Présente dans la configuration serveur.' if api_key_configured else 'Variable BREVO_API_KEY manquante.',
+            },
+            {
+                'key': 'from_email',
+                'label': 'Adresse expéditrice',
+                'status': 'ok' if from_email_configured else 'error',
+                'detail': brevo['from_email'] or 'Variable BREVO_FROM_EMAIL manquante.',
+            },
+            {
+                'key': 'from_name',
+                'label': 'Nom expéditeur',
+                'status': 'ok' if from_name_configured else 'warning',
+                'detail': brevo['from_name'] or 'Nom expéditeur non configuré.',
+            },
+            {
+                'key': 'api_reachability',
+                'label': 'Connexion à l’API Brevo',
+                'status': 'pending' if check_api and configured else 'not_checked',
+                'detail': 'Vérification en cours.' if check_api and configured else 'Non vérifiée dans cet appel.',
+            },
+        ],
+    }
+    if not configured or not check_api:
+        return result
+
+    try:
+        response = requests.get(
+            'https://api.brevo.com/v3/account',
+            headers={
+                'accept': 'application/json',
+                'api-key': brevo['api_key'],
+            },
+            timeout=timeout,
+        )
+        result['http_status'] = response.status_code
+        if response.ok:
+            result['api_ok'] = True
+            result['status'] = 'ok'
+            result['message'] = 'Brevo API reachable.'
+            result['checks'][-1] = {
+                'key': 'api_reachability',
+                'label': 'Connexion à l’API Brevo',
+                'status': 'ok',
+                'detail': f'API joignable. Code HTTP {response.status_code}.',
+            }
+            return result
+
+        result['api_ok'] = False
+        result['status'] = 'api_error'
+        try:
+            payload = response.json()
+        except ValueError:
+            payload = {}
+        result['message'] = str(payload.get('message') or payload.get('error') or f'Brevo API returned HTTP {response.status_code}.')
+        result['checks'][-1] = {
+            'key': 'api_reachability',
+            'label': 'Connexion à l’API Brevo',
+            'status': 'error',
+            'detail': f"{result['message']} Code HTTP {response.status_code}.",
+        }
+        return result
+    except requests.RequestException as exc:
+        result['api_ok'] = False
+        result['status'] = 'request_error'
+        result['message'] = str(exc)
+        result['checks'][-1] = {
+            'key': 'api_reachability',
+            'label': 'Connexion à l’API Brevo',
+            'status': 'error',
+            'detail': str(exc),
+        }
+        return result
+
+
+def ensure_brevo_ready(check_api: bool = False) -> dict:
+    """Raise a readable error when Brevo is not ready for transactional sends."""
+    health = get_brevo_health(check_api=check_api)
+    if not health['configured']:
+        raise RuntimeError('Brevo configuration is incomplete. Missing BREVO_API_KEY or BREVO_FROM_EMAIL.')
+    if check_api and health['api_ok'] is not True:
+        raise RuntimeError(f"Brevo API check failed: {health['message']}")
+    return health
+
+
+def _now_iso_utc() -> str:
+    return datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+
+
+def _initial_matching_workflow_status(scoring_status: str) -> str:
+    return 'a_valider_admin' if str(scoring_status or '').strip().lower() in {'a_valider', 'auto_envoyable'} else 'calcule'
+
+
+def _matching_workflow_status(fields: dict) -> str:
+    current = str((fields or {}).get('workflow_status') or '').strip().lower()
+    if current:
+        return current
+    if (fields or {}).get('embauche_confirmee_at'):
+        return 'embauche_confirmee'
+    if (fields or {}).get('mise_en_relation_at'):
+        return 'mise_en_relation_faite'
+    employer_response = str((fields or {}).get('employer_response') or '').strip().lower()
+    if employer_response == 'contact':
+        return 'accepte_employeur'
+    if employer_response == 'not_contact':
+        return 'refuse_employeur'
+    if (fields or {}).get('sent_to_employer_at'):
+        return 'envoye_employeur'
+    admin_status = str((fields or {}).get('admin_status') or '').strip().lower()
+    if admin_status == 'accepted':
+        return 'envoye_employeur'
+    if admin_status == 'refused':
+        return 'refuse_admin'
+    return _initial_matching_workflow_status((fields or {}).get('statut', ''))
+
+
+def _matching_workflow_update_fields(target_status: str, actor: str) -> dict:
+    now = _now_iso_utc()
+    fields = {
+        'workflow_status': target_status,
+        'workflow_status_updated_at': now,
+        'workflow_status_updated_by': actor,
+    }
+    if target_status == 'envoye_employeur':
+        fields['sent_to_employer_at'] = now
+        fields['sent_to_employer_by'] = actor
+    elif target_status == 'accepte_employeur':
+        fields['employer_response'] = 'contact'
+        fields['employer_response_at'] = now
+        fields['employer_response_source'] = 'email_cta'
+    elif target_status == 'refuse_employeur':
+        fields['employer_response'] = 'not_contact'
+        fields['employer_response_at'] = now
+        fields['employer_response_source'] = 'email_cta'
+    elif target_status == 'mise_en_relation_faite':
+        fields['mise_en_relation_at'] = now
+        fields['mise_en_relation_by'] = actor
+    elif target_status == 'embauche_confirmee':
+        fields['embauche_confirmee_at'] = now
+        fields['embauche_confirmee_by'] = actor
+    elif target_status == 'relation_terminee':
+        fields.setdefault('relation_result_at', now)
+        fields.setdefault('relation_result_by', actor)
+    return fields
+
+
+def _matching_workflow_label(status: str) -> str:
+    return {
+        'calcule': 'calculé',
+        'a_valider_admin': 'à valider',
+        'refuse_admin': 'refus admin',
+        'valide_admin': 'validé admin',
+        'envoye_employeur': 'envoyé employeur',
+        'accepte_employeur': 'accepté employeur',
+        'refuse_employeur': 'refusé employeur',
+        'mise_en_relation_faite': 'mise en relation faite',
+        'embauche_confirmee': 'embauche confirmée',
+        'relation_terminee': 'relation terminée',
+    }.get(str(status or '').strip().lower(), str(status or '').strip() or 'inconnu')
+
+
+EURES_RELATION_CHANNELS = {'whatsapp', 'email', 'telephone', 'autre'}
+
+EURES_RELATION_RESULTS = {
+    'contact_etabli',
+    'entretien_prevu',
+    'entretien_realise',
+    'sans_reponse_candidat',
+    'sans_reponse_employeur',
+    'refus_candidat',
+    'refus_employeur',
+    'sans_suite',
+    'embauche_confirmee',
+    'autre',
+}
+
+
+def _relation_result_workflow_status(result: str) -> str:
+    result = str(result or '').strip().lower()
+    if result == 'embauche_confirmee':
+        return 'embauche_confirmee'
+    if result in {'refus_employeur', 'refus_candidat', 'sans_suite', 'sans_reponse_candidat', 'sans_reponse_employeur'}:
+        return 'relation_terminee'
+    return 'mise_en_relation_faite'
+
+
+def get_eures_mail_signature_name() -> str:
+    return os.environ.get('EURES_SIGNATURE_NAME', 'Eric Barthélémy').strip() or 'Eric Barthélémy'
+
+
+def get_eures_mail_signature_role() -> str:
+    return os.environ.get('EURES_SIGNATURE_ROLE', 'Conseiller EURES - France Travail').strip() or 'Conseiller EURES - France Travail'
+
+
+def get_eures_privacy_url(lang: str = 'fr') -> str:
+    normalized_lang = str(lang or 'fr').strip().lower()
+    if normalized_lang not in {'fr', 'en', 'de'}:
+        normalized_lang = 'fr'
+    return f"{get_public_app_base_url()}/forms/eures-beta/privacy?lang={normalized_lang}"
+
+
+def get_public_app_base_url() -> str:
+    configured = os.environ.get('PUBLIC_APP_BASE_URL', '').strip()
+    if configured:
+        return configured.rstrip('/')
+    if request and request.url_root:
+        return request.url_root.rstrip('/')
+    return 'https://eures-beta.osc-fr1.scalingo.io'
+
+
+def get_eures_email_header_image_url() -> str:
+    configured = os.environ.get('EURES_EMAIL_HEADER_IMAGE_URL', '').strip()
+    if configured:
+        return configured
+    bundled = ASSETS_DIR / 'eures-email-header.png'
+    if bundled.exists():
+        return f"{get_public_app_base_url()}/assets/eures-email-header.png"
+    return ''
+
+
+def _proxy_eures_location_header(location: str) -> str:
+    """Rewrite absolute redirects back to the current public host."""
+    value = str(location or '').strip()
+    if not value:
+        return value
+    if value.startswith(EURES_PUBLIC_PROXY_BASE_URL):
+        current_base = request.host_url.rstrip('/')
+        return current_base + value[len(EURES_PUBLIC_PROXY_BASE_URL):]
+    return value
+
+
+def proxy_eures_public_request(path: str = '') -> Response:
+    """Proxy one public EURES beta request to the dedicated Scalingo app."""
+    target_path = '/' + str(path or '').lstrip('/')
+    target_url = f'{EURES_PUBLIC_PROXY_BASE_URL}{target_path}'
+    if request.query_string:
+        target_url = f'{target_url}?{request.query_string.decode("utf-8", errors="ignore")}'
+
+    excluded_headers = {
+        'host',
+        'content-length',
+        'connection',
+        'transfer-encoding',
+        'accept-encoding',
+    }
+    upstream_headers = {
+        key: value
+        for key, value in request.headers.items()
+        if key.lower() not in excluded_headers
+    }
+    upstream_headers['X-Forwarded-Host'] = request.host
+    upstream_headers['X-Forwarded-Proto'] = request.scheme
+    upstream_headers['X-Forwarded-For'] = request.headers.get('X-Forwarded-For', request.remote_addr or '')
+
+    upstream_response = requests.request(
+        method=request.method,
+        url=target_url,
+        headers=upstream_headers,
+        data=request.get_data(),
+        cookies=request.cookies,
+        allow_redirects=False,
+        timeout=60,
+    )
+
+    downstream = Response(upstream_response.content, status=upstream_response.status_code)
+    hop_by_hop = {
+        'content-length',
+        'connection',
+        'transfer-encoding',
+        'content-encoding',
+    }
+    for key, value in upstream_response.headers.items():
+        lowered = key.lower()
+        if lowered in hop_by_hop:
+            continue
+        if lowered == 'location':
+            value = _proxy_eures_location_header(value)
+        downstream.headers[key] = value
+    return downstream
+
+
+def should_proxy_eures_public_request(form_id: str) -> bool:
+    """Enable EURES proxying only on the public Fagerh domain."""
+    if is_eures_beta_only_mode():
+        return False
+    if str(form_id or '').strip().lower() != 'eures-beta':
+        return False
+    forced = os.environ.get('EURES_PUBLIC_PROXY_ENABLED', '').strip().lower()
+    if forced in {'1', 'true', 'yes', 'on'}:
+        return True
+    if forced in {'0', 'false', 'no', 'off'}:
+        return False
+    host = str(request.host or '').split(':', 1)[0].strip().lower()
+    return host == 'formulaires.inclusion.gouv.fr'
+
+
+
+def maybe_proxy_eures_request(form_id: str) -> Response | None:
+    """Proxy only the EURES beta public surface when served by Fagerh."""
+    if should_proxy_eures_public_request(form_id):
+        return proxy_eures_public_request(request.path)
+    return None
+
+
+def get_default_home_form_id() -> str:
+    """Resolve which form should be used as the root redirect for the current app."""
+    if is_eures_beta_only_mode():
+        return 'eures-beta'
+    configured = str(os.environ.get('DEFAULT_HOME_FORM_ID') or '').strip()
+    if configured:
+        return configured
+
+    host = str(request.host or '').split(':', 1)[0].strip().lower()
+    if host in {
+        'eures-beta.osc-fr1.scalingo.io',
+        'www.eures-beta.osc-fr1.scalingo.io',
+    }:
+        return 'eures-beta'
+    return 'fagerh'
+
 
 
 def get_eures_email_action_serializer() -> URLSafeSerializer:
@@ -1664,6 +2286,13 @@ def _normalize_eures_invitation_status(value: str) -> str:
     status = str(value or '').strip().lower().replace(' ', '_')
     if status in EURES_INVITATION_ALLOWED_STATUSES:
         return status
+    return ''
+
+
+def _normalize_eures_invitation_campaign_type(value: str) -> str:
+    campaign_type = str(value or '').strip().lower().replace('-', '_').replace(' ', '_')
+    if campaign_type in EURES_INVITATION_ALLOWED_CAMPAIGN_TYPES:
+        return '' if campaign_type == 'generic' else campaign_type
     return ''
 
 
@@ -1821,11 +2450,17 @@ def _normalize_eures_invitation_row(row: dict, actor: str, batch_id: str) -> dic
         'import_batch_id': batch_id,
         'imported_at': _now_iso_utc(),
         'imported_by': actor,
+        'sent_at': _coalesce_row_value(row, 'sent_at', 'sent_date', 'date_envoi'),
+        'sent_by': _coalesce_row_value(row, 'sent_by', 'sender', 'envoye_par'),
+        'brevo_message_id': _coalesce_row_value(row, 'brevo_message_id'),
         'sponsor_invitation_record_id': _coalesce_row_value(row, 'sponsor_invitation_record_id'),
         'sponsor_email': normalize_email(_coalesce_row_value(row, 'sponsor_email')),
         'sponsor_company_name': _coalesce_row_value(row, 'sponsor_company_name'),
         'invited_by_type': _coalesce_row_value(row, 'invited_by_type') or 'admin',
         'invite_scope': _coalesce_row_value(row, 'invite_scope') or '',
+        'campaign_type': _normalize_eures_invitation_campaign_type(
+            _coalesce_row_value(row, 'campaign_type', 'type_campagne', 'campagne_type', 'email_template')
+        ),
         'target_job_keys': _serialize_eures_invitation_target_job_keys(
             _coalesce_row_raw_value(row, 'target_job_keys', 'target_jobs', 'target_job', 'metier_cible', 'metiers_cibles')
         ) if role == 'candidate' else '',
@@ -1859,6 +2494,8 @@ def list_eures_invitations() -> list[dict]:
             'invite_link': fields.get('invite_link', ''),
             'invitation_status': fields.get('invitation_status', 'invitation_a_envoyer'),
             'sent_at': fields.get('sent_at', ''),
+            'sent_by': fields.get('sent_by', ''),
+            'brevo_message_id': fields.get('brevo_message_id', ''),
             'answered_at': fields.get('answered_at', ''),
             'reminder_count': _safe_int(fields.get('reminder_count')),
             'last_reminder_at': fields.get('last_reminder_at', ''),
@@ -1868,6 +2505,7 @@ def list_eures_invitations() -> list[dict]:
             'sponsor_company_name': fields.get('sponsor_company_name', ''),
             'invited_by_type': fields.get('invited_by_type', ''),
             'invite_scope': fields.get('invite_scope', ''),
+            'campaign_type': _normalize_eures_invitation_campaign_type(fields.get('campaign_type', '')),
             'target_job_keys': _normalize_eures_invitation_target_job_keys(fields.get('target_job_keys', '')),
             'target_job_labels': _eures_invitation_target_job_labels(fields.get('target_job_keys', ''), fields.get('language', 'fr')),
             'first_submission_at': fields.get('first_submission_at', ''),
@@ -2105,6 +2743,107 @@ def check_eures_invitation_send_conflict(
     return None
 
 
+def build_eures_invitation_conflict_indexes(
+    invitation_records: list[dict],
+    target_records: list[dict],
+    invitation_headers: dict,
+) -> dict:
+    """Preload invitation/questionnaire lookups for bulk invitation sends.
+
+    The one-by-one path calls Grist repeatedly. For hundreds of invitations this
+    can exceed the sync worker timeout. Bulk sending uses this preloaded index
+    instead.
+    """
+    blocking_statuses = {
+        'invitation_envoyee',
+        'questionnaire_recu',
+        'rapprochement_a_confirmer',
+        'rapprochee',
+        'matching_calcule',
+        'traitee',
+    }
+    invitation_by_key: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    for rec in invitation_records:
+        fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
+        key = _eures_invitation_lookup_key(fields.get('role', ''), fields.get('email', ''))
+        if not all(key):
+            continue
+        invitation_by_key[key].append({
+            'record_id': int(rec.get('id') or 0),
+            'status': str(fields.get('invitation_status') or '').strip().lower(),
+        })
+
+    target_roles = {
+        _normalize_eures_invitation_role((rec.get('fields', {}) if isinstance(rec, dict) else {}).get('role', ''))
+        for rec in target_records
+    }
+    target_roles.discard('')
+
+    questionnaire_by_key: dict[tuple[str, str], dict] = {}
+    for role in sorted(target_roles):
+        config = _get_eures_role_table_config(role)
+        if not config:
+            continue
+        headers = _eures_admin_headers(config)
+        for rec in fetch_table_records(config['doc_id'], config['table_id'], headers):
+            fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
+            if not isinstance(fields, dict):
+                continue
+            row_email = (
+                normalize_email(fields.get('email', ''))
+                if role == 'candidate'
+                else _resolve_employer_recipient(fields)
+            )
+            if row_email:
+                questionnaire_by_key[(role, row_email)] = rec
+
+    return {
+        'blocking_statuses': blocking_statuses,
+        'invitation_by_key': invitation_by_key,
+        'questionnaire_by_key': questionnaire_by_key,
+    }
+
+
+def check_eures_invitation_send_conflict_from_indexes(
+    role: str,
+    email: str,
+    *,
+    current_record_id: int,
+    indexes: dict,
+) -> dict | None:
+    """Return the same conflict payload as the one-by-one check using indexes."""
+    normalized_role = _normalize_eures_invitation_role(role)
+    normalized_email = normalize_email(email)
+    if not normalized_role or not normalized_email:
+        return None
+    key = (normalized_role, normalized_email)
+
+    blocking_statuses = indexes.get('blocking_statuses') or set()
+    invitation_by_key = indexes.get('invitation_by_key') or {}
+    for row in invitation_by_key.get(key, []):
+        record_id = int(row.get('record_id') or 0)
+        if record_id == int(current_record_id or 0):
+            continue
+        status = str(row.get('status') or '').strip().lower()
+        if status in blocking_statuses:
+            return {
+                'type': 'existing_invitation',
+                'record_id': record_id,
+                'status': status,
+                'message': 'Une invitation a déjà été envoyée à cette adresse.',
+            }
+
+    questionnaire = (indexes.get('questionnaire_by_key') or {}).get(key)
+    if questionnaire:
+        return {
+            'type': 'existing_questionnaire',
+            'record_id': int(questionnaire.get('id') or 0),
+            'status': 'questionnaire_recu',
+            'message': 'Un questionnaire a déjà été retourné avec cette adresse email.',
+        }
+    return None
+
+
 def mark_eures_duplicate_followup_pending(
     record_id: int,
     conflict: dict,
@@ -2172,6 +2911,8 @@ def send_eures_invitation_reminder_by_record_id(record_id: int, actor: str, head
     current_status = str(fields.get('invitation_status') or '').strip().lower()
     if current_status != 'invitation_envoyee':
         raise RuntimeError("La relance n'est possible que pour une invitation déjà envoyée.")
+    if _is_manual_ft_invitation(fields):
+        raise RuntimeError("Cette invitation a été envoyée manuellement depuis l'adresse France Travail ; elle ne doit pas être relancée par Brevo.")
     if str(fields.get('answered_at') or '').strip():
         raise RuntimeError('Le questionnaire a déjà été reçu pour cette invitation.')
     recipient, subject, text_body, html_body, invite_token, invite_link = build_brevo_invitation_email(fields, kind='reminder')
@@ -2312,6 +3053,7 @@ def _build_eures_candidate_invitation_email(
     *,
     language: str,
     target_job_key: str,
+    campaign_type: str,
     kind: str,
     invite_link: str,
     privacy_url: str,
@@ -2319,7 +3061,12 @@ def _build_eures_candidate_invitation_email(
     signature_role: str,
     hello: str,
 ) -> tuple[str, str, str]:
-    template = get_candidate_invitation_template(language, target_job_key=target_job_key, kind=kind)
+    template = get_candidate_invitation_template(
+        language,
+        target_job_key=target_job_key,
+        campaign_type=campaign_type,
+        kind=kind,
+    )
     subject = str(template.get('subject') or '').strip()
     preheader = str(template.get('preheader') or '').strip()
     eyebrow = str(template.get('eyebrow') or '').strip()
@@ -2456,6 +3203,7 @@ def build_brevo_invitation_email(invitation_row: dict, kind: str = 'initial') ->
     reminder_mode = kind == 'reminder'
     target_job_keys = _normalize_eures_invitation_target_job_keys(invitation_row.get('target_job_keys', '')) if role == 'candidate' else []
     target_job_labels = _eures_invitation_target_job_labels(target_job_keys, language) if role == 'candidate' else []
+    campaign_type = _normalize_eures_invitation_campaign_type(invitation_row.get('campaign_type', '')) if role == 'candidate' else ''
     if language == 'en':
         hello = "Hello,"
     elif language == 'de':
@@ -2611,6 +3359,7 @@ def build_brevo_invitation_email(invitation_row: dict, kind: str = 'initial') ->
     subject, text_body, html_body = _build_eures_candidate_invitation_email(
         language=language,
         target_job_key=target_job_key,
+        campaign_type=campaign_type,
         kind='reminder' if reminder_mode else 'initial',
         invite_link=invite_link,
         privacy_url=privacy_url,
@@ -3313,6 +4062,8 @@ def _eures_invitation_needs_reminder(fields: dict, now: datetime | None = None) 
         return False
     if str(fields.get('invitation_status') or '').strip().lower() != 'invitation_envoyee':
         return False
+    if _is_manual_ft_invitation(fields):
+        return False
     if str(fields.get('answered_at') or '').strip():
         return False
     sent_at = fields.get('sent_at')
@@ -3320,6 +4071,14 @@ def _eures_invitation_needs_reminder(fields: dict, now: datetime | None = None) 
     if days_since_sent is None:
         return False
     return days_since_sent >= get_eures_invitation_reminder_delay_days()
+
+
+def _is_manual_ft_invitation(fields: dict) -> bool:
+    if not isinstance(fields, dict):
+        return False
+    source = str(fields.get('source') or '').strip().lower()
+    sent_by = str(fields.get('sent_by') or '').strip().lower()
+    return source in EURES_MANUAL_FT_INVITATION_SOURCES or sent_by in EURES_MANUAL_FT_INVITATION_SENDERS
 
 
 def _duration_hours(start_value, end_value) -> float | None:
@@ -3919,12 +4678,15 @@ def eures_to_float(value):
         return None
 
 
-def eures_score_sector_fit(expected: str, actual: str) -> tuple[int, str]:
+def eures_score_sector_fit(expected: str, actual: str, free_job: str = '') -> tuple[int, str]:
     expected_sector = eures_canonical_sector(expected)
     candidate_sectors = eures_candidate_sectors(actual)
+    free_job_l = str(free_job or '').strip()
     if not expected_sector:
         return 0, 'metier: secteur employeur absent'
     if not candidate_sectors:
+        if free_job_l:
+            return 9, 'metier: metier libre a qualifier'
         return 0, 'metier: secteur candidat absent'
     if expected_sector in candidate_sectors:
         if len(candidate_sectors) == 1:
@@ -4036,16 +4798,37 @@ def eures_score_permits(expected: str, actual: str) -> tuple[int, str]:
     return 0, 'permis: exigence non couverte'
 
 
+def eures_normalize_salary_period(value: str) -> str:
+    folded = eures_fold_text(value)
+    if any(token in folded for token in ('heure', 'hour', 'stunde')):
+        return 'hour'
+    if any(token in folded for token in ('mois', 'month', 'monat')):
+        return 'month'
+    if any(token in folded for token in ('par an', 'year', 'jahr')):
+        return 'year'
+    return ''
+
+
+def eures_normalize_salary_amount_type(value: str) -> str:
+    folded = eures_fold_text(value)
+    if folded in {'gross', 'brut', 'brutto'}:
+        return 'gross'
+    if folded in {'net', 'netto'}:
+        return 'net'
+    return ''
+
+
 def eures_candidate_salary_expectation(secteur: str, fields: dict):
     salary_fields = EURES_CANDIDAT_SECTOR_SALARY_FIELDS.get(secteur)
     if not salary_fields:
         return None
-    type_field, min_field = salary_fields
-    salary_type = str(fields.get(type_field) or '').strip()
+    type_field, amount_type_field, min_field = salary_fields
+    salary_type = eures_normalize_salary_period(fields.get(type_field))
+    salary_amount_type = eures_normalize_salary_amount_type(fields.get(amount_type_field))
     salary_min = eures_to_float(fields.get(min_field))
     if salary_min is None:
         return None
-    return salary_type, salary_min
+    return salary_type, salary_amount_type, salary_min
 
 
 def eures_candidate_job_title(secteur: str, fields: dict) -> str:
@@ -4057,13 +4840,14 @@ def eures_employer_salary_offer(secteur: str, fields: dict):
     salary_fields = EURES_EMPLOYEUR_SECTOR_SALARY_FIELDS.get(secteur)
     if not salary_fields:
         return None
-    type_field, min_field, max_field = salary_fields
-    salary_type = str(fields.get(type_field) or '').strip()
+    type_field, amount_type_field, min_field, max_field = salary_fields
+    salary_type = eures_normalize_salary_period(fields.get(type_field))
+    salary_amount_type = eures_normalize_salary_amount_type(fields.get(amount_type_field))
     salary_min = eures_to_float(fields.get(min_field))
     salary_max = eures_to_float(fields.get(max_field))
     if salary_min is None and salary_max is None:
         return None
-    return salary_type, salary_min, salary_max
+    return salary_type, salary_amount_type, salary_min, salary_max
 
 
 def eures_employer_job_title(secteur: str, fields: dict) -> str:
@@ -4152,8 +4936,12 @@ def eures_score_salary(secteur: str, candidat_fields: dict, besoin_fields: dict)
     employeur_salary = eures_employer_salary_offer(secteur, besoin_fields)
     if candidat_salary is None or employeur_salary is None:
         return 6, 'salaire: donnees absentes, verification manuelle'
-    _, candidat_min = candidat_salary
-    _, employeur_min, employeur_max = employeur_salary
+    candidat_period, candidat_amount_type, candidat_min = candidat_salary
+    employeur_period, employeur_amount_type, employeur_min, employeur_max = employeur_salary
+    if not candidat_period or not employeur_period or candidat_period != employeur_period:
+        return 6, 'salaire: periodicites absentes ou differentes, verification manuelle'
+    if not candidat_amount_type or not employeur_amount_type or candidat_amount_type != employeur_amount_type:
+        return 6, 'salaire: brut/net absent ou different, verification manuelle'
     if employeur_max and candidat_min <= employeur_max:
         if employeur_min and candidat_min < employeur_min:
             return 12, 'salaire: attente sous la fourchette proposee'
@@ -4178,10 +4966,14 @@ def compute_eures_matching(besoin_fields: dict, candidat_fields: dict) -> dict:
     secteur = eures_canonical_sector(str(besoin_fields.get('poste') or ''))
     employeur_job_title = eures_employer_job_title(secteur, besoin_fields)
     candidat_job_title = eures_candidate_job_title(secteur, candidat_fields)
+    candidat_free_job = str(candidat_fields.get('metier_libre') or candidat_fields.get('tally_q19_other_job') or '').strip()
+    if not candidat_job_title and candidat_free_job:
+        candidat_job_title = candidat_free_job
 
     score_metier_sector, raison_metier_sector = eures_score_sector_fit(
         str(besoin_fields.get('poste') or ''),
         str(candidat_fields.get('metier') or ''),
+        candidat_free_job,
     )
     score_metier_title, raison_metier_title = eures_score_job_title(
         employeur_job_title,
@@ -4325,11 +5117,12 @@ def _eures_workflow_transition_allowed(current_status: str, target_status: str) 
         'a_valider_admin': {'valide_admin', 'refuse_admin'},
         'valide_admin': {'envoye_employeur', 'refuse_admin'},
         'envoye_employeur': {'accepte_employeur', 'refuse_employeur', 'mise_en_relation_faite'},
-        'accepte_employeur': {'mise_en_relation_faite', 'embauche_confirmee'},
-        'mise_en_relation_faite': {'embauche_confirmee'},
+        'accepte_employeur': {'mise_en_relation_faite', 'embauche_confirmee', 'relation_terminee'},
+        'mise_en_relation_faite': {'embauche_confirmee', 'relation_terminee'},
         'refuse_employeur': set(),
         'refuse_admin': set(),
         'embauche_confirmee': set(),
+        'relation_terminee': set(),
     }
     if current_status == target_status:
         return True
@@ -4464,7 +5257,7 @@ def queue_eures_no_match_notification(role: str, record_id: int):
     )
 
 
-def _build_eures_no_match_row(role: str, rec: dict) -> dict | None:
+def _build_eures_no_match_row(role: str, rec: dict, borderline_by_candidate: dict[str, list[dict]] | None = None) -> dict | None:
     fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
     if not isinstance(fields, dict):
         return None
@@ -4481,10 +5274,11 @@ def _build_eures_no_match_row(role: str, rec: dict) -> dict | None:
         str(fields.get('employeur') or fields.get('poste') or recipient or 'Employeur')
     )
     subtitle = str(fields.get('metier') or '') if is_candidate else str(fields.get('poste') or '')
+    candidate_key = str(fields.get('id_tally') or fields.get('uuid') or '').strip() if is_candidate else ''
     return {
         'role': normalized_role,
         'record_id': rec.get('id'),
-        'record_key': fields.get('id_tally') or fields.get('uuid') or '',
+        'record_key': candidate_key or fields.get('id_tally') or fields.get('uuid') or '',
         'notification_status': status,
         'reason': fields.get('no_match_notification_reason', ''),
         'created_at': fields.get('no_match_notification_created_at', ''),
@@ -4513,12 +5307,62 @@ def _build_eures_no_match_row(role: str, rec: dict) -> dict | None:
             'langues_requises': fields.get('langues_requises', ''),
             'date_debut': fields.get('date_debut', ''),
         },
+        'borderline_matchings': list((borderline_by_candidate or {}).get(candidate_key, [])) if is_candidate else [],
     }
 
 
 def list_eures_admin_no_match_notifications(status: str = 'all') -> list[dict]:
     """Return candidate/employer rows needing a no-match email review."""
     rows = []
+    borderline_by_candidate: dict[str, list[dict]] = defaultdict(list)
+    try:
+        matching_config = get_eures_matching_config()
+        employer_config = get_form_config('eures-beta', 'employer')
+        if not matching_config or not employer_config:
+            raise RuntimeError('EURES beta matching configuration is incomplete.')
+        matching_headers = _eures_admin_headers(matching_config)
+        employer_headers = _eures_admin_headers(employer_config)
+        besoins_by_id = {
+            str((rec.get('fields') or {}).get('id_tally') or (rec.get('fields') or {}).get('uuid') or '').strip(): rec.get('fields', {})
+            for rec in fetch_table_records(employer_config['doc_id'], EURES_BESOINS_TABLE, employer_headers)
+            if isinstance(rec, dict) and _is_eures_response_active((rec.get('fields') or {}))
+        }
+
+        for rec in fetch_table_records(matching_config['doc_id'], EURES_MATCHINGS_TABLE, matching_headers):
+            fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
+            score = _safe_int(fields.get('score'))
+            if score < 50 or score >= 55:
+                continue
+            candidat_id = str(fields.get('candidat_id') or '').strip()
+            besoin_id = str(fields.get('besoin_id') or '').strip()
+            if not candidat_id or not besoin_id:
+                continue
+            besoin = besoins_by_id.get(besoin_id, {})
+            if not besoin:
+                continue
+            employeur_job_titles = ' | '.join(
+                str(besoin.get(field_name) or '').strip()
+                for field_name in EURES_EMPLOYEUR_SECTOR_JOB_TITLE_FIELDS.values()
+                if str(besoin.get(field_name) or '').strip()
+            )
+            borderline_by_candidate[candidat_id].append({
+                'record_id': rec.get('id'),
+                'score': score,
+                'scoring_status': fields.get('statut', ''),
+                'workflow_status': _matching_workflow_status(fields),
+                'employeur': besoin.get('employeur', ''),
+                'poste': employeur_job_titles or besoin.get('poste', ''),
+                'secteur': besoin.get('poste', ''),
+                'pays': besoin.get('pays', ''),
+                'raisons': _split_matching_text(fields.get('raisons'))[:3],
+                'points_faibles': _split_matching_text(fields.get('points_faibles'))[:3],
+            })
+        for candidate_rows in borderline_by_candidate.values():
+            candidate_rows.sort(key=lambda item: (-_safe_int(item.get('score')), -int(item.get('record_id') or 0)))
+            del candidate_rows[3:]
+    except Exception as exc:
+        logger.warning('Unable to enrich EURES no-match rows with borderline matchings: %s', exc)
+
     for role in ('candidate', 'employer'):
         config = _get_eures_role_table_config(role)
         if not config:
@@ -4528,7 +5372,7 @@ def list_eures_admin_no_match_notifications(status: str = 'all') -> list[dict]:
             fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
             if not _is_eures_response_active(fields):
                 continue
-            row = _build_eures_no_match_row(role, rec)
+            row = _build_eures_no_match_row(role, rec, borderline_by_candidate)
             if not row:
                 continue
             if status in EURES_NO_MATCH_ALLOWED_STATUSES and row['notification_status'] != status:
@@ -4579,6 +5423,8 @@ EURES_CANDIDATE_TALLY_LABELS = {
     'tally_q18_f03': 'Compétences linguistiques · Français',
     'tally_q18_f04': 'Compétences linguistiques · Luxembourgeois',
     'tally_q19': 'Secteurs recherchés',
+    'tally_q19_other_job': 'Métier libre à qualifier',
+    'metier_libre': 'Métier libre à qualifier',
     'tally_q20': 'Atouts recherchés · Vente et commerce',
     'tally_q20_job_title': 'Intitulé du poste visé · Vente et commerce',
     'tally_q21': 'Expérience · Vente et commerce',
@@ -4704,11 +5550,12 @@ def _eures_questionnaire_field_label(key: str, role: str = '') -> str:
     tally_labels = EURES_CANDIDATE_TALLY_LABELS if role == 'candidate' else EURES_EMPLOYER_TALLY_LABELS if role == 'employer' else {}
     if key in tally_labels:
         return tally_labels[key]
-    salary_match = re.match(r'^(tally_q\d+)_salary_(type|min|max|note)$', str(key or ''))
+    salary_match = re.match(r'^(tally_q\d+)_salary_(type|amount_type|min|max|note)$', str(key or ''))
     if salary_match:
         sector_label = EURES_TALLY_SECTOR_LABELS.get(salary_match.group(1), salary_match.group(1))
         suffix_label = {
             'type': 'Type de salaire',
+            'amount_type': 'Montant brut ou net',
             'min': 'Salaire minimum',
             'max': 'Salaire maximum',
             'note': 'Précision salaire',
@@ -4810,7 +5657,7 @@ def get_candidate_cv_attachment(fields: dict) -> dict | None:
 def _eures_questionnaire_field_order(role: str) -> list[str]:
     if role == 'candidate':
         return [
-            'nom', 'email', 'telephone', 'ville', 'pays', 'metier', 'competences',
+            'nom', 'email', 'telephone', 'ville', 'pays', 'metier', 'metier_libre', 'competences',
             'langues', 'mobilite', 'disponibilite', 'contraintes_travail', 'permis_autorisations', 'permis_autorisations_autre',
             'cv_file_name', 'cv_uploaded_at',
             'response_received_at', 'response_status', 'id_tally', 'uuid',
@@ -5169,6 +6016,11 @@ def _build_eures_feedback_url(record_id: int, response: str) -> str:
     return f"{get_public_app_base_url()}/eures-beta/matching-feedback?token={token}"
 
 
+def _normalize_phone(value) -> str:
+    """Normalize one phone value for display/storage without inventing formatting."""
+    return re.sub(r'\s+', ' ', str(value or '').strip())
+
+
 def _matching_outgoing_comment(row: dict, recipient: str) -> str:
     """Return the optional admin comment to inject into outgoing matching emails."""
     if not isinstance(row, dict):
@@ -5241,7 +6093,8 @@ def build_brevo_matching_email(row: dict) -> tuple[str, str, str, str]:
     )
     signature_name = get_eures_mail_signature_name()
     privacy_url = get_eures_privacy_url('fr')
-    contact_yes_url = _build_eures_feedback_url(int(row.get('record_id') or 0), 'contact')
+    contact_whatsapp_url = _build_eures_feedback_url(int(row.get('record_id') or 0), 'contact_whatsapp')
+    contact_no_whatsapp_url = _build_eures_feedback_url(int(row.get('record_id') or 0), 'contact_no_whatsapp')
     contact_no_url = _build_eures_feedback_url(int(row.get('record_id') or 0), 'not_contact')
     body_text = (
         f"Bonjour,\n\n"
@@ -5265,7 +6118,8 @@ def build_brevo_matching_email(row: dict) -> tuple[str, str, str, str]:
         f"{reasons_text}\n\n"
         f"{comment_block_text}"
         "Actions rapides\n"
-        f"- Je vais le contacter : {contact_yes_url}\n"
+        f"- J’accepte la mise en relation via WhatsApp : {contact_whatsapp_url}\n"
+        f"- Je suis intéressé mais sans WhatsApp : {contact_no_whatsapp_url}\n"
         f"- Je ne vais pas le contacter : {contact_no_url}\n\n"
         "Vous pouvez aussi répondre directement à cet email afin que nous poursuivions la mise en relation.\n\n"
         f"Informations sur vos données : {privacy_url}\n\n"
@@ -5351,12 +6205,16 @@ def build_brevo_matching_email(row: dict) -> tuple[str, str, str, str]:
                 <div style="background:#103a2b;border-radius:14px;padding:22px;color:#ffffff;">
                   <p style="margin:0 0 10px;font-size:17px;line-height:1.6;"><strong>Suite proposée</strong></p>
                   <p style="margin:0;font-size:15px;line-height:1.7;">
-                    Si ce profil retient votre attention, vous pouvez le contacter directement ou nous répondre par email.
+                    Si ce profil retient votre attention, vous pouvez accepter une mise en relation avec ou sans WhatsApp.
+                    L’option WhatsApp vous demandera de vérifier le numéro à utiliser pour ce matching.
                   </p>
                   <table role="presentation" cellspacing="0" cellpadding="0" style="margin-top:18px;">
                     <tr>
                       <td style="padding:0 12px 12px 0;">
-                        <a href="{escape(contact_yes_url)}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#f2c04c;color:#173a2a;text-decoration:none;font-size:14px;font-weight:700;">Je vais le contacter</a>
+                        <a href="{escape(contact_whatsapp_url)}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#f2c04c;color:#173a2a;text-decoration:none;font-size:14px;font-weight:700;">J’accepte WhatsApp</a>
+                      </td>
+                      <td style="padding:0 12px 12px 0;">
+                        <a href="{escape(contact_no_whatsapp_url)}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#dbe9df;color:#173a2a;text-decoration:none;font-size:14px;font-weight:700;">Intéressé sans WhatsApp</a>
                       </td>
                       <td style="padding:0 0 12px 0;">
                         <a href="{escape(contact_no_url)}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#ffffff;color:#173a2a;text-decoration:none;font-size:14px;font-weight:700;">Je ne vais pas le contacter</a>
@@ -5494,6 +6352,356 @@ def build_brevo_candidate_matching_notification_email(row: dict) -> tuple[str, s
     return recipient, subject, body_text, body_html
 
 
+def _build_eures_spontaneous_feedback_url(record_id: int, response_code: str) -> str:
+    token = get_eures_email_action_serializer().dumps({
+        'kind': 'spontaneous_candidate',
+        'record_id': int(record_id),
+        'response': str(response_code or '').strip().lower(),
+    })
+    return f"{get_public_app_base_url()}/eures-beta/spontaneous-feedback?token={token}"
+
+
+def build_brevo_spontaneous_candidate_email(candidate: dict, employer: dict, comment: str = '', feedback_urls: dict | None = None) -> tuple[str, str, str, str]:
+    """Build the first-contact email sent to an employer who does not use Match Europe yet."""
+    recipient = normalize_email(employer.get('email', ''))
+    if not recipient:
+        raise RuntimeError('Employer email is missing for spontaneous application.')
+    company = str(employer.get('company') or 'votre entreprise').strip()
+    contact = str(employer.get('contact') or '').strip()
+    need = str(employer.get('need') or '').strip()
+    candidate_name = str(candidate.get('nom') or 'un candidat').strip()
+    candidate_city = str(candidate.get('ville') or 'Non renseignée').strip()
+    candidate_job = str(candidate.get('metier') or 'Non renseigné').strip()
+    candidate_availability = str(candidate.get('disponibilite') or 'Non renseignée').strip()
+    comment_text = _format_email_comment_text(comment)
+    hello = f"Bonjour {contact}," if contact else "Bonjour,"
+    subject = f"Candidature spontanée – {candidate_name}"
+    need_text = f" pour votre activité de {need}" if need else ''
+    comment_block = f"\nMessage complémentaire\n{comment_text}\n" if comment_text else ''
+    privacy_url = get_eures_privacy_url('fr')
+    feedback_urls = feedback_urls or {}
+    interested_url = str(feedback_urls.get('interested') or '').strip()
+    not_interested_url = str(feedback_urls.get('not_interested') or '').strip()
+    actions_text = (
+        f"\nRéponse rapide\n- Je suis intéressé : {interested_url}\n- Ce profil ne correspond pas : {not_interested_url}\n"
+        if interested_url and not_interested_url else ''
+    )
+    body_text = (
+        f"{hello}\n\n"
+        f"Je travaille chez France Travail dans le cadre du réseau EURES et du service Match Europe. "
+        f"J’ai identifié un profil qui pourrait vous intéresser{need_text}.\n\n"
+        "Vous trouverez son CV en pièce jointe. Il ne vous est pas demandé de compléter un questionnaire à ce stade. "
+        "Je souhaite simplement savoir si cette candidature peut retenir votre attention.\n\n"
+        f"Profil transmis\n- Nom : {candidate_name}\n- Métier / secteur : {candidate_job}\n"
+        f"- Ville : {candidate_city}\n- Disponibilité : {candidate_availability}\n"
+        f"{comment_block}\n"
+        f"{actions_text}\n"
+        "Vous pouvez répondre directement à cet email en indiquant simplement si vous êtes intéressé, "
+        "si vous souhaitez davantage d’informations ou si le profil ne correspond pas à vos besoins.\n\n"
+        "Si vous souhaitez poursuivre, je pourrai ensuite vous présenter plus précisément Match Europe et, si utile, "
+        "vous proposer de décrire vos besoins de recrutement.\n\n"
+        f"Informations sur les données : {privacy_url}\n\n"
+        f"Cordialement,\n{get_eures_mail_signature_name()}\nFrance Travail – EURES / Match Europe\n"
+    )
+    comment_html = (
+        f'<div style="margin:18px 0;padding:16px 18px;border-left:4px solid #004494;background:#f3f7fc;">'
+        f'<strong>Message complémentaire</strong><br>{_format_email_comment_html(comment_text)}</div>'
+        if comment_text else ''
+    )
+    actions_html = (
+        f'<div style="margin:20px 0;"><a href="{escape(interested_url)}" style="display:inline-block;margin:0 10px 10px 0;padding:12px 18px;border-radius:999px;background:#1f6f4a;color:#fff;text-decoration:none;font-weight:700;">Je suis intéressé</a>'
+        f'<a href="{escape(not_interested_url)}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#f3ece2;color:#70352f;text-decoration:none;font-weight:700;">Ce profil ne correspond pas</a></div>'
+        if interested_url and not_interested_url else ''
+    )
+    body_html = f"""<!doctype html><html lang="fr"><body style="margin:0;background:#f4efe6;font-family:Arial,sans-serif;color:#1f1f1f;">
+<div style="max-width:680px;margin:24px auto;background:#fff;border:1px solid #e3dacb;border-radius:16px;overflow:hidden;">
+<div style="padding:26px 30px;background:#103a2b;color:#fff;"><div style="font-size:12px;letter-spacing:1.4px;text-transform:uppercase;">France Travail · EURES · Match Europe</div><h1 style="margin:10px 0 0;font-size:27px;">Une candidature susceptible de vous intéresser</h1></div>
+<div style="padding:28px 30px;font-size:16px;line-height:1.65;"><p>{escape(hello)}</p>
+<p>Je travaille chez France Travail dans le cadre du réseau EURES et du service Match Europe. J’ai identifié un profil qui pourrait vous intéresser{escape(need_text)}.</p>
+<p><strong>Son CV est joint à cet email.</strong> Vous n’avez aucun questionnaire à compléter à ce stade : je souhaite simplement savoir si cette candidature peut retenir votre attention.</p>
+<div style="padding:18px;background:#f8f4ec;border-radius:12px;"><strong>{escape(candidate_name)}</strong><br>Métier / secteur : {escape(candidate_job)}<br>Ville : {escape(candidate_city)}<br>Disponibilité : {escape(candidate_availability)}</div>
+{comment_html}
+{actions_html}
+<p>Vous pouvez répondre directement à cet email : <strong>intéressé</strong>, <strong>besoin de précisions</strong> ou <strong>profil non adapté</strong>.</p>
+<p>Si vous souhaitez poursuivre, je pourrai ensuite vous présenter Match Europe et, si utile, vous proposer de décrire vos besoins de recrutement.</p>
+<p style="margin-top:24px;">Cordialement,<br><strong>{escape(get_eures_mail_signature_name())}</strong><br>France Travail – EURES / Match Europe</p>
+<p style="font-size:13px;color:#666;">Informations sur les données : <a href="{escape(privacy_url)}">notice de confidentialité</a></p></div></div></body></html>"""
+    return recipient, subject, body_text, body_html
+
+
+def build_brevo_spontaneous_candidate_notice(candidate: dict, employer: dict, comment: str = '') -> tuple[str, str, str, str]:
+    """Inform the candidate that their CV was sent without implying employer interest."""
+    row = {
+        'candidat': candidate,
+        'employeur': {'employeur': str(employer.get('company') or 'un employeur').strip()},
+        'candidate_email_comment': comment,
+    }
+    recipient, _, body_text, body_html = build_brevo_candidate_matching_notification_email(row)
+    company = str(employer.get('company') or 'un employeur').strip()
+    subject = f"[Match Europe] Votre candidature spontanée a été transmise à {company}"
+    clarification = "Cette transmission ne signifie pas encore que l’employeur est intéressé."
+    body_text = body_text.replace(
+        "Si cet employeur souhaite echanger avec vous, il pourra vous contacter directement.",
+        f"{clarification}\n\nSi cet employeur souhaite échanger avec vous, il pourra vous contacter directement.",
+    )
+    body_html = body_html.replace(
+        "Si cet employeur souhaite echanger avec vous, il pourra vous contacter directement.",
+        f"<strong>{escape(clarification)}</strong><br><br>Si cet employeur souhaite échanger avec vous, il pourra vous contacter directement.",
+    )
+    return recipient, subject, body_text, body_html
+
+
+def _spontaneous_table_ready() -> tuple[dict, dict]:
+    config = get_eures_spontaneous_config()
+    if not config:
+        raise RuntimeError('EURES spontaneous application configuration is incomplete.')
+    headers = _eures_admin_headers(config)
+    _ensure_grist_table(config, headers, EURES_SPONTANEOUS_COLUMNS)
+    return config, headers
+
+
+def create_eures_spontaneous_record(fields: dict) -> int:
+    config, headers = _spontaneous_table_ready()
+    allowed = get_table_columns(config, headers)
+    filtered = {key: value for key, value in fields.items() if key in allowed}
+    url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}/records"
+    resp = write_grist_records('POST', url, {'records': [{'fields': filtered}]}, headers)
+    if resp.status_code != 200:
+        raise RuntimeError(f'Failed to create spontaneous application: HTTP {resp.status_code} - {resp.text}')
+    payload = _parse_response_json_safe(resp)
+    records = payload.get('records', []) if isinstance(payload, dict) else []
+    return int((records[0] if records else {}).get('id') or 0)
+
+
+def update_eures_spontaneous_record(record_id: int, fields: dict):
+    config, headers = _spontaneous_table_ready()
+    allowed = get_table_columns(config, headers)
+    filtered = {key: value for key, value in fields.items() if key in allowed}
+    url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}/records"
+    resp = write_grist_records('PATCH', url, {'records': [{'id': int(record_id), 'fields': filtered}]}, headers)
+    if resp.status_code != 200:
+        raise RuntimeError(f'Failed to update spontaneous application: HTTP {resp.status_code} - {resp.text}')
+
+
+def list_eures_spontaneous_records() -> list[dict]:
+    config, headers = _spontaneous_table_ready()
+    rows = []
+    for rec in fetch_table_records(config['doc_id'], config['table_id'], headers):
+        fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
+        if isinstance(fields, dict):
+            rows.append({'record_id': rec.get('id'), **fields})
+    rows.sort(key=lambda row: (str(row.get('sent_at') or ''), int(row.get('record_id') or 0)), reverse=True)
+    return rows
+
+
+EURES_MATCHING_TEST_EMPLOYER_EMAIL = 'employer@example.test'
+EURES_MATCHING_TEST_CANDIDATE_EMAIL = 'candidate@example.test'
+
+
+def build_eures_matching_test_row() -> dict:
+    """Return a safe synthetic matching row used only for admin email tests."""
+    return {
+        'record_id': 999999999,
+        'raisons': [
+            'Test technique : vérification du rendu du mail employeur.',
+            'Test technique : vérification du rendu du mail candidat.',
+            'Aucune donnée réelle de candidat ou d’employeur n’est utilisée.',
+        ],
+        'employer_email_comment': (
+            'Message de test envoyé depuis l’admin Match Europe. '
+            'Ce mail sert uniquement à vérifier le fonctionnement de l’envoi Brevo.'
+        ),
+        'candidate_email_comment': (
+            'Message de test envoyé depuis l’admin Match Europe. '
+            'Aucune candidature réelle n’a été transmise.'
+        ),
+        'candidat': {
+            'nom': 'Candidat test Match Europe',
+            'email': EURES_MATCHING_TEST_CANDIDATE_EMAIL,
+            'telephone': '+33 6 00 00 00 00',
+            'ville': 'Metz',
+            'pays': 'France',
+            'metier': 'Nettoyage et entretien',
+            'competences': 'Test de présentation des compétences',
+            'langues': 'Français',
+            'mobilite': 'Luxembourg',
+            'disponibilite': 'Dès que possible',
+        },
+        'employeur': {
+            'employeur': 'SCI Europe — test',
+            'contact': EURES_MATCHING_TEST_EMPLOYER_EMAIL,
+            'email': EURES_MATCHING_TEST_EMPLOYER_EMAIL,
+            'poste': 'Poste test Match Europe',
+            'pays': 'Luxembourg',
+            'langues_requises': 'Français',
+            'date_debut': 'Test uniquement',
+        },
+    }
+
+
+def send_eures_matching_test_emails() -> dict:
+    """Send the two synthetic matching emails to the configured test recipients."""
+    ensure_brevo_ready(check_api=True)
+    row = build_eures_matching_test_row()
+
+    employer_to, employer_subject, employer_text, employer_html = build_brevo_matching_email(row)
+    candidate_to, candidate_subject, candidate_text, candidate_html = build_brevo_candidate_matching_notification_email(row)
+
+    employer_result = send_brevo_transactional_email(
+        employer_to,
+        f'[TEST] {employer_subject}',
+        employer_text,
+        employer_html,
+    )
+    candidate_result = send_brevo_transactional_email(
+        candidate_to,
+        f'[TEST] {candidate_subject}',
+        candidate_text,
+        candidate_html,
+    )
+    return {
+        'employer_email': employer_to,
+        'candidate_email': candidate_to,
+        'employer_result': employer_result,
+        'candidate_result': candidate_result,
+    }
+
+
+EURES_ADMIN_EMAIL_TEST_TYPES = {
+    'candidate_invitation_generic',
+    'candidate_invitation_eures_cv',
+    'employer_invitation',
+    'candidate_matching_notification',
+    'employer_matching_proposal',
+    'employer_spontaneous_candidate',
+    'candidate_spontaneous_notice',
+    'candidate_no_match',
+    'employer_no_match',
+}
+
+
+def build_eures_admin_email_test_message(test_type: str, recipient_email: str) -> tuple[str, str, str, str]:
+    """Build one safe transactional email test without mutating business data."""
+    normalized_type = str(test_type or '').strip().lower()
+    recipient = normalize_email(recipient_email)
+    if normalized_type not in EURES_ADMIN_EMAIL_TEST_TYPES:
+        raise RuntimeError('Unknown email test type.')
+    if not recipient:
+        raise RuntimeError('A valid recipient email is required.')
+
+    invite_link = (
+        f'{get_public_app_base_url()}/forms/eures-beta/questionnaire-candidate'
+        '?lang=fr&invite_token=test-email-only'
+    )
+    if normalized_type == 'candidate_invitation_generic':
+        _, subject, text_body, html_body, _, _ = build_brevo_invitation_email({
+            'role': 'candidate',
+            'email': recipient,
+            'language': 'fr',
+            'invite_token': 'test-email-only',
+            'invite_link': invite_link,
+        })
+        return recipient, subject, text_body, html_body
+
+    if normalized_type == 'candidate_invitation_eures_cv':
+        _, subject, text_body, html_body, _, _ = build_brevo_invitation_email({
+            'role': 'candidate',
+            'email': recipient,
+            'language': 'fr',
+            'campaign_type': 'eures_cv_deposit',
+            'invite_token': 'test-email-only',
+            'invite_link': invite_link,
+        })
+        return recipient, subject, text_body, html_body
+
+    if normalized_type == 'employer_invitation':
+        _, subject, text_body, html_body, _, _ = build_brevo_invitation_email({
+            'role': 'employer',
+            'email': recipient,
+            'language': 'fr',
+            'company_name': 'Entreprise test Match Europe',
+            'invite_token': 'test-email-only',
+            'invite_link': (
+                f'{get_public_app_base_url()}/forms/eures-beta/questionnaire-employer'
+                '?lang=fr&invite_token=test-email-only'
+            ),
+        })
+        return recipient, subject, text_body, html_body
+
+    matching_row = build_eures_matching_test_row()
+    matching_row['candidat']['email'] = recipient
+    matching_row['employeur']['email'] = recipient
+    matching_row['employeur']['contact'] = recipient
+    if normalized_type == 'employer_matching_proposal':
+        return build_brevo_matching_email(matching_row)
+    if normalized_type == 'candidate_matching_notification':
+        return build_brevo_candidate_matching_notification_email(matching_row)
+    if normalized_type == 'employer_spontaneous_candidate':
+        return build_brevo_spontaneous_candidate_email(
+            {
+                'nom': 'Candidat test Match Europe',
+                'metier': 'Production industrielle',
+                'ville': 'Metz',
+                'disponibilite': 'Dès que possible',
+            },
+            {
+                'company': 'Entreprise test Match Europe',
+                'contact': 'Contact test',
+                'email': recipient,
+                'need': 'production et conditionnement',
+            },
+            'Ceci est un message de test. Aucune candidature réelle n’est transmise.',
+            {
+                'interested': f"{get_public_app_base_url()}/eures-beta/spontaneous-feedback-test?response=interested",
+                'not_interested': f"{get_public_app_base_url()}/eures-beta/spontaneous-feedback-test?response=not_interested",
+            },
+        )
+    if normalized_type == 'candidate_spontaneous_notice':
+        return build_brevo_spontaneous_candidate_notice(
+            {'nom': 'Candidat test Match Europe', 'email': recipient},
+            {'company': 'Entreprise test Match Europe'},
+            'Ceci est un message de test. Aucun CV réel n’a été transmis.',
+        )
+
+    if normalized_type == 'candidate_no_match':
+        return build_brevo_candidate_no_match_email({
+            'payload': {
+                'email': recipient,
+                'nom': 'Candidat test Match Europe',
+            }
+        })
+
+    if normalized_type == 'employer_no_match':
+        return build_brevo_employer_no_match_email({
+            'payload': {
+                'email': recipient,
+                'contact': recipient,
+                'employeur': 'Entreprise test Match Europe',
+                'poste': 'Poste test Match Europe',
+            }
+        })
+
+    raise RuntimeError('Unknown email test type.')
+
+
+def send_eures_admin_email_test(test_type: str, recipient_email: str) -> dict:
+    """Send one selected email test to the requested recipient."""
+    ensure_brevo_ready(check_api=True)
+    to_email, subject, text_body, html_body = build_eures_admin_email_test_message(test_type, recipient_email)
+    result = send_brevo_transactional_email(
+        to_email,
+        f'[TEST] {subject}',
+        text_body,
+        html_body,
+    )
+    return {
+        'email_type': str(test_type or '').strip().lower(),
+        'recipient_email': to_email,
+        'subject': f'[TEST] {subject}',
+        'result': result,
+    }
+
+
 def send_brevo_transactional_email(
     to_email: str,
     subject: str,
@@ -5515,7 +6723,17 @@ def send_brevo_transactional_email(
         'subject': subject,
         'textContent': text_body,
         'htmlContent': html_body,
+        'headers': {
+            'X-Mailin-Track': 'false',
+            'X-Mailin-Track-Clicks': 'false',
+            'X-Mailin-Track-Opens': 'false',
+        },
     }
+    if brevo.get('reply_to_email'):
+        payload['replyTo'] = {
+            'email': brevo['reply_to_email'],
+            'name': brevo.get('reply_to_name') or brevo['from_name'],
+        }
     if attachments:
         payload['attachment'] = attachments
     resp = requests.post(
@@ -5539,12 +6757,21 @@ def build_brevo_candidate_no_match_email(row: dict) -> tuple[str, str, str, str]
     if not recipient:
         raise RuntimeError('Candidate email is missing for no-match notification.')
     privacy_url = get_eures_privacy_url('fr')
+    admin_note = str(row.get('note') or '').strip()
+    admin_note_text = f"Message complémentaire :\n{admin_note}\n\n" if admin_note else ""
+    admin_note_html = (
+        "<div style=\"margin:0 0 18px;padding:14px 16px;background:#f8f4ec;border-left:4px solid #004494;border-radius:10px;\">"
+        f"<p style=\"margin:0 0 6px;font-size:14px;line-height:1.5;color:#0f2742;\"><strong>Message complémentaire</strong></p>"
+        f"<p style=\"margin:0;font-size:15px;line-height:1.7;\">{_format_email_multiline(admin_note)}</p>"
+        "</div>"
+    ) if admin_note else ""
     subject = "[EURES beta] Aucune mise en relation immédiate pour le moment"
     body_text = (
         "Bonjour,\n\n"
         "Nous vous confirmons la bonne réception de votre questionnaire EURES beta.\n\n"
         "A ce stade, aucun matching n'a pu être réalisé immédiatement selon vos critères.\n"
         "Votre profil reste pris en compte et vous serez prévenu dès qu'une mise en relation pertinente pourra être opérée.\n\n"
+        f"{admin_note_text}"
         f"Informations sur vos données : {privacy_url}\n\n"
         "Cordialement,\n"
         f"{get_eures_mail_signature_name()}\n"
@@ -5571,6 +6798,7 @@ def build_brevo_candidate_no_match_email(row: dict) -> tuple[str, str, str, str]
                 <p style="margin:0 0 18px;font-size:16px;line-height:1.7;">Nous vous confirmons la bonne réception de votre questionnaire EURES beta.</p>
                 <p style="margin:0 0 18px;font-size:16px;line-height:1.7;">À ce stade, aucun matching n'a pu être réalisé immédiatement selon vos critères.</p>
                 <p style="margin:0 0 18px;font-size:16px;line-height:1.7;">Votre profil reste pris en compte et vous serez prévenu dès qu'une mise en relation pertinente pourra être opérée.</p>
+                {admin_note_html}
                 <p style="margin:18px 0 0;font-size:13px;line-height:1.7;color:#6b6256;">
                   Informations sur le traitement de vos données :
                   <a href="{escape(privacy_url)}" style="color:#004494;">consulter la notice de confidentialité</a>.
@@ -5597,12 +6825,21 @@ def build_brevo_employer_no_match_email(row: dict) -> tuple[str, str, str, str]:
         raise RuntimeError('Employer email is missing for no-match notification.')
     privacy_url = get_eures_privacy_url('fr')
     poste = str(payload.get('poste') or 'votre besoin').strip()
+    admin_note = str(row.get('note') or '').strip()
+    admin_note_text = f"Message complémentaire :\n{admin_note}\n\n" if admin_note else ""
+    admin_note_html = (
+        "<div style=\"margin:0 0 18px;padding:14px 16px;background:#f8f4ec;border-left:4px solid #103a2b;border-radius:10px;\">"
+        f"<p style=\"margin:0 0 6px;font-size:14px;line-height:1.5;color:#103a2b;\"><strong>Message complémentaire</strong></p>"
+        f"<p style=\"margin:0;font-size:15px;line-height:1.7;\">{_format_email_multiline(admin_note)}</p>"
+        "</div>"
+    ) if admin_note else ""
     subject = f"[EURES beta] Suivi de votre besoin de recrutement - {poste}"
     body_text = (
         "Bonjour,\n\n"
         "Nous vous confirmons la bonne réception de votre questionnaire EURES beta.\n\n"
         "A ce stade, aucun matching n'a pu être généré immédiatement pour votre besoin.\n"
         "Nous allons poursuivre la recherche de profils pertinents dans la base EURES et reviendrons vers vous dès qu'une candidature adaptée pourra être proposée.\n\n"
+        f"{admin_note_text}"
         f"Informations sur vos données : {privacy_url}\n\n"
         "Cordialement,\n"
         f"{get_eures_mail_signature_name()}\n"
@@ -5629,6 +6866,7 @@ def build_brevo_employer_no_match_email(row: dict) -> tuple[str, str, str, str]:
                 <p style="margin:0 0 18px;font-size:16px;line-height:1.7;">Nous vous confirmons la bonne réception de votre questionnaire EURES beta.</p>
                 <p style="margin:0 0 18px;font-size:16px;line-height:1.7;">À ce stade, aucun matching n'a pu être généré immédiatement pour votre besoin.</p>
                 <p style="margin:0 0 18px;font-size:16px;line-height:1.7;">Nous allons poursuivre la recherche de profils pertinents dans la base EURES et reviendrons vers vous dès qu'une candidature adaptée pourra être proposée.</p>
+                {admin_note_html}
                 <p style="margin:18px 0 0;font-size:13px;line-height:1.7;color:#6b6256;">
                   Informations sur le traitement de vos données :
                   <a href="{escape(privacy_url)}" style="color:#103a2b;">consulter la notice de confidentialité</a>.
@@ -5741,23 +6979,20 @@ def list_eures_admin_matchings(status: str = 'all', include_candidate_cv: bool =
             'sent_to_employer_by': fields.get('sent_to_employer_by', ''),
             'employer_response': fields.get('employer_response', ''),
             'employer_response_at': fields.get('employer_response_at', ''),
+            'employer_whatsapp_consent': fields.get('employer_whatsapp_consent', ''),
+            'employer_whatsapp_phone': fields.get('employer_whatsapp_phone', ''),
+            'employer_whatsapp_confirmed_at': fields.get('employer_whatsapp_confirmed_at', ''),
             'mise_en_relation_at': fields.get('mise_en_relation_at', ''),
             'mise_en_relation_by': fields.get('mise_en_relation_by', ''),
+            'relation_channel': fields.get('relation_channel', ''),
+            'relation_channel_updated_at': fields.get('relation_channel_updated_at', ''),
+            'relation_channel_updated_by': fields.get('relation_channel_updated_by', ''),
+            'relation_result': fields.get('relation_result', ''),
+            'relation_result_at': fields.get('relation_result_at', ''),
+            'relation_result_by': fields.get('relation_result_by', ''),
+            'relation_result_note': fields.get('relation_result_note', ''),
             'embauche_confirmee_at': fields.get('embauche_confirmee_at', ''),
             'embauche_confirmee_by': fields.get('embauche_confirmee_by', ''),
-            'whatsapp_candidate_consent_status': fields.get('whatsapp_candidate_consent_status', 'not_requested'),
-            'whatsapp_candidate_consent_at': fields.get('whatsapp_candidate_consent_at', ''),
-            'whatsapp_employer_consent_status': fields.get('whatsapp_employer_consent_status', 'not_requested'),
-            'whatsapp_employer_consent_at': fields.get('whatsapp_employer_consent_at', ''),
-            'whatsapp_alternative_channel': fields.get('whatsapp_alternative_channel', 'none'),
-            'whatsapp_group_status': fields.get('whatsapp_group_status', 'not_created'),
-            'whatsapp_group_opened_at': fields.get('whatsapp_group_opened_at', ''),
-            'whatsapp_group_closed_at': fields.get('whatsapp_group_closed_at', ''),
-            'whatsapp_outcome': fields.get('whatsapp_outcome', 'pending'),
-            'whatsapp_notice_version': fields.get('whatsapp_notice_version', ''),
-            'whatsapp_note': fields.get('whatsapp_note', ''),
-            'whatsapp_updated_at': fields.get('whatsapp_updated_at', ''),
-            'whatsapp_updated_by': fields.get('whatsapp_updated_by', ''),
             'candidat': {
                 'nom': candidat.get('nom', ''),
                 'email': candidat.get('email', ''),
@@ -5777,6 +7012,7 @@ def list_eures_admin_matchings(status: str = 'all', include_candidate_cv: bool =
                 'employeur': besoin.get('employeur', ''),
                 'contact': besoin.get('contact', ''),
                 'email': _resolve_employer_recipient(besoin),
+                'telephone': besoin.get('telephone', ''),
                 'pays': besoin.get('pays', ''),
                 'poste': besoin.get('poste', ''),
                 'intitules_poste': employeur_job_titles,
@@ -5788,6 +7024,250 @@ def list_eures_admin_matchings(status: str = 'all', include_candidate_cv: bool =
         })
 
     rows.sort(key=lambda row: (row['admin_status'] != 'pending', -row['score'], -(int(row['record_id'] or 0))))
+    return rows
+
+
+def _clean_optional_text(value):
+    txt = str(value or '').strip()
+    return txt or None
+
+
+def _clean_required_text(value) -> str:
+    return str(value or '').strip()
+
+
+def _grist_truthy(value) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value or '').strip().lower() in {'1', 'true', 'yes', 'oui', 'y', 'o'}
+
+
+def _stable_record_sort_key(record: dict):
+    fields = record.get('fields', {}) if isinstance(record, dict) else {}
+    return (
+        _clean_required_text(fields.get('nom_affiche') or fields.get('nom') or fields.get('prenom')).casefold(),
+        _clean_required_text(fields.get('entreprise_id') or fields.get('contact_id') or fields.get('id_tally') or fields.get('uuid')),
+        str(record.get('id') or ''),
+    )
+
+
+def _valid_eures_event_date(value) -> str | None:
+    txt = str(value or '').strip()
+    if not txt or _parse_iso_datetime(txt) is None:
+        return None
+    return txt
+
+
+def _event_sort_key(event: dict):
+    parsed = _parse_iso_datetime(event.get('date'))
+    if parsed is None:
+        return datetime.min.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+def _matching_validated_for_employer_api(fields: dict) -> bool:
+    admin_status = str((fields or {}).get('admin_status') or '').strip().lower()
+    workflow_status = _matching_workflow_status(fields or {})
+    return admin_status == 'accepted' or workflow_status == 'valide_admin'
+
+
+def _matching_presented_for_employer_api(fields: dict) -> bool:
+    workflow_status = _matching_workflow_status(fields or {})
+    return bool((fields or {}).get('sent_to_employer_at')) or workflow_status in {
+        'envoye_employeur',
+        'accepte_employeur',
+        'refuse_employeur',
+        'mise_en_relation_faite',
+        'embauche_confirmee',
+        'relation_terminee',
+    }
+
+
+def _matching_employer_interested_for_employer_api(fields: dict) -> bool:
+    employer_response = str((fields or {}).get('employer_response') or '').strip().lower()
+    workflow_status = _matching_workflow_status(fields or {})
+    return employer_response == 'contact' or workflow_status in {
+        'accepte_employeur',
+        'mise_en_relation_faite',
+        'embauche_confirmee',
+        'relation_terminee',
+    }
+
+
+def _matching_introduction_done_for_employer_api(fields: dict) -> bool:
+    workflow_status = _matching_workflow_status(fields or {})
+    return bool((fields or {}).get('mise_en_relation_at')) or workflow_status in {
+        'mise_en_relation_faite',
+        'embauche_confirmee',
+        'relation_terminee',
+    }
+
+
+def _build_eures_need_indicators(matchings: list[dict]) -> dict:
+    return {
+        'identified': len(matchings),
+        'validated': sum(1 for fields in matchings if _matching_validated_for_employer_api(fields)),
+        'presented': sum(1 for fields in matchings if _matching_presented_for_employer_api(fields)),
+        'employer_interested': sum(1 for fields in matchings if _matching_employer_interested_for_employer_api(fields)),
+        'introduction_done': sum(1 for fields in matchings if _matching_introduction_done_for_employer_api(fields)),
+    }
+
+
+def _append_eures_employer_history_event(events: list[dict], *, date, event_type: str, label: str, besoin_id=None, matching_record_id=None, candidat_id=None, poste=None):
+    event_date = _valid_eures_event_date(date)
+    if not event_date:
+        return
+    events.append({
+        'date': event_date,
+        'type': event_type,
+        'label': label,
+        'besoin_id': _clean_optional_text(besoin_id),
+        'matching_record_id': matching_record_id,
+        'candidat_id': _clean_optional_text(candidat_id),
+        'poste': _clean_optional_text(poste),
+    })
+
+
+def _build_eures_employer_history(besoin_fields: dict, matching_records: list[dict]) -> list[dict]:
+    events: list[dict] = []
+    besoin_id = besoin_fields.get('id_tally') or besoin_fields.get('uuid')
+    poste = besoin_fields.get('tally_q02') or besoin_fields.get('poste') or besoin_fields.get('metier') or besoin_fields.get('secteur')
+    _append_eures_employer_history_event(
+        events,
+        date=besoin_fields.get('tally_submitted_at'),
+        event_type='besoin_recu',
+        label='Besoin reçu',
+        besoin_id=besoin_id,
+        poste=poste,
+    )
+    for rec in matching_records:
+        fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
+        matching_record_id = rec.get('id') if isinstance(rec, dict) else None
+        candidat_id = fields.get('candidat_id')
+        _append_eures_employer_history_event(events, date=fields.get('date_calcul'), event_type='matching_calcule', label='Matching calculé', besoin_id=besoin_id, matching_record_id=matching_record_id, candidat_id=candidat_id, poste=poste)
+        admin_status = str(fields.get('admin_status') or '').strip().lower()
+        workflow_status = _matching_workflow_status(fields)
+        if admin_status == 'accepted' or workflow_status == 'valide_admin':
+            _append_eures_employer_history_event(events, date=fields.get('admin_decision_at'), event_type='matching_valide', label='Matching validé', besoin_id=besoin_id, matching_record_id=matching_record_id, candidat_id=candidat_id, poste=poste)
+        elif admin_status == 'refused' or workflow_status == 'refuse_admin':
+            _append_eures_employer_history_event(events, date=fields.get('admin_decision_at'), event_type='matching_refuse', label='Matching refusé', besoin_id=besoin_id, matching_record_id=matching_record_id, candidat_id=candidat_id, poste=poste)
+        _append_eures_employer_history_event(events, date=fields.get('sent_to_employer_at'), event_type='candidat_presente', label='Candidat présenté', besoin_id=besoin_id, matching_record_id=matching_record_id, candidat_id=candidat_id, poste=poste)
+        employer_response = str(fields.get('employer_response') or '').strip().lower()
+        employer_event_type = 'employeur_interesse' if employer_response == 'contact' else 'employeur_refuse' if employer_response == 'not_contact' else 'reponse_employeur'
+        employer_label = 'Employeur intéressé' if employer_response == 'contact' else 'Employeur non intéressé' if employer_response == 'not_contact' else 'Réponse employeur'
+        _append_eures_employer_history_event(events, date=fields.get('employer_response_at'), event_type=employer_event_type, label=employer_label, besoin_id=besoin_id, matching_record_id=matching_record_id, candidat_id=candidat_id, poste=poste)
+        _append_eures_employer_history_event(events, date=fields.get('mise_en_relation_at'), event_type='mise_en_relation', label='Mise en relation', besoin_id=besoin_id, matching_record_id=matching_record_id, candidat_id=candidat_id, poste=poste)
+        _append_eures_employer_history_event(events, date=fields.get('relation_result_at'), event_type='issue_relation', label='Issue de la relation renseignée', besoin_id=besoin_id, matching_record_id=matching_record_id, candidat_id=candidat_id, poste=poste)
+        _append_eures_employer_history_event(events, date=fields.get('embauche_confirmee_at'), event_type='embauche_confirmee', label='Embauche confirmée', besoin_id=besoin_id, matching_record_id=matching_record_id, candidat_id=candidat_id, poste=poste)
+    events.sort(key=_event_sort_key, reverse=True)
+    return events
+
+
+def _build_eures_employer_contact_payload(record: dict) -> dict:
+    fields = record.get('fields', {}) if isinstance(record, dict) else {}
+    return {
+        'contact_id': _clean_optional_text(fields.get('contact_id')),
+        'nom': _clean_optional_text(fields.get('nom')),
+        'prenom': _clean_optional_text(fields.get('prenom')),
+        'email': _clean_optional_text(fields.get('email')),
+        'telephone': _clean_optional_text(fields.get('telephone')),
+        'fonction': _clean_optional_text(fields.get('fonction')),
+        'est_contact_principal': _grist_truthy(fields.get('est_contact_principal')),
+        'statut': _clean_optional_text(fields.get('statut')),
+    }
+
+
+def _build_eures_employer_need_payload(record: dict, matchings_by_need_id: dict[str, list[dict]]) -> dict:
+    fields = record.get('fields', {}) if isinstance(record, dict) else {}
+    besoin_id = _clean_required_text(fields.get('id_tally') or fields.get('uuid'))
+    matching_records = matchings_by_need_id.get(besoin_id, [])
+    matching_fields = [rec.get('fields', {}) for rec in matching_records if isinstance(rec, dict) and isinstance(rec.get('fields'), dict)]
+    return {
+        'record_id': record.get('id'),
+        'id_tally': _clean_optional_text(fields.get('id_tally')),
+        'uuid': _clean_optional_text(fields.get('uuid')),
+        'poste': _clean_optional_text(fields.get('tally_q02') or fields.get('poste') or fields.get('metier') or fields.get('secteur')),
+        'nombre_postes': _clean_optional_text(fields.get('tally_q03')),
+        'lieu_travail_normalise': _clean_optional_text(fields.get('lieu_travail_normalise') or fields.get('lieu') or fields.get('pays')),
+        'contact_id': _clean_optional_text(fields.get('contact_id')),
+        'statut': None,
+        'indicators': _build_eures_need_indicators(matching_fields),
+        'history': _build_eures_employer_history(fields, matching_records),
+    }
+
+
+def build_eures_admin_employers() -> list[dict]:
+    """Build the read-only EURES employer view from Grist tables."""
+    base_config = get_form_config('eures-beta', 'candidate') or get_form_config('eures-beta')
+    employer_config = get_form_config('eures-beta', 'employer') or base_config
+    matching_config = get_eures_matching_config()
+    if not base_config or not employer_config or not matching_config:
+        raise RuntimeError('EURES beta Grist configuration is incomplete.')
+
+    base_headers = _eures_admin_headers(base_config)
+    employer_headers = _eures_admin_headers(employer_config)
+    matching_headers = _eures_admin_headers(matching_config)
+    entreprises = fetch_table_records(base_config['doc_id'], EURES_ENTREPRISES_TABLE, base_headers)
+    contacts = fetch_table_records(base_config['doc_id'], EURES_CONTACTS_ENTREPRISES_TABLE, base_headers)
+    besoins = fetch_table_records(employer_config['doc_id'], EURES_BESOINS_TABLE, employer_headers)
+    matchings = fetch_table_records(matching_config['doc_id'], EURES_MATCHINGS_TABLE, matching_headers)
+
+    contacts_by_enterprise: dict[str, list[dict]] = defaultdict(list)
+    for rec in contacts:
+        entreprise_id = _clean_required_text((rec.get('fields') or {}).get('entreprise_id') if isinstance(rec, dict) else '')
+        if entreprise_id:
+            contacts_by_enterprise[entreprise_id].append(rec)
+
+    besoins_by_enterprise: dict[str, list[dict]] = defaultdict(list)
+    for rec in besoins:
+        entreprise_id = _clean_required_text((rec.get('fields') or {}).get('entreprise_id') if isinstance(rec, dict) else '')
+        if entreprise_id:
+            besoins_by_enterprise[entreprise_id].append(rec)
+
+    matchings_by_need_id: dict[str, list[dict]] = defaultdict(list)
+    for rec in matchings:
+        besoin_id = _clean_required_text((rec.get('fields') or {}).get('besoin_id') if isinstance(rec, dict) else '')
+        if besoin_id:
+            matchings_by_need_id[besoin_id].append(rec)
+
+    rows = []
+    for enterprise_record in sorted(entreprises, key=_stable_record_sort_key):
+        fields = enterprise_record.get('fields', {}) if isinstance(enterprise_record, dict) else {}
+        entreprise_id = _clean_required_text(fields.get('entreprise_id'))
+        if not entreprise_id:
+            continue
+        contact_records = sorted(
+            contacts_by_enterprise.get(entreprise_id, []),
+            key=lambda rec: (not _grist_truthy((rec.get('fields') or {}).get('est_contact_principal')), _stable_record_sort_key(rec)),
+        )
+        contacts_payload = [_build_eures_employer_contact_payload(rec) for rec in contact_records]
+        principal_contacts = [contact for contact in contacts_payload if contact.get('est_contact_principal')]
+        need_records = sorted(
+            besoins_by_enterprise.get(entreprise_id, []),
+            key=lambda rec: (
+                _clean_required_text((rec.get('fields') or {}).get('tally_submitted_at')),
+                _clean_required_text((rec.get('fields') or {}).get('id_tally') or (rec.get('fields') or {}).get('uuid')),
+                str(rec.get('id') or ''),
+            ),
+        )
+        besoins_payload = [_build_eures_employer_need_payload(rec, matchings_by_need_id) for rec in need_records]
+        history = []
+        for besoin in besoins_payload:
+            history.extend(besoin.get('history') or [])
+        history.sort(key=_event_sort_key, reverse=True)
+        rows.append({
+            'entreprise_id': entreprise_id,
+            'nom': _clean_optional_text(fields.get('nom_affiche')),
+            'pays': _clean_optional_text(fields.get('pays')),
+            'ville_ou_lieu': _clean_optional_text(fields.get('ville_ou_lieu')),
+            'secteurs': _clean_optional_text(fields.get('secteurs')),
+            'statut': _clean_optional_text(fields.get('statut')),
+            'notes': _clean_optional_text(fields.get('notes')),
+            'contact_principal': principal_contacts[0] if len(principal_contacts) == 1 else None,
+            'contacts': contacts_payload,
+            'besoins': besoins_payload,
+            'history': history,
+        })
     return rows
 
 
@@ -6051,6 +7531,11 @@ def build_eures_cockpit_summary() -> dict:
     )
     relation_count = sum(1 for row in matchings_all if row.get('workflow_status') in {'mise_en_relation_faite', 'embauche_confirmee'})
     hire_count = sum(1 for row in matchings_all if row.get('workflow_status') == 'embauche_confirmee')
+    employer_response_count = sum(
+        1 for row in matchings_all
+        if str(row.get('employer_response') or '').strip()
+        and row.get('workflow_status') == 'accepte_employeur'
+    )
     matchings_today = sum(1 for row in matchings_all if _same_utc_day(row.get('date_calcul'), today))
     manual_sent_today = sum(
         1 for row in matchings_all
@@ -6076,6 +7561,7 @@ def build_eures_cockpit_summary() -> dict:
             'new_job_request': sum(1 for row in tasks_pending if row.get('task_type') == 'new_job_request'),
             'new_employer_alert': sum(1 for row in tasks_pending if row.get('task_type') == 'new_employer_alert'),
             'duplicate_invitation_followup': sum(1 for row in tasks_pending if row.get('task_type') == 'duplicate_invitation_followup'),
+            'employer_response': employer_response_count,
             'invitation_errors': sum(1 for row in invitations if str(row.get('invitation_status') or '') == 'erreur_envoi'),
         },
         'today_flow': {
@@ -6775,6 +8261,176 @@ def list_tracking_cards() -> list[dict]:
         )
     )
     return cards
+
+
+def _documentation_table_ready() -> tuple[dict, dict]:
+    config = get_eures_documentation_config()
+    if not config:
+        raise RuntimeError('La configuration de la documentation EURES est incomplète.')
+    headers = _tracking_admin_headers(config)
+    _ensure_grist_table(config, headers, EURES_DOCUMENTATION_TABLE_COLUMNS)
+    return config, headers
+
+
+def _documentation_default_document() -> dict:
+    return {
+        'document_id': f"doc_{secrets.token_urlsafe(8).replace('-', '').replace('_', '').lower()}",
+        'titre': '',
+        'resume': '',
+        'contenu_markdown': '',
+        'categorie': 'produit_metier',
+        'statut': 'draft',
+        'langue_source': 'fr',
+        'cartes_liees': [],
+        'liens': [],
+        'auteur': '',
+        'created_at': '',
+        'updated_at': '',
+        'historique': [],
+    }
+
+
+def _documentation_document_from_record(record: dict) -> dict | None:
+    fields = record.get('fields', {}) if isinstance(record, dict) else {}
+    if not isinstance(fields, dict):
+        return None
+    document = _documentation_default_document()
+    document.update({
+        'record_id': record.get('id'),
+        'document_id': _tracking_text(fields.get('document_id')) or document['document_id'],
+        'titre': _tracking_text(fields.get('titre')),
+        'resume': _tracking_text(fields.get('resume')),
+        'contenu_markdown': _tracking_text(fields.get('contenu_markdown')),
+        'categorie': _tracking_choice(fields.get('categorie'), EURES_DOCUMENTATION_CATEGORIES, 'produit_metier'),
+        'statut': _tracking_choice(fields.get('statut'), EURES_DOCUMENTATION_STATUSES, 'draft'),
+        'langue_source': _tracking_ui_language(fields.get('langue_source')),
+        'cartes_liees': _tracking_list(fields.get('cartes_liees_json')),
+        'liens': _tracking_list(fields.get('liens_json')),
+        'auteur': _tracking_text(fields.get('auteur')),
+        'created_at': _tracking_text(fields.get('created_at')),
+        'updated_at': _tracking_text(fields.get('updated_at')),
+        'historique': _tracking_list(fields.get('historique_json')),
+    })
+    return document
+
+
+def _documentation_record_fields(document: dict) -> dict:
+    return {
+        'document_id': document['document_id'],
+        'titre': document['titre'],
+        'resume': document['resume'],
+        'contenu_markdown': document['contenu_markdown'],
+        'categorie': document['categorie'],
+        'statut': document['statut'],
+        'langue_source': document['langue_source'],
+        'cartes_liees_json': json.dumps(document['cartes_liees'], ensure_ascii=False),
+        'liens_json': json.dumps(document['liens'], ensure_ascii=False),
+        'auteur': document['auteur'],
+        'created_at': document['created_at'],
+        'updated_at': document['updated_at'],
+        'historique_json': json.dumps(document['historique'], ensure_ascii=False),
+    }
+
+
+def _documentation_linked_cards(value) -> list[str]:
+    raw_items = value if isinstance(value, list) else str(value or '').replace(',', '\n').splitlines()
+    result = []
+    for item in raw_items:
+        reference = _tracking_text(item).upper()
+        if re.fullmatch(r'EURES-\d+', reference) and reference not in result:
+            result.append(reference)
+    return result[:30]
+
+
+def validate_documentation_document(payload: dict, existing: dict | None = None, actor: str = 'admin') -> dict:
+    base = _documentation_default_document()
+    if existing:
+        base.update(existing)
+    links, invalid_links = _tracking_extract_links(payload.get('liens', base.get('liens', [])))
+    now = _tracking_now()
+    document = dict(base)
+    document.update({
+        'document_id': _tracking_text(payload.get('document_id')) or base['document_id'],
+        'titre': _tracking_summarize_title(payload.get('titre') or base['titre'], max_length=140),
+        'resume': _tracking_text(payload.get('resume') if 'resume' in payload else base['resume'])[:600],
+        'contenu_markdown': _tracking_text(payload.get('contenu_markdown') if 'contenu_markdown' in payload else base['contenu_markdown']),
+        'categorie': _tracking_choice(payload.get('categorie') or base['categorie'], EURES_DOCUMENTATION_CATEGORIES, base['categorie']),
+        'statut': _tracking_choice(payload.get('statut') or base['statut'], EURES_DOCUMENTATION_STATUSES, base['statut']),
+        'langue_source': _tracking_ui_language(payload.get('langue_source') or base['langue_source']),
+        'cartes_liees': _documentation_linked_cards(payload.get('cartes_liees', base.get('cartes_liees', []))),
+        'liens': links,
+        'auteur': _tracking_text(actor) or _tracking_text(base.get('auteur')) or 'admin',
+        'created_at': _tracking_text(base.get('created_at')) or now,
+        'updated_at': now,
+        'historique': list(base.get('historique') or []),
+    })
+    errors = []
+    warnings = []
+    if not document['titre']:
+        errors.append('Le titre est obligatoire.')
+    if not document['contenu_markdown']:
+        errors.append('Le contenu est obligatoire.')
+    if invalid_links:
+        warnings.append('Certains liens invalides ont été ignorés.')
+    if existing:
+        document['historique'].append({
+            'at': now,
+            'actor': document['auteur'],
+            'action': 'updated',
+            'titre': existing.get('titre', ''),
+            'resume': existing.get('resume', ''),
+            'contenu_markdown': existing.get('contenu_markdown', ''),
+            'categorie': existing.get('categorie', ''),
+            'statut': existing.get('statut', ''),
+        })
+        document['historique'] = document['historique'][-30:]
+    return {'document': document, 'errors': errors, 'warnings': warnings}
+
+
+def list_documentation_documents() -> list[dict]:
+    config, headers = _documentation_table_ready()
+    documents = []
+    for record in fetch_table_records(config['doc_id'], config['table_id'], headers):
+        document = _documentation_document_from_record(record)
+        if document:
+            documents.append(document)
+    documents.sort(key=lambda item: (item.get('statut') == 'archived', item.get('categorie', ''), item.get('titre', '').lower()))
+    return documents
+
+
+def save_documentation_document(payload: dict, actor: str = 'admin') -> dict:
+    with _EURES_DOCUMENTATION_SAVE_LOCK:
+        config, headers = _documentation_table_ready()
+        record_id = payload.get('record_id')
+        existing_record = fetch_record_by_id(config['doc_id'], config['table_id'], int(record_id), headers) if record_id else None
+        existing = _documentation_document_from_record(existing_record) if existing_record else None
+        expected_updated_at = _tracking_text(payload.get('expected_updated_at'))
+        if existing and expected_updated_at and expected_updated_at != _tracking_text(existing.get('updated_at')):
+            return {
+                'ok': False,
+                'conflict': True,
+                'error': 'Cette page a été modifiée par une autre personne. Rechargez-la avant d’enregistrer.',
+                'document': existing,
+            }
+        validated = validate_documentation_document(payload, existing=existing, actor=actor)
+        if validated['errors']:
+            return {'ok': False, **validated}
+        document = validated['document']
+        fields = _documentation_record_fields(document)
+        base_url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}/records"
+        if existing_record:
+            response = write_grist_records('PATCH', base_url, {'records': [{'id': existing_record['id'], 'fields': fields}]}, headers)
+            document['record_id'] = existing_record['id']
+        else:
+            response = write_grist_records('POST', base_url, {'records': [{'fields': fields}]}, headers)
+        if response.status_code != 200:
+            raise RuntimeError(f'Failed to save project documentation: HTTP {response.status_code} - {response.text}')
+        if not existing_record:
+            response_payload = _parse_response_json_safe(response)
+            records = response_payload.get('records', []) if isinstance(response_payload, dict) else []
+            if records:
+                document['record_id'] = records[0].get('id')
+        return {'ok': True, 'document': document, 'warnings': validated['warnings'], 'errors': []}
 
 
 def _tracking_find_record_by_card_id(card_id: str) -> tuple[dict | None, dict, dict]:
@@ -7553,6 +9209,20 @@ def save_record(form_id: str):
                     'queued': True,
                     'status': 'pending',
                 }
+            try:
+                _record_eures_visit_analytics_event('questionnaire_submitted', {
+                    'page': str(fields.get('source_page') or ''),
+                    'path': request.path,
+                    'lang': str(fields.get('ui_language') or ''),
+                    'role': str(fields.get('flow_role') or ''),
+                    'session_id': str(fields.get('analytics_session_id') or ''),
+                    'metadata': {
+                        'action': action,
+                        'record_id': saved_record.get('id'),
+                    },
+                })
+            except Exception:
+                app.logger.exception('EURES questionnaire submission analytics failed')
 
         return jsonify({
             'ok': True,
@@ -7921,6 +9591,7 @@ def admin_eures_invitation_update(form_id: str, record_id: int):
         'language',
         'source',
         'external_ref',
+        'campaign_type',
         'target_job_keys',
         'notes',
         'answered_at',
@@ -7932,6 +9603,8 @@ def admin_eures_invitation_update(form_id: str, record_id: int):
         if field_name in data:
             if field_name == 'target_job_keys':
                 update_fields[field_name] = _serialize_eures_invitation_target_job_keys(data.get(field_name))
+            elif field_name == 'campaign_type':
+                update_fields[field_name] = _normalize_eures_invitation_campaign_type(data.get(field_name))
             else:
                 update_fields[field_name] = str(data.get(field_name) or '').strip()
 
@@ -7965,7 +9638,7 @@ def admin_eures_invitation_update(form_id: str, record_id: int):
 @app.route('/api/forms/<form_id>/admin/invitations/<int:record_id>', methods=['DELETE'])
 @admin_required
 def admin_eures_invitation_delete(form_id: str, record_id: int):
-    """Admin API: delete one invitation row in error state."""
+    """Admin API: delete one invitation row in a safe cleanup state."""
     proxied = maybe_proxy_eures_request(form_id)
     if proxied:
         return proxied
@@ -7983,13 +9656,19 @@ def admin_eures_invitation_delete(form_id: str, record_id: int):
             return jsonify({'error': 'Invitation not found'}), 404
         fields = existing.get('fields', {}) if isinstance(existing.get('fields'), dict) else {}
         current_status = str(fields.get('invitation_status') or '').strip().lower()
-        if current_status != 'erreur_envoi':
-            return jsonify({'error': "Seules les invitations en erreur d'envoi peuvent être supprimées."}), 400
+        followup_status = _normalize_eures_duplicate_followup_status(fields.get('duplicate_followup_status', ''))
+        if current_status != 'erreur_envoi' and followup_status != 'pending':
+            return jsonify({'error': "Seules les invitations en erreur d'envoi ou les doublons à arbitrer peuvent être supprimés."}), 400
 
         delete_eures_invitation_record_by_id(record_id, headers=headers)
         app.logger.info(
             'EURES invitation deleted',
-            extra={'form_id': form_id, 'record_id': record_id, 'status': current_status},
+            extra={
+                'form_id': form_id,
+                'record_id': record_id,
+                'status': current_status,
+                'duplicate_followup_status': followup_status,
+            },
         )
         return jsonify({
             'ok': True,
@@ -8068,6 +9747,11 @@ def admin_eures_invitations_send(form_id: str):
     data = request.get_json() or {}
     requested_ids = data.get('record_ids') or []
     force_resend = bool(data.get('force_resend'))
+    try:
+        requested_batch_limit = int(data.get('batch_limit') or os.environ.get('EURES_INVITATION_SEND_BATCH_LIMIT', '50'))
+    except Exception:
+        requested_batch_limit = 50
+    batch_limit = max(1, min(requested_batch_limit, 100))
     if requested_ids and not isinstance(requested_ids, list):
         return jsonify({'error': 'record_ids must be a list'}), 400
 
@@ -8089,6 +9773,11 @@ def admin_eures_invitations_send(form_id: str):
                 if str(fields.get('invitation_status') or '').strip().lower() == 'invitation_a_envoyer':
                     target_records.append(rec)
 
+        total_target_records = len(target_records)
+        remaining_after_batch = max(total_target_records - batch_limit, 0)
+        target_records = target_records[:batch_limit]
+        conflict_indexes = build_eures_invitation_conflict_indexes(records, target_records, headers)
+
         sent = []
         skipped = []
         errors = []
@@ -8106,11 +9795,11 @@ def admin_eures_invitations_send(form_id: str):
                     'reason': f'status_not_sendable:{current_status or "unknown"}',
                 })
                 continue
-            send_conflict = check_eures_invitation_send_conflict(
+            send_conflict = check_eures_invitation_send_conflict_from_indexes(
                 fields.get('role', ''),
                 fields.get('email', ''),
                 current_record_id=record_id,
-                invitation_headers=headers,
+                indexes=conflict_indexes,
             )
             if send_conflict:
                 followup_note = (
@@ -8171,7 +9860,10 @@ def admin_eures_invitations_send(form_id: str):
 
         return jsonify({
             'ok': True,
-            'requested': len(target_records),
+            'requested': total_target_records,
+            'processed': len(target_records),
+            'batch_limit': batch_limit,
+            'remaining_after_batch': remaining_after_batch,
             'force_resend': force_resend,
             'sent': sent,
             'skipped': skipped,
@@ -8236,6 +9928,13 @@ def admin_eures_invitations_remind(form_id: str):
                     'record_id': record_id,
                     'email': fields.get('email', ''),
                     'reason': 'already_answered',
+                })
+                continue
+            if _is_manual_ft_invitation(fields):
+                skipped.append({
+                    'record_id': record_id,
+                    'email': fields.get('email', ''),
+                    'reason': 'manual_ft_email',
                 })
                 continue
             try:
@@ -8343,6 +10042,31 @@ def admin_eures_questionnaire_responses(form_id: str, role: str):
         }), 200
     except Exception as e:
         app.logger.exception('EURES questionnaire response list failed')
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/forms/<form_id>/admin/employers', methods=['GET'])
+@admin_required
+def admin_eures_employers(form_id: str):
+    """Admin API: read-only employer registry for EURES beta."""
+    proxied = maybe_proxy_eures_request(form_id)
+    if proxied:
+        return proxied
+    if form_id != 'eures-beta':
+        return jsonify({'error': f'Unknown employers admin form: {form_id}'}), 404
+
+    try:
+        rows = build_eures_admin_employers()
+        return jsonify({
+            'ok': True,
+            'form_id': form_id,
+            'stats': {
+                'total': len(rows),
+            },
+            'rows': rows,
+        }), 200
+    except Exception as e:
+        app.logger.exception('EURES employers list failed')
         return jsonify({'error': str(e)}), 500
 
 
@@ -8548,6 +10272,7 @@ def admin_eures_no_match_send(form_id: str, role: str, record_id: int):
         row = _build_eures_no_match_row(normalized_role, record or {})
         if not row:
             return jsonify({'error': 'No-match entry not found'}), 404
+        row['note'] = note
 
         if normalized_role == 'candidate':
             recipient, subject, text_body, html_body = build_brevo_candidate_no_match_email(row)
@@ -8932,6 +10657,213 @@ def admin_eures_manual_matching(form_id: str):
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/forms/<form_id>/admin/spontaneous-candidate', methods=['POST'])
+@admin_required
+def admin_eures_spontaneous_candidate(form_id: str):
+    """Send one candidate CV to a new employer and notify the candidate."""
+    proxied = maybe_proxy_eures_request(form_id)
+    if proxied:
+        return proxied
+    if form_id != 'eures-beta':
+        return jsonify({'error': f'Unknown spontaneous application form: {form_id}'}), 404
+
+    data = request.get_json() or {}
+    candidate_record_id = int(data.get('candidate_record_id') or 0)
+    employer = {
+        'company': str(data.get('employer_company') or '').strip(),
+        'contact': str(data.get('employer_contact') or '').strip(),
+        'email': normalize_email(data.get('employer_email') or ''),
+        'need': str(data.get('employer_need') or '').strip(),
+    }
+    employer_comment = str(data.get('employer_comment') or '').strip()
+    candidate_comment = str(data.get('candidate_comment') or '').strip()
+    if not candidate_record_id or not employer['company'] or not employer['email']:
+        return jsonify({'error': 'Candidate, employer company and employer email are required'}), 400
+
+    candidate_config = get_form_config('eures-beta', 'candidate')
+    if not candidate_config:
+        return jsonify({'error': 'EURES candidate configuration is incomplete.'}), 500
+    headers = _eures_admin_headers(candidate_config)
+    try:
+        ensure_brevo_ready(check_api=True)
+        record = fetch_record_by_id(candidate_config['doc_id'], EURES_CANDIDATS_TABLE, candidate_record_id, headers)
+        if not record:
+            return jsonify({'error': 'Candidate record not found'}), 404
+        candidate = record.get('fields', {}) if isinstance(record.get('fields'), dict) else {}
+        if not _is_eures_response_active(candidate):
+            return jsonify({'error': 'Le candidat sélectionné est désactivé.'}), 400
+        attachment = get_candidate_cv_attachment(candidate)
+        if not attachment:
+            return jsonify({'error': 'Le candidat sélectionné ne possède pas de CV transmissible.'}), 400
+
+        actor = get_admin_actor(form_id)
+        now = _now_iso_utc()
+        tracking_record_id = create_eures_spontaneous_record({
+            'candidate_record_id': candidate_record_id,
+            'candidate_id': str(candidate.get('id_tally') or candidate.get('uuid') or ''),
+            'candidate_name': str(candidate.get('nom') or ''),
+            'candidate_email': normalize_email(candidate.get('email') or ''),
+            'employer_company': employer['company'],
+            'employer_contact': employer['contact'],
+            'employer_email': employer['email'],
+            'employer_need': employer['need'],
+            'employer_comment': employer_comment,
+            'candidate_comment': candidate_comment,
+            'status': 'sending',
+            'sent_at': now,
+            'sent_by': actor,
+            'employer_email_status': 'pending',
+            'candidate_email_status': 'pending',
+            'updated_at': now,
+            'updated_by': actor,
+        })
+
+        employer_to, employer_subject, employer_text, employer_html = build_brevo_spontaneous_candidate_email(
+            candidate,
+            employer,
+            employer_comment,
+            {
+                'interested': _build_eures_spontaneous_feedback_url(tracking_record_id, 'interested'),
+                'not_interested': _build_eures_spontaneous_feedback_url(tracking_record_id, 'not_interested'),
+            },
+        )
+        employer_result = send_brevo_transactional_email(
+            employer_to, employer_subject, employer_text, employer_html, attachments=[attachment]
+        )
+        update_eures_spontaneous_record(tracking_record_id, {
+            'employer_email_status': 'sent',
+            'status': 'employer_sent',
+            'updated_at': _now_iso_utc(),
+            'updated_by': actor,
+        })
+        candidate_to, candidate_subject, candidate_text, candidate_html = build_brevo_spontaneous_candidate_notice(
+            candidate, employer, candidate_comment
+        )
+        candidate_result = send_brevo_transactional_email(
+            candidate_to, candidate_subject, candidate_text, candidate_html
+        )
+        update_eures_spontaneous_record(tracking_record_id, {
+            'candidate_email_status': 'sent',
+            'status': 'waiting_employer',
+            'updated_at': _now_iso_utc(),
+            'updated_by': actor,
+        })
+        app.logger.info('EURES spontaneous candidate application sent', extra={
+            'form_id': form_id,
+            'candidate_record_id': candidate_record_id,
+            'tracking_record_id': tracking_record_id,
+            'employer_email': employer_to,
+            'sent_by': get_admin_actor(form_id),
+        })
+        return jsonify({
+            'ok': True,
+            'candidate_record_id': candidate_record_id,
+            'tracking_record_id': tracking_record_id,
+            'employer_email': employer_to,
+            'candidate_email': candidate_to,
+            'employer_email_result': employer_result,
+            'candidate_email_result': candidate_result,
+        }), 200
+    except Exception as e:
+        if 'tracking_record_id' in locals() and tracking_record_id:
+            try:
+                update_eures_spontaneous_record(tracking_record_id, {
+                    'status': 'send_error',
+                    'status_note': str(e)[:500],
+                    'updated_at': _now_iso_utc(),
+                    'updated_by': get_admin_actor(form_id),
+                })
+            except Exception:
+                app.logger.exception('EURES spontaneous tracking error update failed')
+        app.logger.exception('EURES spontaneous candidate application failed')
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/forms/<form_id>/admin/spontaneous-candidates', methods=['GET'])
+@admin_required
+def admin_eures_spontaneous_candidates(form_id: str):
+    if form_id != 'eures-beta':
+        return jsonify({'error': f'Unknown spontaneous application form: {form_id}'}), 404
+    try:
+        return jsonify({'ok': True, 'rows': list_eures_spontaneous_records()}), 200
+    except Exception as e:
+        app.logger.exception('EURES spontaneous applications list failed')
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/forms/<form_id>/admin/spontaneous-candidates/<int:record_id>/status', methods=['POST'])
+@admin_required
+def admin_eures_spontaneous_candidate_status(form_id: str, record_id: int):
+    if form_id != 'eures-beta':
+        return jsonify({'error': f'Unknown spontaneous application form: {form_id}'}), 404
+    data = request.get_json() or {}
+    status = str(data.get('status') or '').strip().lower()
+    if status not in {'waiting_employer', 'interested', 'not_interested', 'no_response', 'closed'}:
+        return jsonify({'error': 'Invalid spontaneous application status'}), 400
+    actor = get_admin_actor(form_id)
+    fields = {
+        'status': status,
+        'status_note': str(data.get('note') or '').strip(),
+        'updated_at': _now_iso_utc(),
+        'updated_by': actor,
+    }
+    if status in {'interested', 'not_interested'}:
+        fields.update({'employer_response_at': _now_iso_utc(), 'employer_response_source': 'admin_manual'})
+    try:
+        update_eures_spontaneous_record(record_id, fields)
+        return jsonify({'ok': True, 'record_id': record_id, 'status': status}), 200
+    except Exception as e:
+        app.logger.exception('EURES spontaneous application status update failed')
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/eures-beta/spontaneous-feedback', methods=['GET'])
+def eures_spontaneous_feedback():
+    token = str(request.args.get('token') or '').strip()
+    if not token:
+        return Response('Lien invalide : token manquant.', status=400, mimetype='text/plain')
+    try:
+        payload = get_eures_email_action_serializer().loads(token)
+    except BadSignature:
+        return Response('Lien invalide ou expiré.', status=400, mimetype='text/plain')
+    if payload.get('kind') != 'spontaneous_candidate':
+        return Response('Lien invalide.', status=400, mimetype='text/plain')
+    record_id = int(payload.get('record_id') or 0)
+    response_code = str(payload.get('response') or '').strip().lower()
+    if not record_id or response_code not in {'interested', 'not_interested'}:
+        return Response('Lien invalide : données incomplètes.', status=400, mimetype='text/plain')
+    try:
+        update_eures_spontaneous_record(record_id, {
+            'status': response_code,
+            'employer_response_at': _now_iso_utc(),
+            'employer_response_source': 'email_button',
+            'updated_at': _now_iso_utc(),
+            'updated_by': 'employer_email_button',
+        })
+        message = (
+            'Votre intérêt a bien été enregistré. Eric Barthélémy pourra revenir vers vous pour la suite.'
+            if response_code == 'interested'
+            else 'Votre réponse a bien été enregistrée. Merci pour votre retour.'
+        )
+        return Response(message, status=200, mimetype='text/plain')
+    except Exception as e:
+        app.logger.exception('EURES spontaneous employer feedback failed')
+        return Response(f'Erreur lors de l’enregistrement : {e}', status=500, mimetype='text/plain')
+
+
+@app.route('/eures-beta/spontaneous-feedback-test', methods=['GET'])
+def eures_spontaneous_feedback_test():
+    response_code = str(request.args.get('response') or '').strip().lower()
+    if response_code not in {'interested', 'not_interested'}:
+        return Response('Lien de test invalide.', status=400, mimetype='text/plain')
+    label = 'Je suis intéressé' if response_code == 'interested' else 'Ce profil ne correspond pas'
+    return Response(
+        f'Test uniquement : le bouton « {label} » fonctionne visuellement. Aucune donnée métier n’a été enregistrée.',
+        status=200,
+        mimetype='text/plain',
+    )
+
+
 @app.route('/api/forms/<form_id>/admin/brevo-health', methods=['GET'])
 @admin_required
 def admin_eures_brevo_health(form_id: str):
@@ -8949,6 +10881,70 @@ def admin_eures_brevo_health(form_id: str):
         'ok': status_code == 200,
         'brevo': health,
     }), status_code
+
+
+@app.route('/api/forms/<form_id>/admin/matchings/test-emails', methods=['POST'])
+@admin_required
+def admin_eures_matching_test_emails(form_id: str):
+    """Admin API: send safe synthetic matching emails to fixed test recipients."""
+    proxied = maybe_proxy_eures_request(form_id)
+    if proxied:
+        return proxied
+    if form_id != 'eures-beta':
+        return jsonify({'error': f'Unknown admin matching form: {form_id}'}), 404
+
+    try:
+        result = send_eures_matching_test_emails()
+        app.logger.info(
+            'EURES matching test emails sent',
+            extra={
+                'form_id': form_id,
+                'employer_email': result.get('employer_email'),
+                'candidate_email': result.get('candidate_email'),
+                'sent_by': get_admin_actor(form_id),
+            },
+        )
+        return jsonify({
+            'ok': True,
+            **result,
+        }), 200
+    except Exception as e:
+        app.logger.exception('EURES matching test emails failed')
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/forms/<form_id>/admin/email-tests/send', methods=['POST'])
+@admin_required
+def admin_eures_email_test_send(form_id: str):
+    """Admin API: send one selected test email to a requested recipient."""
+    proxied = maybe_proxy_eures_request(form_id)
+    if proxied:
+        return proxied
+    if form_id != 'eures-beta':
+        return jsonify({'error': f'Unknown email test form: {form_id}'}), 404
+
+    data = request.get_json() or {}
+    test_type = str(data.get('email_type') or '').strip().lower()
+    recipient_email = normalize_email(data.get('recipient_email'))
+
+    try:
+        result = send_eures_admin_email_test(test_type, recipient_email)
+        app.logger.info(
+            'EURES admin email test sent',
+            extra={
+                'form_id': form_id,
+                'email_type': result.get('email_type'),
+                'recipient_email': result.get('recipient_email'),
+                'sent_by': get_admin_actor(form_id),
+            },
+        )
+        return jsonify({
+            'ok': True,
+            **result,
+        }), 200
+    except Exception as e:
+        app.logger.exception('EURES admin email test failed')
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/forms/<form_id>/admin/matchings/<int:record_id>/decision', methods=['POST'])
@@ -9138,10 +11134,19 @@ def admin_eures_matching_workflow(form_id: str, record_id: int):
 
     data = request.get_json() or {}
     target_status = str(data.get('workflow_status') or '').strip().lower()
+    relation_channel = str(data.get('relation_channel') or '').strip().lower()
+    relation_result = str(data.get('relation_result') or '').strip().lower()
+    relation_result_note = str(data.get('relation_result_note') or '').strip()
     note = str(data.get('note') or '').strip()
-    allowed_targets = {'mise_en_relation_faite', 'embauche_confirmee', 'envoye_employeur'}
+    if relation_result:
+        if relation_result not in EURES_RELATION_RESULTS:
+            return jsonify({'error': 'Unsupported relation result'}), 400
+        target_status = _relation_result_workflow_status(relation_result)
+    allowed_targets = {'mise_en_relation_faite', 'embauche_confirmee', 'envoye_employeur', 'relation_terminee'}
     if target_status not in allowed_targets:
         return jsonify({'error': 'Unsupported workflow status'}), 400
+    if relation_channel and relation_channel not in EURES_RELATION_CHANNELS:
+        return jsonify({'error': 'Unsupported relation channel'}), 400
 
     config = get_eures_matching_config()
     if not config:
@@ -9161,6 +11166,17 @@ def admin_eures_matching_workflow(form_id: str, record_id: int):
 
         actor = get_admin_actor(form_id)
         update_fields = _matching_workflow_update_fields(target_status, actor)
+        now = _now_iso_utc()
+        if relation_channel:
+            update_fields['relation_channel'] = relation_channel
+            update_fields['relation_channel_updated_at'] = now
+            update_fields['relation_channel_updated_by'] = actor
+        if relation_result:
+            update_fields['relation_result'] = relation_result
+            update_fields['relation_result_at'] = now
+            update_fields['relation_result_by'] = actor
+            if relation_result_note:
+                update_fields['relation_result_note'] = relation_result_note
         if note:
             previous_note = str(existing_fields.get('admin_decision_note') or '').strip()
             update_fields['admin_decision_note'] = f'{previous_note}\n{note}'.strip() if previous_note else note
@@ -9174,100 +11190,104 @@ def admin_eures_matching_workflow(form_id: str, record_id: int):
             'workflow_label': _matching_workflow_label(_matching_workflow_status(updated_fields)),
             'workflow_status_updated_at': updated_fields.get('workflow_status_updated_at', ''),
             'workflow_status_updated_by': updated_fields.get('workflow_status_updated_by', actor),
+            'relation_channel': updated_fields.get('relation_channel', ''),
+            'relation_result': updated_fields.get('relation_result', ''),
+            'relation_result_at': updated_fields.get('relation_result_at', ''),
         }), 200
     except Exception as e:
         app.logger.exception('EURES matching workflow update failed')
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/forms/<form_id>/admin/matchings/<int:record_id>/whatsapp', methods=['POST'])
-@admin_required
-def admin_eures_matching_whatsapp(form_id: str, record_id: int):
-    """Save consent and lifecycle evidence for one supervised WhatsApp matching."""
-    proxied = maybe_proxy_eures_request(form_id)
-    if proxied:
-        return proxied
-    if form_id != 'eures-beta':
-        return jsonify({'error': f'Unknown admin matching form: {form_id}'}), 404
-
-    data = request.get_json() or {}
-    consent_statuses = {'not_requested', 'requested', 'accepted', 'refused', 'withdrawn'}
-    alternative_channels = {'none', 'email', 'phone'}
-    group_statuses = {'not_created', 'open', 'closed'}
-    outcomes = {'pending', 'meeting', 'abandoned', 'postponed', 'other'}
-
-    candidate_status = str(data.get('candidate_consent_status') or '').strip().lower()
-    employer_status = str(data.get('employer_consent_status') or '').strip().lower()
-    alternative_channel = str(data.get('alternative_channel') or '').strip().lower()
-    group_status = str(data.get('group_status') or '').strip().lower()
-    outcome = str(data.get('outcome') or '').strip().lower()
-    note = str(data.get('note') or '').strip()
-
-    if candidate_status not in consent_statuses or employer_status not in consent_statuses:
-        return jsonify({'error': 'Invalid WhatsApp consent status'}), 400
-    if alternative_channel not in alternative_channels:
-        return jsonify({'error': 'Invalid alternative channel'}), 400
-    if group_status not in group_statuses:
-        return jsonify({'error': 'Invalid WhatsApp group status'}), 400
-    if outcome not in outcomes:
-        return jsonify({'error': 'Invalid WhatsApp outcome'}), 400
-    if len(note) > 2000:
-        return jsonify({'error': 'WhatsApp note is too long'}), 400
-    if group_status in {'open', 'closed'} and (candidate_status != 'accepted' or employer_status != 'accepted'):
-        return jsonify({'error': 'Le groupe ne peut être ouvert que lorsque le candidat et l’employeur ont accepté.'}), 400
-
-    config = get_eures_matching_config()
-    if not config:
-        return jsonify({'error': 'EURES beta matching configuration is incomplete.'}), 500
-
-    headers = _eures_admin_headers(config)
-    try:
-        existing = fetch_record_by_id(config['doc_id'], EURES_MATCHINGS_TABLE, record_id, headers)
-        if not existing:
-            return jsonify({'error': 'Matching not found'}), 404
-        existing_fields = existing.get('fields', {}) if isinstance(existing.get('fields'), dict) else {}
-        now = _now_iso_utc()
-        actor = get_admin_actor(form_id)
-        update_fields = {
-            'whatsapp_candidate_consent_status': candidate_status,
-            'whatsapp_employer_consent_status': employer_status,
-            'whatsapp_alternative_channel': alternative_channel,
-            'whatsapp_group_status': group_status,
-            'whatsapp_outcome': outcome,
-            'whatsapp_notice_version': '2026-08-03',
-            'whatsapp_note': note,
-            'whatsapp_updated_at': now,
-            'whatsapp_updated_by': actor,
-        }
-        if candidate_status != str(existing_fields.get('whatsapp_candidate_consent_status') or 'not_requested'):
-            update_fields['whatsapp_candidate_consent_at'] = now
-        if employer_status != str(existing_fields.get('whatsapp_employer_consent_status') or 'not_requested'):
-            update_fields['whatsapp_employer_consent_at'] = now
-        previous_group_status = str(existing_fields.get('whatsapp_group_status') or 'not_created')
-        if group_status == 'open' and previous_group_status != 'open':
-            update_fields['whatsapp_group_opened_at'] = now
-        if group_status == 'closed' and previous_group_status != 'closed':
-            update_fields['whatsapp_group_closed_at'] = now
-
-        update_matching_record_by_id(config['doc_id'], record_id, update_fields, headers)
-        updated = fetch_record_by_id(config['doc_id'], EURES_MATCHINGS_TABLE, record_id, headers)
-        updated_fields = updated.get('fields', {}) if isinstance(updated, dict) else {}
-        return jsonify({
-            'ok': True,
-            'record_id': record_id,
-            'whatsapp': {key: updated_fields.get(key, value) for key, value in update_fields.items()},
-        }), 200
-    except Exception as e:
-        app.logger.exception('EURES WhatsApp matching trace update failed')
-        return jsonify({'error': str(e)}), 500
+def _find_eures_employer_fields_for_matching(matching_fields: dict, headers: dict) -> dict:
+    """Return employer need fields associated with one matching, when available."""
+    besoin_id = str((matching_fields or {}).get('besoin_id') or '').strip()
+    if not besoin_id:
+        return {}
+    employer_config = _get_eures_role_table_config('employer')
+    if not employer_config:
+        return {}
+    employer_headers = _eures_admin_headers(employer_config)
+    for rec in fetch_table_records(employer_config['doc_id'], EURES_BESOINS_TABLE, employer_headers):
+        fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
+        if str(fields.get('id_tally') or fields.get('uuid') or '').strip() == besoin_id:
+            return fields
+    return {}
 
 
-@app.route('/eures-beta/matching-feedback', methods=['GET'])
+def _render_eures_whatsapp_phone_confirmation(token: str, record_id: int, matching_fields: dict, employer_fields: dict) -> Response:
+    """Render the employer phone confirmation page before recording WhatsApp consent."""
+    current_phone = _normalize_phone(
+        (matching_fields or {}).get('employer_whatsapp_phone')
+        or (employer_fields or {}).get('telephone')
+    )
+    employer_name = str((employer_fields or {}).get('employeur') or 'votre structure')
+    contact_name = str((employer_fields or {}).get('contact') or '').strip()
+    poste = str((employer_fields or {}).get('poste') or 'le poste proposé')
+    phone_required_note = (
+        "Le numéro est prérempli avec celui déjà renseigné dans le questionnaire employeur. Vérifiez-le avant de confirmer."
+        if current_phone
+        else "Aucun numéro exploitable n’est encore renseigné. Merci d’indiquer le numéro WhatsApp à utiliser pour ce matching."
+    )
+    html = f"""<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Match Europe - Confirmation WhatsApp</title>
+  </head>
+  <body style="margin:0;background:#f4efe6;font-family:Georgia,'Times New Roman',serif;color:#1f1f1f;">
+    <div style="max-width:760px;margin:32px auto;padding:0 16px;">
+      <div style="background:#fffdf9;border:1px solid #e7dcc7;border-radius:18px;overflow:hidden;">
+        <div style="padding:28px 32px;background:linear-gradient(135deg,#103a2b 0%,#1f5a45 100%);color:#fff;">
+          <div style="font-size:13px;letter-spacing:1.4px;text-transform:uppercase;opacity:0.82;">Match Europe</div>
+          <h1 style="margin:10px 0 0;font-size:30px;line-height:1.2;">Confirmer la mise en relation WhatsApp</h1>
+        </div>
+        <form method="post" style="padding:28px 32px;">
+          <input type="hidden" name="token" value="{escape(token)}">
+          <p style="margin:0 0 16px;font-size:17px;line-height:1.7;">
+            Vous acceptez d’être mis en relation via WhatsApp pour le matching concernant
+            <strong>{escape(poste)}</strong> chez <strong>{escape(employer_name)}</strong>.
+          </p>
+          {f'<p style="margin:0 0 16px;font-size:15px;line-height:1.7;">Contact : <strong>{escape(contact_name)}</strong></p>' if contact_name else ''}
+          <label style="display:block;margin:22px 0 8px;font-size:14px;font-weight:700;color:#103a2b;" for="employer_phone">
+            Numéro WhatsApp à utiliser
+          </label>
+          <input
+            id="employer_phone"
+            name="employer_phone"
+            type="tel"
+            required
+            value="{escape(current_phone)}"
+            placeholder="+33 6 00 00 00 00"
+            style="box-sizing:border-box;width:100%;padding:14px 16px;border:1px solid #cdbf9f;border-radius:12px;background:#fff;font-size:17px;color:#1f1f1f;"
+          >
+          <p style="margin:10px 0 22px;font-size:14px;line-height:1.6;color:#6b6256;">
+            {escape(phone_required_note)}
+          </p>
+          <div style="background:#f8f4ec;border:1px solid #eadfcb;border-radius:14px;padding:16px 18px;margin:0 0 22px;">
+            <p style="margin:0;font-size:14px;line-height:1.6;color:#4b4236;">
+              En confirmant, votre numéro pourra être visible par le candidat dans le groupe WhatsApp créé pour cette mise en relation.
+              Si vous préférez ne pas utiliser WhatsApp, revenez à l’email reçu et choisissez l’option de refus.
+            </p>
+          </div>
+          <button type="submit" style="display:inline-block;padding:13px 20px;border:0;border-radius:999px;background:#f2c04c;color:#173a2a;font-size:15px;font-weight:700;cursor:pointer;">
+            Confirmer WhatsApp
+          </button>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>"""
+    return Response(html, status=200, mimetype='text/html')
+
+
+@app.route('/eures-beta/matching-feedback', methods=['GET', 'POST'])
 def eures_matching_feedback():
     """Record employer feedback from email CTA links."""
     if should_proxy_eures_public_request('eures-beta'):
         return proxy_eures_public_request(request.path)
-    token = str(request.args.get('token') or '').strip()
+    token = str((request.form.get('token') if request.method == 'POST' else request.args.get('token')) or '').strip()
     if not token:
         return Response('Lien invalide : token manquant.', status=400, mimetype='text/plain')
 
@@ -9281,7 +11301,9 @@ def eures_matching_feedback():
 
     record_id = int(payload.get('record_id') or 0)
     response_code = str(payload.get('response') or '').strip().lower()
-    if not record_id or response_code not in {'contact', 'not_contact'}:
+    if response_code == 'contact':
+        response_code = 'contact_whatsapp'
+    if not record_id or response_code not in {'contact_whatsapp', 'contact_no_whatsapp', 'not_contact'}:
         return Response('Lien invalide : données incomplètes.', status=400, mimetype='text/plain')
 
     config = get_eures_matching_config()
@@ -9289,11 +11311,44 @@ def eures_matching_feedback():
         return Response('Configuration EURES incomplète.', status=500, mimetype='text/plain')
 
     headers = _eures_admin_headers(config)
-    response_label = 'je vais le contacter' if response_code == 'contact' else 'je ne vais pas le contacter'
+    response_label = {
+        'contact_whatsapp': 'j’accepte la mise en relation via WhatsApp',
+        'contact_no_whatsapp': 'je suis intéressé mais sans WhatsApp',
+        'not_contact': 'je ne vais pas le contacter',
+    }[response_code]
+
+    if response_code == 'contact_whatsapp' and request.method == 'GET':
+        try:
+            matching_record = fetch_record_by_id(config['doc_id'], EURES_MATCHINGS_TABLE, record_id, headers)
+            matching_fields = matching_record.get('fields', {}) if isinstance(matching_record, dict) else {}
+            employer_fields = _find_eures_employer_fields_for_matching(matching_fields, headers)
+            return _render_eures_whatsapp_phone_confirmation(token, record_id, matching_fields, employer_fields)
+        except Exception as e:
+            app.logger.exception('EURES employer WhatsApp confirmation page failed')
+            return Response(f'Erreur lors de la préparation de la confirmation WhatsApp : {e}', status=500, mimetype='text/plain')
+
     update_fields = _matching_workflow_update_fields(
-        'accepte_employeur' if response_code == 'contact' else 'refuse_employeur',
+        'accepte_employeur' if response_code in {'contact_whatsapp', 'contact_no_whatsapp'} else 'refuse_employeur',
         'employer_email_link',
     )
+    if response_code == 'contact_whatsapp':
+        employer_phone = _normalize_phone(request.form.get('employer_phone'))
+        if not employer_phone:
+            return Response('Le numéro WhatsApp est obligatoire pour confirmer cette option.', status=400, mimetype='text/plain')
+        now = datetime.now(timezone.utc).isoformat()
+        update_fields.update({
+            'employer_whatsapp_consent': 'yes',
+            'employer_whatsapp_phone': employer_phone,
+            'employer_whatsapp_confirmed_at': now,
+        })
+    elif response_code == 'contact_no_whatsapp':
+        update_fields.update({
+            'employer_whatsapp_consent': 'no',
+        })
+    else:
+        update_fields.update({
+            'employer_whatsapp_consent': 'no',
+        })
 
     try:
         update_matching_record_by_id(config['doc_id'], record_id, update_fields, headers)
@@ -9333,7 +11388,7 @@ def eures_matching_feedback():
         </div>
       </div>
     </div>
-    </body>
+  </body>
 </html>"""
     return Response(html, status=200, mimetype='text/html')
 
@@ -9344,6 +11399,49 @@ def admin_eures_tracking_metadata(form_id: str):
     if form_id != 'eures-beta':
         return jsonify({'error': f'Unknown tracking admin form: {form_id}'}), 404
     return jsonify({'ok': True, 'metadata': tracking_metadata()})
+
+
+@app.route('/api/forms/<form_id>/admin/documentation/documents', methods=['GET', 'POST'])
+@admin_required
+def admin_eures_documentation_documents(form_id: str):
+    if form_id != 'eures-beta':
+        return jsonify({'error': f'Unknown documentation admin form: {form_id}'}), 404
+    actor = get_admin_actor(form_id, fallback='admin')
+    try:
+        if request.method == 'GET':
+            return jsonify({
+                'ok': True,
+                'documents': list_documentation_documents(),
+                'categories': list(EURES_DOCUMENTATION_CATEGORIES),
+                'statuses': list(EURES_DOCUMENTATION_STATUSES),
+            })
+        result = save_documentation_document(request.get_json(silent=True) or {}, actor=actor)
+        return jsonify(result), (200 if result.get('ok') else (409 if result.get('conflict') else 400))
+    except Exception as exc:
+        app.logger.exception('EURES project documentation failed')
+        return jsonify({'error': str(exc)}), 500
+
+
+@app.route('/api/forms/<form_id>/admin/documentation/documents/<int:record_id>', methods=['GET', 'PATCH'])
+@admin_required
+def admin_eures_documentation_document(form_id: str, record_id: int):
+    if form_id != 'eures-beta':
+        return jsonify({'error': f'Unknown documentation admin form: {form_id}'}), 404
+    actor = get_admin_actor(form_id, fallback='admin')
+    try:
+        config, headers = _documentation_table_ready()
+        record = fetch_record_by_id(config['doc_id'], config['table_id'], record_id, headers)
+        if not record:
+            return jsonify({'error': 'Page documentaire introuvable.'}), 404
+        if request.method == 'GET':
+            return jsonify({'ok': True, 'document': _documentation_document_from_record(record)})
+        payload = request.get_json(silent=True) or {}
+        payload['record_id'] = record_id
+        result = save_documentation_document(payload, actor=actor)
+        return jsonify(result), (200 if result.get('ok') else (409 if result.get('conflict') else 400))
+    except Exception as exc:
+        app.logger.exception('EURES project documentation document failed')
+        return jsonify({'error': str(exc)}), 500
 
 
 @app.route('/api/forms/<form_id>/admin/tracking/cards', methods=['GET', 'POST'])
@@ -9511,6 +11609,251 @@ def public_stats(form_id: str):
         return jsonify({'error': str(e)}), 500
 
 
+def _clean_visit_analytics_value(value, max_len: int = 160) -> str:
+    cleaned = re.sub(r'\s+', ' ', str(value or '')).strip()
+    return cleaned[:max_len]
+
+
+def _visit_analytics_referrer_host(value) -> str:
+    raw = _clean_visit_analytics_value(value, 300)
+    if not raw:
+        return ''
+    try:
+        parsed = urlparse(raw)
+        return _clean_visit_analytics_value(parsed.netloc or '', 120)
+    except Exception:
+        return ''
+
+
+def _eures_visit_analytics_event_fields(event_type: str, payload: dict | None = None) -> dict | None:
+    event_type = _clean_visit_analytics_value(event_type, 60)
+    if event_type not in EURES_VISIT_ANALYTICS_EVENT_TYPES:
+        return None
+    payload = payload if isinstance(payload, dict) else {}
+    fields = {
+        'event_id': secrets.token_urlsafe(12),
+        'event_type': event_type,
+        'occurred_at': _now_iso_utc(),
+        'form_id': 'eures-beta',
+        'page': _clean_visit_analytics_value(payload.get('page'), 120),
+        'path': _clean_visit_analytics_value(payload.get('path'), 220),
+        'lang': _clean_visit_analytics_value(payload.get('lang'), 12),
+        'source': _clean_visit_analytics_value(payload.get('source'), 80),
+        'medium': _clean_visit_analytics_value(payload.get('medium'), 80),
+        'campaign': _clean_visit_analytics_value(payload.get('campaign'), 120),
+        'content': _clean_visit_analytics_value(payload.get('content'), 120),
+        'term': _clean_visit_analytics_value(payload.get('term'), 120),
+        'target': _clean_visit_analytics_value(payload.get('target'), 220),
+        'role': _clean_visit_analytics_value(payload.get('role'), 40),
+        'session_id': _clean_visit_analytics_value(payload.get('session_id'), 80),
+        'referrer_host': _visit_analytics_referrer_host(payload.get('referrer')),
+        'metadata_json': '',
+    }
+    metadata = payload.get('metadata') if isinstance(payload.get('metadata'), dict) else {}
+    if metadata:
+        clean_metadata = {
+            _clean_visit_analytics_value(key, 50): _clean_visit_analytics_value(value, 180)
+            for key, value in metadata.items()
+            if _clean_visit_analytics_value(key, 50)
+        }
+        fields['metadata_json'] = json.dumps(clean_metadata, ensure_ascii=False, separators=(',', ':'))
+    return fields
+
+
+def _write_eures_visit_analytics_fallback(event: dict) -> bool:
+    try:
+        EURES_VISIT_ANALYTICS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with _EURES_VISIT_ANALYTICS_LOCK:
+            with EURES_VISIT_ANALYTICS_FILE.open('a', encoding='utf-8') as handle:
+                handle.write(json.dumps(event, ensure_ascii=False, separators=(',', ':')) + '\n')
+        return True
+    except Exception:
+        app.logger.exception('EURES visit analytics fallback write failed')
+        return False
+
+
+def _record_eures_visit_analytics_event(event_type: str, payload: dict | None = None) -> dict:
+    """Store a minimal, non-identifying Match Europe visit event.
+
+    This intentionally avoids storing IP addresses, full user agents or form answers.
+    Grist is the durable target; a temporary file is kept as fallback.
+    """
+    if not EURES_VISIT_ANALYTICS_ENABLED:
+        return {'ok': True, 'stored': False, 'reason': 'disabled'}
+    fields = _eures_visit_analytics_event_fields(event_type, payload)
+    if not fields:
+        return {'ok': False, 'stored': False, 'reason': 'unsupported_event_type'}
+
+    config = get_eures_visit_analytics_config()
+    if config and config.get('doc_id') and config.get('api_key'):
+        try:
+            headers = _tracking_admin_headers(config)
+            _ensure_grist_table(config, headers, EURES_VISIT_ANALYTICS_TABLE_COLUMNS)
+            url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}/records"
+            resp = write_grist_records('POST', url, {'records': [{'fields': fields}]}, headers)
+            if resp.status_code == 200:
+                return {'ok': True, 'stored': True, 'storage': 'grist', 'event_id': fields['event_id']}
+            app.logger.warning('EURES visit analytics Grist write failed: HTTP %s - %s', resp.status_code, resp.text)
+        except Exception:
+            app.logger.exception('EURES visit analytics Grist write failed')
+
+    fallback_ok = _write_eures_visit_analytics_fallback(fields)
+    if fallback_ok:
+        return {'ok': True, 'stored': True, 'storage': 'temporary_file', 'event_id': fields['event_id'], 'warning': 'grist_unavailable'}
+    return {'ok': False, 'stored': False, 'reason': 'storage_unavailable'}
+
+
+def _read_eures_visit_analytics_events_from_grist(days: int = 30, limit: int = 50000) -> list[dict]:
+    config = get_eures_visit_analytics_config()
+    if not config or not config.get('doc_id') or not config.get('api_key'):
+        return []
+    try:
+        headers = _tracking_admin_headers(config)
+        _ensure_grist_table(config, headers, EURES_VISIT_ANALYTICS_TABLE_COLUMNS)
+        url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}/records"
+        resp = requests.get(url, headers=headers, params={'limit': str(limit)})
+        if resp.status_code != 200:
+            app.logger.warning('EURES visit analytics Grist read failed: HTTP %s - %s', resp.status_code, resp.text)
+            return []
+        records = resp.json().get('records', [])
+    except Exception:
+        app.logger.exception('EURES visit analytics Grist read failed')
+        return []
+
+    if days <= 0:
+        days = 30
+    since = datetime.now(timezone.utc) - timedelta(days=min(days, 365))
+    events: list[dict] = []
+    for rec in records:
+        fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
+        if not isinstance(fields, dict):
+            continue
+        occurred_raw = str(fields.get('occurred_at') or '')
+        try:
+            occurred = datetime.fromisoformat(occurred_raw.replace('Z', '+00:00'))
+        except Exception:
+            occurred = None
+        if occurred and occurred < since:
+            continue
+        events.append(fields)
+    return events
+
+
+def _read_eures_visit_analytics_events_from_file(days: int = 30, limit: int = 50000) -> list[dict]:
+    if days <= 0:
+        days = 30
+    since = datetime.now(timezone.utc) - timedelta(days=min(days, 365))
+    if not EURES_VISIT_ANALYTICS_FILE.exists():
+        return []
+    events: list[dict] = []
+    try:
+        with EURES_VISIT_ANALYTICS_FILE.open('r', encoding='utf-8') as handle:
+            lines = handle.readlines()[-limit:]
+    except Exception:
+        return []
+    for line in lines:
+        try:
+            event = json.loads(line)
+        except Exception:
+            continue
+        if not isinstance(event, dict):
+            continue
+        occurred_raw = str(event.get('occurred_at') or '')
+        try:
+            occurred = datetime.fromisoformat(occurred_raw.replace('Z', '+00:00'))
+        except Exception:
+            occurred = None
+        if occurred and occurred < since:
+            continue
+        events.append(event)
+    return events
+
+
+def _build_eures_visit_analytics_summary(days: int = 30) -> dict:
+    events = _read_eures_visit_analytics_events_from_grist(days=days)
+    storage_kind = 'grist'
+    storage_durable = True
+    storage_warning = "Stockage durable dans Grist."
+    if not events:
+        file_events = _read_eures_visit_analytics_events_from_file(days=days)
+        if file_events:
+            events = file_events
+            storage_kind = 'temporary_file'
+            storage_durable = False
+            storage_warning = "Lecture du fallback temporaire : Grist ne contient pas encore d'événement ou est indisponible."
+    event_counts = Counter(str(event.get('event_type') or 'unknown') for event in events)
+    page_counts = Counter(str(event.get('page') or event.get('path') or 'inconnue') for event in events if event.get('event_type') == 'page_view')
+    source_counts = Counter(str(event.get('source') or event.get('referrer_host') or 'direct') for event in events if event.get('event_type') == 'page_view')
+    campaign_counts = Counter(str(event.get('campaign') or 'sans campagne') for event in events if event.get('campaign'))
+    daily = defaultdict(Counter)
+    page_breakdown = defaultdict(Counter)
+    for event in events:
+        page_key = str(event.get('page') or event.get('path') or 'inconnue')
+        page_breakdown[page_key][str(event.get('event_type') or 'unknown')] += 1
+        day = str(event.get('occurred_at') or '')[:10] or 'inconnu'
+        daily[day][str(event.get('event_type') or 'unknown')] += 1
+    return {
+        'enabled': EURES_VISIT_ANALYTICS_ENABLED,
+        'storage': {
+            'kind': storage_kind,
+            'durable': storage_durable,
+            'table': EURES_VISIT_ANALYTICS_TABLE_DEFAULT,
+            'fallback_path': str(EURES_VISIT_ANALYTICS_FILE),
+            'warning': storage_warning,
+        },
+        'days': days,
+        'total_events': len(events),
+        'events': dict(event_counts),
+        'pages': [{'page': key, 'count': value} for key, value in page_counts.most_common(20)],
+        'page_breakdown': [
+            {
+                'page': page,
+                'page_view': counter.get('page_view', 0),
+                'cta_click': counter.get('cta_click', 0),
+                'questionnaire_started': counter.get('questionnaire_started', 0),
+                'questionnaire_submitted': counter.get('questionnaire_submitted', 0),
+                'total': sum(counter.values()),
+            }
+            for page, counter in sorted(
+                page_breakdown.items(),
+                key=lambda item: (item[1].get('page_view', 0), sum(item[1].values())),
+                reverse=True,
+            )
+        ],
+        'sources': [{'source': key, 'count': value} for key, value in source_counts.most_common(20)],
+        'campaigns': [{'campaign': key, 'count': value} for key, value in campaign_counts.most_common(20)],
+        'daily': [
+            {'date': day, **dict(counter)}
+            for day, counter in sorted(daily.items())
+        ],
+    }
+
+
+@app.route('/api/forms/<form_id>/analytics/event', methods=['POST'])
+def eures_visit_analytics_event(form_id: str):
+    """Collect a minimal public Match Europe visit event."""
+    if form_id != 'eures-beta':
+        return jsonify({'error': f'Unknown analytics form: {form_id}'}), 404
+    data = request.get_json(silent=True) or {}
+    event_type = data.get('event_type')
+    result = _record_eures_visit_analytics_event(str(event_type or ''), data)
+    status = 200 if result.get('ok') else 400
+    return jsonify(result), status
+
+
+@app.route('/api/forms/<form_id>/admin/visit-analytics', methods=['GET'])
+@admin_required
+def admin_eures_visit_analytics(form_id: str):
+    """Admin summary for Match Europe public visit analytics."""
+    if form_id != 'eures-beta':
+        return jsonify({'error': f'Unknown analytics form: {form_id}'}), 404
+    try:
+        days = int(request.args.get('days') or 30)
+    except Exception:
+        days = 30
+    return jsonify(_build_eures_visit_analytics_summary(days=days)), 200
+
+
 @app.route('/health')
 def health():
     """Health check endpoint."""
@@ -9536,29 +11879,21 @@ def index():
 def serve_form(form_id: str):
     """Serve form HTML."""
     if not is_form_enabled(form_id):
-        return jsonify({'error': 'File not found'}), 404
+        return jsonify({'error': f'Unknown form: {form_id}'}), 404
     proxied = maybe_proxy_eures_request(form_id)
     if proxied:
         return proxied
     return send_from_directory(FORMS_DIR / form_id, 'index.html')
 
 
-@app.route('/forms/fagerh/questions-pdf')
-def serve_fagerh_questions_pdf():
-    """Serve the reference PDF containing FAGERH questions."""
-    return send_from_directory(
-        DOCS_DIR,
-        'fagerh_questions_completes.pdf',
-        as_attachment=True,
-        download_name='fagerh_questions_fagerh.pdf',
-    )
+
 
 
 @app.route('/forms/<form_id>/<path:filename>')
 def serve_form_file(form_id: str, filename: str):
     """Serve extra files from a form folder (e.g. UI prototypes)."""
     if not is_form_enabled(form_id):
-        return jsonify({'error': 'File not found'}), 404
+        return jsonify({'error': f'Unknown form: {form_id}'}), 404
     proxied = maybe_proxy_eures_request(form_id)
     if proxied:
         return proxied
@@ -9568,11 +11903,12 @@ def serve_form_file(form_id: str, filename: str):
     return send_from_directory(FORMS_DIR / form_id, resolved)
 
 
+
 @app.route('/admin/<form_id>/login', methods=['GET', 'POST'])
 def admin_login(form_id: str):
     """Magic-link login entrypoint for admin surfaces."""
     if not is_form_enabled(form_id):
-        return jsonify({'error': 'File not found'}), 404
+        return jsonify({'error': f'Unknown form: {form_id}'}), 404
     proxied = maybe_proxy_eures_request(form_id)
     if proxied:
         return proxied
@@ -9621,7 +11957,7 @@ def admin_login(form_id: str):
                 'email': email,
                 'jti': secrets.token_urlsafe(16),
             })
-            login_link = url_for('admin_magic_link_consume', form_id=form_id, token=token, _external=True)
+            login_link = build_admin_magic_login_link(form_id, token)
             recipient, subject, text_body, html_body = build_admin_magic_link_email(form_id, email, login_link)
             send_brevo_transactional_email(recipient, subject, text_body, html_body)
             _ADMIN_MAGIC_LINK_REQUESTS[throttle_key] = now
@@ -9640,12 +11976,13 @@ def admin_login(form_id: str):
     return _render_admin_login_page(form_id, message=generic_message)
 
 
-@app.route('/admin/<form_id>/magic-login', methods=['GET'])
+
 @app.route('/admin/<form_id>/magic', methods=['GET'])
+@app.route('/admin/<form_id>/magic-login', methods=['GET'])
 def admin_magic_link_consume(form_id: str):
     """Validate one signed admin login link and open a session."""
     if not is_form_enabled(form_id):
-        return jsonify({'error': 'File not found'}), 404
+        return jsonify({'error': f'Unknown form: {form_id}'}), 404
     proxied = maybe_proxy_eures_request(form_id)
     if proxied:
         return proxied
@@ -9687,18 +12024,27 @@ def admin_magic_link_consume(form_id: str):
         return Response('Lien deja utilise.', status=400, mimetype='text/plain')
 
     _set_admin_session(form_id, email)
-    app.logger.info(
-        'Admin magic link session opened',
-        extra={'form_id': form_id, 'email': email},
-    )
+    if form_id == 'eures-beta':
+        from eures_permissions import issue_session_version
+        version = issue_session_version(email, _eures_permission_reader())
+        if version is not None:
+            personal = dict(session[_admin_session_key(form_id)])
+            personal['Version_session'] = version
+            session[_admin_session_key(form_id)] = personal
+    else:
+        app.logger.info(
+            'Admin magic link session opened',
+            extra={'form_id': form_id, 'email': email},
+        )
     return redirect(url_for('serve_admin', form_id=form_id))
+
 
 
 @app.route('/admin/<form_id>/logout', methods=['GET', 'POST'])
 def admin_logout(form_id: str):
     """Close one admin session."""
     if not is_form_enabled(form_id):
-        return jsonify({'error': 'File not found'}), 404
+        return jsonify({'error': f'Unknown form: {form_id}'}), 404
     proxied = maybe_proxy_eures_request(form_id)
     if proxied:
         return proxied
@@ -9712,25 +12058,460 @@ def admin_logout(form_id: str):
     return redirect(url_for('admin_login', form_id=form_id))
 
 
+
 @app.route('/admin/<form_id>/')
 @app.route('/admin/<form_id>')
 @admin_required
 def serve_admin(form_id: str):
     """Serve admin dashboard HTML for a form."""
     if not is_form_enabled(form_id):
-        return jsonify({'error': 'File not found'}), 404
+        return jsonify({'error': f'Unknown form: {form_id}'}), 404
     proxied = maybe_proxy_eures_request(form_id)
     if proxied:
         return proxied
     return send_from_directory(FORMS_DIR / form_id, 'admin.html')
 
 
+
+
+
+
+
+
+
+# Initiative contacts: personally authenticated, explicitly authorized.
+EURES_NETWORK_LIST_FIELDS = (
+    "Prenom", "Nom", "Organisation", "Fonction", "Pays", "Type_contact", "Actif",
+)
+EURES_NETWORK_DETAIL_FIELDS = EURES_NETWORK_LIST_FIELDS + (
+    "Email", "Telephone", "Source_contact", "Date_premier_contact", "Introduit_par",
+    "Newsletter_statut", "Date_consentement", "Derniere_interaction", "Notes",
+    "Proprietaire_contact",
+)
+
+
+def network_required(fn):
+    @wraps(fn)
+    def guarded(*args, **kwargs):
+        form_id = kwargs.get("form_id", "")
+        if form_id != "eures-beta":
+            return jsonify({"error": "Rubrique inconnue."}), 404
+        denied = eures_permission_http_response("reseau.read")
+        if denied is not None:
+            return denied
+        proxied = maybe_proxy_eures_request(form_id)
+        if proxied is not None:
+            return proxied
+        return fn(*args, **kwargs)
+    return guarded
+
+
+@app.after_request
+def network_private_response(response):
+    if request.path.startswith(("/admin/eures-beta/reseau", "/api/forms/eures-beta/admin/reseau",
+            "/admin/eures-beta/utilisateurs", "/api/forms/eures-beta/admin/utilisateurs",
+            "/api/forms/eures-beta/admin/roles")):
+        response.headers["Cache-Control"] = "no-store, private"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+def _network_records(record_id=None):
+    config = get_form_config("eures-beta") or {}
+    if not config.get("doc_id") or not config.get("api_key"):
+        raise RuntimeError("Network configuration unavailable")
+    # Fixed table, no schema creation, updates, or joins to employer contacts.
+    doc_id = config['doc_id']
+    url = f"{GRIST_BASE_URL}/api/docs/{doc_id}/tables/Contacts_Initiative/records"
+    params = {"limit": 5001}
+    if record_id is not None:
+        params = {"filter": json.dumps({"id": [record_id]}), "limit": 1}
+    response = requests.get(url, headers=_tracking_admin_headers(config), params=params, timeout=20)
+    response.raise_for_status()
+    records = response.json()["records"]
+    if not isinstance(records, list) or len(records) > 5000:
+        raise RuntimeError("Network response invalid or too large")
+    return records
+
+
+def _network_project(record, fields):
+    values = record.get("fields", {})
+    return {"id": record["id"], **{key: values.get(key) for key in fields}}
+
+
+def _network_audit(action, target):
+    # WARNING ensures emission with the existing default production log level.
+    # Never include contact content, search terms, tokens, or upstream responses.
+    app.logger.warning("network_audit %s", json.dumps({
+        "user": _current_admin_session("eures-beta")["email"],
+        "action": action, "target": target, "timestamp": _now_iso_utc(),
+    }, ensure_ascii=True))
+
+
+@app.route("/api/forms/<form_id>/admin/reseau/access")
+@network_required
+def admin_network_access(form_id):
+    authorization = get_eures_authorization()
+    if authorization.reason == 'grist_unavailable':
+        return jsonify({'error': 'Authorization unavailable'}), 503
+    if not authorization.has_permission('reseau.read'):
+        return jsonify({'error': 'Access denied'}), 403
+    response = jsonify({"allowed": True, "can_write": authorization.has_permission('reseau.write')})
+    response.headers["Cache-Control"] = "no-store, private"
+    return response
+
+
+@app.route("/api/forms/<form_id>/admin/reseau/contacts")
+@network_required
+def admin_network_contacts(form_id):
+    try:
+        contacts = [_network_project(row, EURES_NETWORK_LIST_FIELDS) for row in _network_records()]
+        _network_audit("list", "Contacts_Initiative")
+        return jsonify({"contacts": contacts})
+    except Exception:
+        app.logger.warning("Network list unavailable")
+        return jsonify({"error": "Le réseau est indisponible. Réessayez plus tard."}), 503
+
+
+@app.route("/api/forms/<form_id>/admin/reseau/contacts/<int:record_id>")
+@network_required
+def admin_network_contact(form_id, record_id):
+    try:
+        records = _network_records(record_id)
+        record = next((row for row in records if row.get("id") == record_id), None)
+        if record is None:
+            return jsonify({"error": "Contact introuvable."}), 404
+        contact = _network_project(record, EURES_NETWORK_DETAIL_FIELDS)
+        # Resolve only this owner's label; never expose the user catalogue to readers.
+        owner = contact.get('Proprietaire_contact')
+        if owner:
+            users, _ = _eures_permission_reader()()
+            matches = [r['fields'] for r in users if r['fields'].get('Utilisateur_ID') == owner]
+            if len(matches) == 1:
+                user = matches[0]
+                contact['Proprietaire_contact_label'] = (' '.join(str(user.get(k) or '').strip()
+                    for k in ('Prenom', 'Nom')).strip() or user.get('Email') or owner)
+        _network_audit("view", f"Contacts_Initiative/{record_id}")
+        return jsonify({"contact": contact})
+    except Exception:
+        app.logger.warning("Network contact unavailable")
+        return jsonify({"error": "La fiche est indisponible. Réessayez plus tard."}), 503
+
+
+@app.route("/admin/<form_id>/reseau")
+@network_required
+def serve_admin_network(form_id):
+    return send_from_directory(BASE_DIR / "templates", "admin-reseau.html")
+
+
+def network_editor_required(fn):
+    """Both independent permissions, one fresh snapshot; never proxy mutations."""
+    @wraps(fn)
+    def guarded(*args, **kwargs):
+        from eures_permissions import resolve_authorization
+        if kwargs.get('form_id') != 'eures-beta':
+            return jsonify({'error': 'Rubrique inconnue.'}), 404
+        personal = _eures_permission_session()
+        snapshot = None
+        def reader():
+            nonlocal snapshot
+            snapshot = _eures_permission_reader()()
+            return snapshot
+        authorization = resolve_authorization(personal, reader)
+        if authorization.reason == 'grist_unavailable':
+            return jsonify({'error': 'Authorization unavailable'}), 503
+        if not all(authorization.has_permission(p) for p in ('reseau.read', 'reseau.write')):
+            return jsonify({'error': 'Access denied'}), 403
+        if request.method in ('POST', 'PATCH'):
+            token = request.headers.get('X-Network-CSRF', '')
+            expected = session.get('network_csrf', '')
+            if not token or not expected or not hmac.compare_digest(token.encode('utf-8'), expected.encode('utf-8')):
+                return jsonify({'error': 'Formulaire expiré. Rouvrez-le puis réessayez.'}), 403
+            if not request.is_json:
+                return jsonify({'error': 'Corps JSON requis.'}), 400
+            if request.content_length is None or request.content_length > 65536:
+                return jsonify({'error': 'Formulaire trop volumineux.'}), 413
+        try:
+            owners = {}
+            all_ids = set()
+            for row in snapshot[0]:
+                user = row['fields']
+                uid = user.get('Utilisateur_ID')
+                if not isinstance(uid, str) or not uid.strip() or len(uid) > 300 or uid != uid.strip() or uid in all_ids:
+                    raise ValueError('Invalid user catalogue')
+                all_ids.add(uid)
+                if user.get('Actif') is True:
+                    name = ' '.join(str(user.get(k) or '').strip() for k in ('Prenom', 'Nom')).strip()
+                    owners[uid] = name or user.get('Email') or uid
+            return fn(*args, **kwargs, owners=owners, current_user=authorization.user_id)
+        except Exception:
+            app.logger.warning('Network editor unavailable')
+            return jsonify({'error': 'Le formulaire est indisponible. Réessayez plus tard.'}), 503
+    return guarded
+
+
+def _network_write_config():
+    config = get_form_config('eures-beta') or {}
+    # This lot is for the exact EURES business document; fail closed on a wrong target.
+    if config.get('doc_id') != 'dPYCS1LhDd8Q' or not config.get('api_key'):
+        raise RuntimeError('Network configuration unavailable')
+    return config
+
+
+def _network_choices():
+    from network_editor import CHOICES, TEXT, DATES
+    config = _network_write_config()
+    response = requests.get(
+        f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/Contacts_Initiative/columns",
+        headers=_tracking_admin_headers(config), timeout=20, allow_redirects=False)
+    if response.status_code != 200:
+        raise RuntimeError('Network schema unavailable')
+    columns = {c['id']: c['fields'] for c in response.json()['columns']}
+    expected = {**{k: 'Text' for k in TEXT}, **{k: 'Date' for k in DATES},
+                **{k: 'Choice' for k in CHOICES}, 'Contact_ID': 'Text', 'Actif': 'Bool'}
+    for key, kind in expected.items():
+        column = columns[key]
+        if column.get('type') != kind or column.get('isFormula') or column.get('formula'):
+            raise RuntimeError('Network schema incompatible; no migration attempted')
+    choices = {}
+    for key in CHOICES:
+        column = columns[key]
+        options = json.loads(column.get('widgetOptions') or '{}').get('choices')
+        if (column.get('type') != 'Choice' or column.get('isFormula')
+                or not isinstance(options, list) or not options
+                or any(not isinstance(v, str) or len(v) > 300 for v in options)):
+            raise RuntimeError('Network schema incompatible')
+        choices[key] = options
+    if not {'Non sollicité', 'Accepté'}.issubset(choices['Newsletter_statut']):
+        raise RuntimeError('Newsletter choices incompatible')
+    return choices
+
+
+def _network_new_id():
+    # UUID4: 122 random bits, no personal data, stable once written. Check known
+    # collisions with a bounded retry. Grist has no atomic uniqueness constraint.
+    from uuid import uuid4
+    existing = {r.get('fields', {}).get('Contact_ID') for r in _network_records()}
+    for _ in range(5):
+        candidate = 'CI-' + str(uuid4())
+        if candidate not in existing:
+            return candidate
+    raise RuntimeError('Network identifier collision')
+
+
+def _network_write(fields, record_id=None):
+    from network_editor import FIELDS
+    if set(fields) - (FIELDS | {'Actif', 'Contact_ID'}) or (record_id is not None and 'Contact_ID' in fields):
+        raise ValueError('Forbidden fields')
+    config = _network_write_config()
+    url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/Contacts_Initiative/records"
+    record = {'fields': fields}
+    if record_id is not None:
+        record['id'] = record_id
+    response = (requests.post if record_id is None else requests.patch)(
+        url, headers=_tracking_admin_headers(config), json={'records': [record]},
+        timeout=20, allow_redirects=False)
+    if response.status_code not in (200, 201):
+        raise RuntimeError('Network write unavailable')
+
+
+def _network_mutation_audit(action, record_id, fields):
+    # Only field names and application-generated target IDs, never contact values.
+    app.logger.warning('network_audit %s', json.dumps({
+        'user': _current_admin_session('eures-beta')['email'],
+        'action': action, 'target': f'Contacts_Initiative/{record_id}',
+        'timestamp': _now_iso_utc(), 'fields': sorted(fields),
+    }, ensure_ascii=True))
+
+
+@app.route('/api/forms/<form_id>/admin/reseau/editor')
+@network_editor_required
+def admin_network_editor(form_id, owners, current_user):
+    if not session.get('network_csrf'):
+        session['network_csrf'] = secrets.token_urlsafe(32)
+    return jsonify(choices=_network_choices(), owners=[{'id': k, 'label': v} for k, v in owners.items()],
+                   default_owner=current_user, csrf=session['network_csrf'])
+
+
+@app.route('/api/forms/<form_id>/admin/reseau/contacts', methods=['POST'])
+@app.route('/api/forms/<form_id>/admin/reseau/contacts/<int:record_id>', methods=['PATCH'])
+@network_editor_required
+def admin_network_save(form_id, owners, current_user, record_id=None):
+    from network_editor import validate
+    existing = None
+    if record_id is not None:
+        row = next((r for r in _network_records(record_id) if r.get('id') == record_id), None)
+        if row is None:
+            return jsonify({'error': 'Contact introuvable.'}), 404
+        existing = row['fields']
+    choices = _network_choices()
+    try:
+        fields = validate(request.get_json(silent=True), choices, owners, current_user, existing)
+    except ValueError as error:
+        return jsonify({'error': str(error)}), 400
+    if record_id is None:
+        fields['Contact_ID'] = _network_new_id()
+    if fields:
+        _network_write(fields, record_id)
+        audit_target = fields['Contact_ID'] if record_id is None else existing['Contact_ID']
+        _network_mutation_audit('create' if record_id is None else 'update',
+                                audit_target, fields)
+    return jsonify({'saved': True}), 201 if record_id is None else 200
+
+
+# Administration des utilisateurs: session personnelle versionnee et permission explicite.
+def _admin_users_directory():
+    from eures_admin_users import GristAdminDirectory
+    return GristAdminDirectory(
+        lambda: get_form_config('eures-beta', 'candidate') or get_form_config('eures-beta'),
+        lambda: GRIST_BASE_URL,
+    )
+
+
+def _admin_users_csrf_token():
+    key = 'admin_users_csrf:eures-beta'
+    token = session.get(key)
+    if not isinstance(token, str) or len(token) < 32:
+        token = secrets.token_urlsafe(32)
+        session[key] = token
+        session.modified = True
+    return token
+
+
+def _admin_users_csrf_valid():
+    expected = session.get('admin_users_csrf:eures-beta')
+    provided = request.headers.get('X-CSRF-Token', '')
+    return (isinstance(expected, str) and isinstance(provided, str) and bool(expected)
+            and hmac.compare_digest(expected.encode('utf-8'), provided.encode('utf-8')))
+
+
+def admin_users_required(fn):
+    @wraps(fn)
+    def guarded(*args, **kwargs):
+        form_id = kwargs.get('form_id', '')
+        if form_id != 'eures-beta':
+            return jsonify({'error': 'Rubrique inconnue.'}), 404
+        # Deliberately bypass admin_required and the generic proxy: neither Basic/hybrid
+        # fallback nor another application can grant this fixed-document capability.
+        denied = _require_admin_magic_link_auth(form_id)
+        if denied is not None:
+            return denied
+        from eures_permissions import PermissionDenied
+        try:
+            g.eures_authorization = require_permission('admin.users')
+        except PermissionDenied as error:
+            unavailable = str(error) == 'grist_unavailable'
+            return jsonify({'error': 'Authorization unavailable' if unavailable
+                            else 'Access denied'}), 503 if unavailable else 403
+        return fn(*args, **kwargs)
+    return guarded
+
+
+def _admin_users_error(error):
+    from eures_admin_users import ConflictError, DirectoryUnavailable, ValidationError
+    if isinstance(error, ValidationError):
+        return jsonify({'error': error.code, 'field': error.field}), 404 if error.code == 'not_found' else 400
+    if isinstance(error, ConflictError):
+        return jsonify({'error': str(error)}), 409
+    if isinstance(error, DirectoryUnavailable):
+        return jsonify({'error': 'administration_unavailable'}), 503
+    return jsonify({'error': 'administration_unavailable'}), 503
+
+
+def _admin_users_audit(action, target_user_id, changed_fields=()):
+    identity = _current_admin_session('eures-beta') or {}
+    # Target values, tokens, credentials and upstream responses are excluded.
+    app.logger.warning('admin_users_audit %s', json.dumps({
+        'actor_user_id': g.eures_authorization.user_id,
+        'actor_email': identity.get('email', ''),
+        'action': action,
+        'target_user_id': target_user_id,
+        'changed_fields': sorted(changed_fields),
+        'timestamp': _now_iso_utc(),
+    }, ensure_ascii=True))
+
+
+@app.route('/api/forms/<form_id>/admin/utilisateurs/access')
+@admin_users_required
+def admin_users_access(form_id):
+    return jsonify({'allowed': True, 'csrf_token': _admin_users_csrf_token()})
+
+
+@app.route('/api/forms/<form_id>/admin/utilisateurs', methods=['GET', 'POST'])
+@admin_users_required
+def admin_users_collection(form_id):
+    from eures_admin_users import new_user_fields, public_user, role_map
+    directory = _admin_users_directory()
+    try:
+        users, roles = directory.read()
+        roles_by_code = role_map(roles)
+        if request.method == 'GET':
+            return jsonify({'users': [public_user(record, roles_by_code) for record in users]})
+        if not _admin_users_csrf_valid():
+            return jsonify({'error': 'csrf_failed'}), 403
+        fields = new_user_fields(request.get_json(silent=True), users, roles)
+        created = directory.create_user(fields)
+        _admin_users_audit('create', fields['Utilisateur_ID'], fields.keys())
+        return jsonify({'user': public_user(created, roles_by_code)}), 201
+    except Exception as error:
+        app.logger.warning('Admin users operation unavailable', extra={'operation': request.method})
+        return _admin_users_error(error)
+
+
+@app.route('/api/forms/<form_id>/admin/utilisateurs/<int:record_id>', methods=['GET', 'PATCH'])
+@admin_users_required
+def admin_user_detail(form_id, record_id):
+    from eures_admin_users import ValidationError, plan_update, public_user, role_map
+    directory = _admin_users_directory()
+    try:
+        users, roles = directory.read()
+        roles_by_code = role_map(roles)
+        current = next((record for record in users if record['id'] == record_id), None)
+        if current is None:
+            raise ValidationError('not_found')
+        if request.method == 'GET':
+            return jsonify({'user': public_user(current, roles_by_code)})
+        if not _admin_users_csrf_valid():
+            return jsonify({'error': 'csrf_failed'}), 403
+        current, changes, actions = plan_update(
+            request.get_json(silent=True), users, roles, record_id,
+            g.eures_authorization.user_id,
+        )
+        if changes:
+            directory.update_user(record_id, changes)
+            for action in actions:
+                _admin_users_audit(action, current['fields'].get('Utilisateur_ID'), changes.keys())
+        merged = {'id': current['id'], 'fields': {**current['fields'], **changes}}
+        return jsonify({'user': public_user(merged, roles_by_code)})
+    except Exception as error:
+        app.logger.warning('Admin user detail unavailable', extra={'operation': request.method})
+        return _admin_users_error(error)
+
+
+@app.route('/api/forms/<form_id>/admin/roles', methods=['GET'])
+@admin_users_required
+def admin_roles_collection(form_id):
+    from eures_admin_users import public_role
+    try:
+        _users, roles = _admin_users_directory().read()
+        return jsonify({'roles': [public_role(record) for record in roles]})
+    except Exception as error:
+        app.logger.warning('Admin roles unavailable')
+        return _admin_users_error(error)
+
+
+@app.route('/admin/<form_id>/utilisateurs')
+@admin_users_required
+def serve_admin_users(form_id):
+    return send_from_directory(BASE_DIR / 'templates', 'admin-utilisateurs.html')
+
 @app.route('/admin/<form_id>/suivi')
 @admin_required
 def serve_admin_tracking(form_id: str):
     """Serve the project tracking admin page for a form."""
     if not is_form_enabled(form_id):
-        return jsonify({'error': 'File not found'}), 404
+        return jsonify({'error': f'Unknown form: {form_id}'}), 404
     proxied = maybe_proxy_eures_request(form_id)
     if proxied:
         return proxied
@@ -9739,18 +12520,52 @@ def serve_admin_tracking(form_id: str):
     return send_from_directory(FORMS_DIR / form_id, 'admin-suivi.html')
 
 
+
+@app.route('/admin/<form_id>/documentation')
+@admin_required
+def serve_admin_documentation(form_id: str):
+    """Serve the lightweight project documentation workspace."""
+    proxied = maybe_proxy_eures_request(form_id)
+    if proxied:
+        return proxied
+    if form_id != 'eures-beta':
+        return jsonify({'error': f'Unknown documentation admin form: {form_id}'}), 404
+    return send_from_directory(FORMS_DIR / form_id, 'admin-documentation.html')
+
+
+@app.route('/admin/<form_id>/documentation/files/<document_key>')
+@admin_required
+def serve_admin_documentation_file(form_id: str, document_key: str):
+    """Serve allow-listed project files only to authenticated EURES admins."""
+    proxied = maybe_proxy_eures_request(form_id)
+    if proxied:
+        return proxied
+    if form_id != 'eures-beta':
+        return jsonify({'error': f'Unknown documentation admin form: {form_id}'}), 404
+    document = EURES_PRIVATE_DOCUMENTS.get(document_key)
+    if not document:
+        return jsonify({'error': 'Document privé introuvable.'}), 404
+    filename, mimetype = document
+    document_path = PRIVATE_DOCUMENTS_DIR / form_id / filename
+    if not document_path.is_file():
+        return jsonify({'error': 'Document privé indisponible.'}), 404
+    return send_file(
+        document_path,
+        mimetype=mimetype,
+        as_attachment=False,
+        download_name=filename,
+        conditional=True,
+    )
+
+
 @app.route('/assets/<path:filename>')
 def serve_assets(filename: str):
     """Serve static assets (JS, CSS)."""
     return send_from_directory(ASSETS_DIR, filename)
 
-if fagerh_suivi_app is not None:
-    app.wsgi_app = DispatcherMiddleware(
-        app.wsgi_app,
-        {
-            '/forms/fagerh/saisie-quotidienne': fagerh_suivi_app,
-        },
-    )
+
+
+
 
 
 if __name__ == '__main__':

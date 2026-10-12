@@ -6,6 +6,11 @@
   <title>EURES beta - Suivi projet</title>
   <link rel="stylesheet" href="/forms/eures-beta/site.css">
   <style>
+    body {
+      font-family: Marianne, Arial, sans-serif;
+      font-weight: 400;
+    }
+
     .admin-shell {
       width: min(1380px, calc(100% - 2rem));
       margin: 0 auto;
@@ -70,6 +75,7 @@
     .head-actions a,
     .lang-switch button,
     .toolbar button,
+    .composer-actions button,
     .drawer-actions button,
     .comment-form button,
     .ai-actions button {
@@ -80,7 +86,7 @@
       color: var(--text);
       padding: 0.75rem 1rem;
       font: inherit;
-      font-weight: 700;
+      font-weight: 600;
       cursor: pointer;
       text-decoration: none;
       transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
@@ -88,6 +94,7 @@
 
     .lang-switch button.is-active,
     .toolbar button.primary,
+    .composer-actions button.primary,
     .drawer-actions button.primary,
     .comment-form button.primary,
     .ai-actions button.primary {
@@ -99,6 +106,7 @@
     .head-actions a:hover,
     .lang-switch button:hover,
     .toolbar button:hover,
+    .composer-actions button:hover,
     .drawer-actions button:hover,
     .comment-form button:hover,
     .ai-actions button:hover {
@@ -167,6 +175,7 @@
       color: var(--text);
       padding: 0.8rem 1rem;
       font: inherit;
+      font-weight: 400;
     }
 
     .composer {
@@ -207,7 +216,7 @@
       background: transparent;
       color: var(--muted);
       font-size: 0.85rem;
-      font-weight: 700;
+      font-weight: 500;
     }
 
     .toolbar-actions {
@@ -301,6 +310,7 @@
       font-size: 0.98rem;
       line-height: 1.18;
       color: var(--accent-strong);
+      font-weight: 600;
       display: -webkit-box;
       -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
@@ -333,7 +343,7 @@
       border: 1px solid var(--line);
       background: rgba(255, 255, 255, 0.86);
       font-size: 0.72rem;
-      font-weight: 700;
+      font-weight: 500;
       line-height: 1.1;
     }
 
@@ -404,7 +414,7 @@
       gap: 0.45rem;
       color: var(--muted);
       font-size: 0.92rem;
-      font-weight: 700;
+      font-weight: 500;
     }
 
     textarea {
@@ -581,6 +591,7 @@
           <p id="page-lede">Un kanban embarqué dans l’admin EURES pour suivre les sujets, les arbitrages, les blocages et les décisions sans sortir du projet.</p>
         </div>
         <div class="head-actions">
+          <a href="/admin/eures-beta/documentation">Documentation</a>
           <a id="back-admin-link" href="/admin/eures-beta/">Retour à l’admin EURES</a>
           <a id="logout-link" href="/admin/eures-beta/logout">Se déconnecter</a>
         </div>
@@ -848,6 +859,7 @@
         archivedBadge: "Archivée",
         detailId: "ID",
         detailReference: "Référence dev",
+        detailDocumentation: "Documentation liée",
         detailStatus: "Statut",
         detailPriority: "Priorité",
         detailSize: "Taille",
@@ -966,6 +978,7 @@
         archivedBadge: "Archived",
         detailId: "ID",
         detailReference: "Dev reference",
+        detailDocumentation: "Linked documentation",
         detailStatus: "Status",
         detailPriority: "Priority",
         detailSize: "Size",
@@ -1084,6 +1097,7 @@
         archivedBadge: "Archiviert",
         detailId: "ID",
         detailReference: "Dev-Referenz",
+        detailDocumentation: "Verknupfte Dokumentation",
         detailStatus: "Status",
         detailPriority: "Prioritat",
         detailSize: "Umfang",
@@ -1589,6 +1603,7 @@
       document.getElementById("detail-list").innerHTML = `
         <div class="detail-row"><dt>${esc(t("detailId"))}</dt><dd>${esc(card.card_id || "")}</dd></div>
         <div class="detail-row"><dt>${esc(t("detailReference"))}</dt><dd>${esc(card.reference || "")}</dd></div>
+        <div class="detail-row"><dt>${esc(t("detailDocumentation"))}</dt><dd>${card.reference ? `<a href="/admin/eures-beta/documentation?card=${encodeURIComponent(card.reference)}">${esc(card.reference)}</a>` : ""}</dd></div>
         <div class="detail-row"><dt>${esc(t("detailStatus"))}</dt><dd>${esc(labels.statuses?.[card.statut] || card.statut)}</dd></div>
         <div class="detail-row"><dt>${esc(t("detailPriority"))}</dt><dd>${esc(labels.priorities?.[card.priorite] || card.priorite)}</dd></div>
         <div class="detail-row"><dt>${esc(t("detailSize"))}</dt><dd>${esc(labels.sizes?.[card.taille_dev] || card.taille_dev)}</dd></div>
