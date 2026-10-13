@@ -63,14 +63,6 @@ Les règles suivantes constituent le fonctionnement proposé. Leur application a
 
 Éviter de coder directement sur `main`. Deux intervenants ne doivent pas modifier simultanément le même dossier de travail. Si deux branches modifient les mêmes lignes, résoudre les conflits et vérifier le résultat avant intégration.
 
-### Que signifie « être ISO » ?
-
-Une copie locale de `main` est synchronisée avec GitHub lorsque son commit est identique à celui de `main` distant et qu’elle ne contient aucun changement de travail en attente.
-
-Les branches en chantier peuvent différer : c’est normal. Les fichiers ignorés, comme `.env`, restent propres à chaque environnement.
-
-L’égalité entre GitHub et la production se vérifie séparément, en comparant le commit ou l’identifiant de version effectivement déployé. Elle ne signifie pas que les données ou les secrets sont identiques.
-
 ## Installer et lancer en local
 
 Prérequis : Git et `uv`. Le projet demande Python 3.10 minimum ; `.python-version` indique Python 3.13.
