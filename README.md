@@ -205,8 +205,12 @@ L'anti double-enregistrement repose aujourd'hui sur :
 - un garde-fou frontend
 - un verrou mémoire côté backend
 
-Avec le `Procfile` actuel (`gunicorn app:app` sans nombre de workers forcé), l'hypothèse de base est un déploiement simple compatible avec ce verrou process-local. Si `WEB_CONCURRENCY` ou un mode multi-worker est activé plus tard, il faudra durcir l'idempotence au niveau de la persistance.
+Le `Procfile` impose un seul worker synchrone et un seul thread, compatibles avec ce verrou process-local. Un mode multi-worker ou multi-instance nécessitera une idempotence persistante et un état de sécurité partagé avant son activation.
 
+
+### Worker lifetime and concurrency
+
+The Procfile explicitly runs one synchronous worker and one thread, even if `WEB_CONCURRENCY` is set. This preserves process-local locking and authentication state. Workers recycle after 1,000 requests plus up to 100 requests of jitter to bound long-lived memory growth. The default request timeout remains 30 seconds (`GUNICORN_TIMEOUT` can override it). Recycling invalidates in-memory token/throttle state; do not treat it as durable protection. Set a stable `SESSION_SECRET` in production to preserve sessions across restarts. Multi-worker/multi-instance operation requires durable idempotence, shared one-time-token/throttle state and shared session secrets first. This change does not claim to solve all request-level denial of service.
 
 ### Browser security headers
 
