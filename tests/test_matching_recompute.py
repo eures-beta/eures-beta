@@ -89,3 +89,32 @@ class MatchingJobTest(unittest.TestCase):
         self.assertNotIn(('candidate', 1), [call.args for call in self.queue.call_args_list])
         self.assertEqual(update.call_args.args[1]['matching_status'], 'matching_calcule')
         self.assertNotIn('submission_count', update.call_args.args[1])
+
+    def test_public_save_defers_matching_and_keeps_invitation_linking(self):
+        from contextlib import ExitStack
+        fields = {'id_tally': 'fictional-id', 'flow_role': 'candidate'}
+        response = Mock(status_code=200)
+        with ExitStack() as stack:
+            values = {
+                'maybe_proxy_eures_request': None,
+                'get_form_access_settings': {'read_only': False},
+                '_validate_eures_public_write_token': (True, ''),
+                '_check_eures_public_write_rate_limit': (True, 0),
+                'get_form_config': {'doc_id': 'fictional', 'table_id': 'Candidats', 'api_key': 'fictional'},
+                'ensure_table_columns': None,
+                'get_table_columns': set(fields),
+                'find_duplicate_finess': set(),
+                'write_grist_records': response,
+                'link_eures_invitation_after_save': {'linked': True},
+                '_record_eures_visit_analytics_event': None,
+            }
+            mocks = {name: stack.enter_context(patch.object(app, name, return_value=value)) for name, value in values.items()}
+            stack.enter_context(patch.object(app, 'fetch_record_by_field', side_effect=[(None, response), ({'id': 1, 'fields': fields}, response)]))
+            synchronous = stack.enter_context(patch.object(app, 'run_eures_matching_for_saved_record'))
+            result = app.app.test_client().post('/api/forms/eures-beta/record', json={'fields': fields})
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(result.json['matching'], {'processed': False, 'deferred': True})
+        self.assertTrue(result.json['invitation_linking']['linked'])
+        synchronous.assert_not_called()
+        mocks['link_eures_invitation_after_save'].assert_called_once()
+        self.queue.assert_not_called()
