@@ -84,6 +84,10 @@ uv run flask --app app.py run -p 5005
 
 L’application est accessible sur `http://localhost:5005/forms/eures-beta/`.
 
+### Taille des requêtes
+
+Le CV candidat reste limité à **3 Mio**. Le POST d’enregistrement autorise **5 Mio** de JSON pour inclure son encodage base64 et les autres réponses ; les autres endpoints conservent la limite de **2 Mio**. Un dépassement du corps HTTP renvoie 413, et un CV dépassant son plafond métier reste refusé. Cette limite par requête nécessite Flask 3.1 ou ultérieur.
+
 ### Configuration
 
 Le fichier `.env.example` fournit les premiers paramètres. Les principaux groupes sont :
