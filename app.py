@@ -13,6 +13,7 @@ Environment variables:
 
 import hmac
 import os
+import click
 import base64
 import hmac
 import hashlib
@@ -3405,7 +3406,7 @@ def get_table_columns(config: dict, headers: dict) -> set[str]:
         return set(cached.get('columns', set()))
 
     url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}/columns"
-    resp = requests.get(url, headers=headers)
+    resp = requests.get(url, headers=headers, timeout=20)
     if resp.status_code != 200:
         raise RuntimeError(f'Failed to read table columns: HTTP {resp.status_code} - {resp.text}')
     payload = resp.json()
@@ -3441,7 +3442,7 @@ def ensure_table_columns(config: dict, columns: set[str], headers: dict):
             for column_id in missing
         ]
     }
-    resp = requests.post(url, json=payload, headers=headers)
+    resp = requests.post(url, json=payload, headers=headers, timeout=20)
     if resp.status_code != 200:
         raise RuntimeError(f'Failed to create columns in {config["table_id"]}: HTTP {resp.status_code} - {resp.text}')
 
@@ -4018,6 +4019,7 @@ def write_grist_records(method: str, url: str, payload: dict, headers: dict, max
                 json=payload,
                 headers=headers,
                 allow_redirects=False,
+                timeout=20,
             )
             if not 300 <= resp.status_code < 400:
                 return resp
@@ -4507,7 +4509,7 @@ def fetch_matching_record(doc_id: str, besoin_id: str, candidat_id: str, headers
     """Read one matching by besoin_id/candidat_id pair."""
     url = f"{GRIST_BASE_URL}/api/docs/{doc_id}/tables/{EURES_MATCHINGS_TABLE}/records"
     filter_param = json.dumps({'besoin_id': [besoin_id], 'candidat_id': [candidat_id]})
-    resp = requests.get(url, params={'filter': filter_param}, headers=headers)
+    resp = requests.get(url, params={'filter': filter_param}, headers=headers, timeout=20)
     if resp.status_code != 200:
         raise RuntimeError(f'Failed to read Matchings: HTTP {resp.status_code} - {resp.text}')
     payload = _parse_response_json_safe(resp)
@@ -5071,49 +5073,6 @@ def compute_eures_matching(besoin_fields: dict, candidat_fields: dict) -> dict:
         'raisons': ' | '.join(reasons),
         'points_faibles': ' | '.join(weaknesses),
         'date_calcul': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-    }
-
-
-def recompute_eures_matchings(config: dict, headers: dict, max_pairs: int = 10000) -> dict:
-    """Recompute Matchings for every candidate/besoin pair, off the request path.
-
-    Moved out of the public save endpoint so a single anonymous submission can no longer
-    trigger an unbounded, blocking fan-out of Grist writes. Intended to run on a schedule.
-    """
-    all_candidats = fetch_table_records(config['doc_id'], EURES_CANDIDATS_TABLE, headers)
-    all_besoins = fetch_table_records(config['doc_id'], EURES_BESOINS_TABLE, headers)
-
-    writes = 0
-    truncated = False
-    for besoin in all_besoins:
-        besoin_fields = besoin.get('fields', {}) if isinstance(besoin.get('fields'), dict) else {}
-        if not _is_eures_response_active(besoin_fields):
-            continue
-        besoin_id = str(besoin_fields.get('id_tally') or besoin_fields.get('uuid') or '')
-        if not besoin_id:
-            continue
-        for candidat in all_candidats:
-            if writes >= max_pairs:
-                truncated = True
-                break
-            candidat_fields = candidat.get('fields', {}) if isinstance(candidat.get('fields'), dict) else {}
-            if not _is_eures_response_active(candidat_fields):
-                continue
-            candidat_id = str(candidat_fields.get('id_tally') or candidat_fields.get('uuid') or '')
-            if not candidat_id:
-                continue
-            matching = compute_eures_matching(besoin_fields, candidat_fields)
-            payload = {'besoin_id': besoin_id, 'candidat_id': candidat_id, **matching}
-            upsert_matching_record(config['doc_id'], payload, headers)
-            writes += 1
-        if truncated:
-            break
-
-    return {
-        'candidats': len(all_candidats),
-        'besoins': len(all_besoins),
-        'writes': writes,
-        'truncated': truncated,
     }
 
 
@@ -9229,7 +9188,7 @@ def save_record(form_id: str):
         new_job_request = None
         new_employer_alert = None
         if form_id == 'eures-beta':
-            # Matching runs through the admin recompute endpoint, never on public submission.
+            # Matching runs in the scheduled CLI job, never on public submission.
             matching_result = {'processed': False, 'deferred': True}
             if (
                 action == 'created'
@@ -11655,29 +11614,19 @@ def eures_tracking_deployment_webhook(form_id: str):
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/forms/<form_id>/admin/recompute-matchings', methods=['POST'])
-@admin_required
-def admin_recompute_matchings(form_id: str):
-    """Recompute EURES matchings out-of-band (intended for a scheduled job)."""
-    if not is_form_enabled(form_id) or form_id != 'eures-beta':
-        return jsonify({'error': f'Unknown form: {form_id}'}), 404
-    config = get_form_config(form_id, 'candidate') or get_form_config(form_id)
-    if not config:
-        return jsonify({'error': f'Unknown form: {form_id}'}), 404
-    if not config.get('api_key'):
-        return jsonify({'error': 'API key not configured for this form'}), 500
-
-    headers = {
-        'Authorization': f"Bearer {config['api_key']}",
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-    }
+@app.cli.command('recompute-eures-matchings')
+@click.option('--state-file', required=True, type=click.Path(dir_okay=False))
+@click.option('--max-pairs', default=100, type=click.IntRange(1, 1000))
+def recompute_eures_matchings_command(state_file, max_pairs):
+    """Run one resumable scheduled batch, outside HTTP workers."""
+    import click
+    import sys
+    from eures_matching_job import run_matching_batch
     try:
-        result = recompute_eures_matchings(config, headers)
+        result = run_matching_batch(sys.modules[__name__], state_file, max_pairs)
     except Exception:
-        app.logger.exception('admin_recompute_matchings failed')
-        return jsonify({'error': 'Could not recompute matchings.'}), 502
-    return jsonify({'ok': True, **result}), 200
+        raise click.ClickException('Matching batch failed; verify configuration and retry.') from None
+    click.echo(json.dumps(result))
 
 
 @app.route('/api/forms/<form_id>/public-stats', methods=['GET'])

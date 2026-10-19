@@ -206,3 +206,15 @@ L'anti double-enregistrement repose aujourd'hui sur :
 - un verrou mémoire côté backend
 
 Avec le `Procfile` actuel (`gunicorn app:app` sans nombre de workers forcé), l'hypothèse de base est un déploiement simple compatible avec ce verrou process-local. Si `WEB_CONCURRENCY` ou un mode multi-worker est activé plus tard, il faudra durcir l'idempotence au niveau de la persistance.
+
+### Scheduled matching batches
+
+Public saves return `matching: {processed: false, deferred: true}` and preserve invitation linking, alerts and analytics. Matching runs through a local operator command, not an HTTP endpoint:
+
+```sh
+flask --app app recompute-eures-matchings --state-file /var/lib/eures/matching-progress.json --max-pairs 100
+```
+
+Schedule this command at an appropriate interval (for example once per minute) with the application environment and a persistent, private state directory. This PR does not enable a real scheduler or change deployed configuration. Enable the schedule when deploying this change: otherwise matching remains deferred. Use one shared state file on one job host; its file lock rejects overlapping invocations. Multiple independent job hosts/state files are unsupported.
+
+Each invocation reads the active tables without the old 5,000-record truncation, uses 20-second read timeouts and processes at most 100 pairs by default (maximum 1,000). Atomic checkpoints resume later pairs after restart. Idempotent matching upserts may be repeated after interruption. Only a completed cycle can queue no-match human follow-up and mark linked invitation matching states; sent/dismissed notifications are not reset. If source data changed during the cycle, follow-up is deferred to the next complete stable cycle. This preserves human validation and avoids premature no-match decisions. State contains row identifiers, counts and hashes, not credentials or source personal data. Completed cycles restart on the next invocation so changed records are reconsidered.
