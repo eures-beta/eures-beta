@@ -1,0 +1,1 @@
+fetch('/api/forms/eures-beta/admin/reseau/access',{credentials:'same-origin',cache:'no-store'}).then(r=>r.ok?r.json():null).then(data=>{if(data&&data.allowed)document.getElementById('network-link').hidden=false;}).catch(()=>{});
