@@ -208,9 +208,9 @@ L'anti double-enregistrement repose aujourd'hui sur :
 Le `Procfile` impose un seul worker synchrone et un seul thread, compatibles avec ce verrou process-local. Un mode multi-worker ou multi-instance nécessitera une idempotence persistante et un état de sécurité partagé avant son activation.
 
 
-### Worker lifetime and concurrency
+### Worker timeout and concurrency
 
-The Procfile explicitly runs one synchronous worker and one thread, even if `WEB_CONCURRENCY` is set. This preserves process-local locking and authentication state. Workers recycle after 1,000 requests plus up to 100 requests of jitter to bound long-lived memory growth. The default request timeout remains 30 seconds (`GUNICORN_TIMEOUT` can override it). Recycling invalidates in-memory token/throttle state; do not treat it as durable protection. Set a stable `SESSION_SECRET` in production to preserve sessions across restarts. Multi-worker/multi-instance operation requires durable idempotence, shared one-time-token/throttle state and shared session secrets first. This change does not claim to solve all request-level denial of service.
+The Procfile explicitly runs one synchronous worker and one thread, even if `WEB_CONCURRENCY` is set. This preserves process-local locking and authentication state. Automatic request-count recycling is explicitly disabled: current one-time-token and throttle state is process-local, so predictable recycling would reset that state. The default request timeout remains 30 seconds (`GUNICORN_TIMEOUT` can override it). Worker crashes and restarts still invalidate in-memory token/throttle state; do not treat it as durable protection. Set a stable `SESSION_SECRET` in production to preserve sessions across restarts. Multi-worker/multi-instance operation requires durable idempotence, shared one-time-token/throttle state and shared session secrets first. This change does not claim to solve all request-level denial of service.
 
 ### Browser security headers
 
