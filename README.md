@@ -211,3 +211,6 @@ Avec le `Procfile` actuel (`gunicorn app:app` sans nombre de workers forcé), l'
 ### Browser security headers
 
 Admin scripts are served from same-origin files in `assets/admin/`, allowing an enforced CSP without inline-script exceptions. Test admin pages after adding scripts or external resource origins. HSTS is disabled by default; set `SECURITY_HSTS_MAX_AGE` to a non-negative number of seconds only after HTTPS is verified. It is emitted only for HTTPS requests and does not include subdomains.
+### Error responses and diagnostics
+
+Server/upstream failures use generic FR/EN/DE responses. Exception messages, tracebacks, raw upstream responses and redirect URLs are not returned to clients or copied into the affected application error logs/failure notes. Logs retain stable operation names and safe HTTP status codes. Local validation errors remain actionable. Brevo health diagnostics expose HTTP status rather than an upstream error message. Reverse-proxy/platform logging must be reviewed separately; this change does not configure external log collectors.

@@ -86,9 +86,28 @@ app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
 logger = logging.getLogger('eures_beta')
 
 
+def _safe_error_message(status: int) -> str:
+    language = request.accept_languages.best_match(['fr', 'en', 'de']) or 'fr'
+    return {
+        'fr': 'Service temporairement indisponible. Veuillez réessayer.',
+        'en': 'Service temporarily unavailable. Please try again.',
+        'de': 'Dienst vorübergehend nicht verfügbar. Bitte versuchen Sie es erneut.',
+    }[language]
+
+
 def _client_error(message: str, status: int):
-    """Return a generic client-facing error without leaking internal/upstream detail."""
-    return jsonify({'error': message}), status
+    """Messages and exception details are never reflected from upstream failures."""
+    return jsonify({'error': _safe_error_message(status)}), status
+
+
+@app.errorhandler(Exception)
+def handle_unexpected_error(error):
+    from werkzeug.exceptions import HTTPException
+    if isinstance(error, HTTPException) and (error.code or 500) < 500:
+        return error
+    # Exception messages and tracebacks may contain upstream bodies or credentials.
+    logger.error('Request failed (%s)', type(error).__name__)
+    return _client_error('', getattr(error, 'code', None) or 500)
 
 
 GRIST_BASE_URL = os.environ.get('GRIST_BASE_URL', 'https://grist.numerique.gouv.fr').rstrip('/')
@@ -1549,7 +1568,7 @@ def get_brevo_health(check_api: bool = False, timeout: int = 8) -> dict:
             payload = response.json()
         except ValueError:
             payload = {}
-        result['message'] = str(payload.get('message') or payload.get('error') or f'Brevo API returned HTTP {response.status_code}.')
+        result['message'] = f'Brevo API returned HTTP {response.status_code}.'
         result['checks'][-1] = {
             'key': 'api_reachability',
             'label': 'Connexion à l’API Brevo',
@@ -1560,12 +1579,12 @@ def get_brevo_health(check_api: bool = False, timeout: int = 8) -> dict:
     except requests.RequestException as exc:
         result['api_ok'] = False
         result['status'] = 'request_error'
-        result['message'] = str(exc)
+        result['message'] = 'Upstream service unavailable.'
         result['checks'][-1] = {
             'key': 'api_reachability',
             'label': 'Connexion à l’API Brevo',
             'status': 'error',
-            'detail': str(exc),
+            'detail': 'Upstream service unavailable.',
         }
         return result
 
@@ -1917,7 +1936,7 @@ def get_brevo_health(check_api: bool = False, timeout: int = 8) -> dict:
             payload = response.json()
         except ValueError:
             payload = {}
-        result['message'] = str(payload.get('message') or payload.get('error') or f'Brevo API returned HTTP {response.status_code}.')
+        result['message'] = f'Brevo API returned HTTP {response.status_code}.'
         result['checks'][-1] = {
             'key': 'api_reachability',
             'label': 'Connexion à l’API Brevo',
@@ -1928,12 +1947,12 @@ def get_brevo_health(check_api: bool = False, timeout: int = 8) -> dict:
     except requests.RequestException as exc:
         result['api_ok'] = False
         result['status'] = 'request_error'
-        result['message'] = str(exc)
+        result['message'] = 'Upstream service unavailable.'
         result['checks'][-1] = {
             'key': 'api_reachability',
             'label': 'Connexion à l’API Brevo',
             'status': 'error',
-            'detail': str(exc),
+            'detail': 'Upstream service unavailable.',
         }
         return result
 
@@ -2273,7 +2292,7 @@ def _validate_eures_public_write_token(role: str, token: str) -> tuple[bool, str
     except BadSignature:
         return False, 'Session du formulaire invalide. Rechargez la page avant de renvoyer.'
     except Exception:
-        app.logger.exception('EURES public write token decode failed')
+        app.logger.error('EURES public write token decode failed')
         return False, 'Impossible de vérifier la session du formulaire. Rechargez la page puis réessayez.'
 
     if str(payload.get('form_id') or '') != 'eures-beta':
@@ -3969,10 +3988,8 @@ def _parse_response_json_safe(resp):
     try:
         return resp.json()
     except Exception:
-        body = (resp.text or '').strip()
         return {
             'error': f'Upstream response is not valid JSON (HTTP {resp.status_code}).',
-            'raw': body[:500],
         }
 
 
@@ -4003,16 +4020,8 @@ def _grist_write_redirect_response(resp):
     if not 300 <= resp.status_code < 400:
         return None
 
-    source = str(getattr(resp, 'url', '') or '').strip()
-    location = str(resp.headers.get('Location') or '').strip()
-    source_part = f' Source URL: {source}.' if source else ''
-    suffix = f' Redirect target: {location}' if location else ''
-    return jsonify({
-        'error': (
-            f'Grist write endpoint redirected with HTTP {resp.status_code}. '
-            f'Check GRIST_BASE_URL in production.{source_part}{suffix}'
-        ),
-    }), 502
+    logger.error('Grist write redirect rejected: HTTP %s', resp.status_code)
+    return _client_error('', 502)
 
 
 def write_grist_records(method: str, url: str, payload: dict, headers: dict, max_redirects: int = 3):
@@ -5401,7 +5410,7 @@ def list_eures_admin_no_match_notifications(status: str = 'all') -> list[dict]:
             candidate_rows.sort(key=lambda item: (-_safe_int(item.get('score')), -int(item.get('record_id') or 0)))
             del candidate_rows[3:]
     except Exception as exc:
-        logger.warning('Unable to enrich EURES no-match rows with borderline matchings: %s', exc)
+        logger.warning('Unable to enrich EURES no-match rows with borderline matchings')
 
     for role in ('candidate', 'employer'):
         config = _get_eures_role_table_config(role)
@@ -8896,7 +8905,7 @@ def get_record(form_id: str):
             return _client_error('Could not read the record.', 502)
         return jsonify(resp.json()), 200
     except Exception:
-        logger.exception('Unhandled error while handling request')
+        logger.error('Unhandled error while handling request')
         return _client_error('Internal server error.', 500)
 
 
@@ -8914,7 +8923,7 @@ def issue_public_write_token(form_id: str):
     try:
         token = _issue_eures_public_write_token(role)
     except Exception as e:
-        return jsonify({'error': f'Unable to issue write token: {e}'}), 500
+        return _client_error('', 500)
     return jsonify({
         'ok': True,
         'role': role,
@@ -9065,8 +9074,8 @@ def create_eures_employer_referral(form_id: str):
             'message_id': str((brevo_result or {}).get('messageId') or ''),
         }), 200
     except Exception as e:
-        app.logger.exception('EURES employer referral invite failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES employer referral invite failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/record', methods=['POST'])
@@ -9130,7 +9139,7 @@ def save_record(form_id: str):
         filtered_fields = {k: v for k, v in fields.items() if str(k) in allowed_columns}
         record_key = resolve_record_key(allowed_columns)
     except Exception:
-        logger.exception('save_record: failed to fetch Grist table columns')
+        logger.error('save_record: failed to fetch Grist table columns')
         return _client_error('Could not read the form configuration.', 502)
 
     if not record_key:
@@ -9147,7 +9156,7 @@ def save_record(form_id: str):
             return _client_error('Could not verify the existing record.', 502)
         record_id = existing_record.get('id') if isinstance(existing_record, dict) else None
     except Exception:
-        logger.exception('save_record: failed to check existing record')
+        logger.error('save_record: failed to check existing record')
         return _client_error('Could not verify the existing record.', 502)
 
     # Enforce uniqueness of FINESS across records (excluding current UUID)
@@ -9161,7 +9170,7 @@ def save_record(form_id: str):
                 'duplicates': duplicates_sorted,
             }), 409
     except Exception:
-        logger.exception('save_record: failed to validate FINESS uniqueness')
+        logger.error('save_record: failed to validate FINESS uniqueness')
         return _client_error('Could not validate the submission.', 500)
 
     # Create or update, then re-read the UUID so callers never get a false success.
@@ -9289,7 +9298,7 @@ def save_record(form_id: str):
                     },
                 })
             except Exception:
-                app.logger.exception('EURES questionnaire submission analytics failed')
+                app.logger.error('EURES questionnaire submission analytics failed')
 
         return jsonify({
             'ok': True,
@@ -9304,7 +9313,7 @@ def save_record(form_id: str):
             'invitation_linking': invitation_linking,
         }), 200
     except Exception:
-        logger.exception('Unhandled error while handling request')
+        logger.error('Unhandled error while handling request')
         return _client_error('Internal server error.', 500)
 
 
@@ -9320,7 +9329,7 @@ def export_readable_xlsx(form_id: str):
     try:
         xlsx = build_readable_xlsx(data)
     except Exception:
-        logger.exception('export_readable_xlsx: failed to build workbook')
+        logger.error('export_readable_xlsx: failed to build workbook')
         return _client_error('Could not build the export.', 500)
 
     uuid = str(data.get('uuid') or (data.get('fields') or {}).get('uuid') or 'saisie').strip() or 'saisie'
@@ -9367,7 +9376,7 @@ def check_finess(form_id: str):
             'has_duplicates': len(duplicates) > 0,
         }), 200
     except Exception:
-        logger.exception('Unhandled error while handling request')
+        logger.error('Unhandled error while handling request')
         return _client_error('Internal server error.', 500)
 
 
@@ -9452,7 +9461,7 @@ def recover_by_email(form_id: str):
             'match_on': 'email+finess' if finess else 'email',
         }), 200
     except Exception:
-        logger.exception('Unhandled error while handling request')
+        logger.error('Unhandled error while handling request')
         return _client_error('Internal server error.', 500)
 
 
@@ -9477,7 +9486,7 @@ def admin_overview(form_id: str):
     try:
         records = fetch_all_records(config, headers)
     except Exception:
-        logger.exception('Unhandled error while handling request')
+        logger.error('Unhandled error while handling request')
         return _client_error('Internal server error.', 500)
 
     rows = []
@@ -9594,8 +9603,8 @@ def admin_eures_invitations(form_id: str):
             'rows': rows,
         }), 200
     except Exception as e:
-        app.logger.exception('EURES invitations list failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES invitations list failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/invitations/import', methods=['POST'])
@@ -9618,8 +9627,8 @@ def admin_eures_invitations_import(form_id: str):
         result = upsert_eures_invitation_rows(rows, actor=actor)
         return jsonify(result), 200
     except Exception as e:
-        app.logger.exception('EURES invitations import failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES invitations import failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/invitations/<int:record_id>', methods=['PATCH'])
@@ -9705,8 +9714,8 @@ def admin_eures_invitation_update(form_id: str, record_id: int):
             'fields': updated.get('fields', {}) if isinstance(updated, dict) else {},
         }), 200
     except Exception as e:
-        app.logger.exception('EURES invitation update failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES invitation update failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/invitations/<int:record_id>', methods=['DELETE'])
@@ -9750,8 +9759,8 @@ def admin_eures_invitation_delete(form_id: str, record_id: int):
             'deleted': True,
         }), 200
     except Exception as e:
-        app.logger.exception('EURES invitation delete failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES invitation delete failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/invitations/<int:record_id>/duplicate-followup', methods=['POST'])
@@ -9804,8 +9813,8 @@ def admin_eures_invitation_duplicate_followup(form_id: str, record_id: int):
             'fields': updated.get('fields', {}) if isinstance(updated, dict) else {},
         }), 200
     except Exception as e:
-        app.logger.exception('EURES duplicate follow-up update failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES duplicate follow-up update failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/invitations/send', methods=['POST'])
@@ -9916,7 +9925,7 @@ def admin_eures_invitations_send(form_id: str):
                     'force_resend': force_resend,
                 })
             except Exception as e:
-                error_message = str(e)
+                error_message = 'Upstream operation failed.'
                 errors.append({
                     'record_id': record_id,
                     'email': fields.get('email', ''),
@@ -9930,7 +9939,7 @@ def admin_eures_invitations_send(form_id: str):
                         'notes': error_message[:500],
                     }, headers=headers)
                 except Exception:
-                    app.logger.exception('EURES invitation error status update failed')
+                    app.logger.error('EURES invitation error status update failed')
 
         return jsonify({
             'ok': True,
@@ -9944,8 +9953,8 @@ def admin_eures_invitations_send(form_id: str):
             'errors': errors,
         }), 200
     except Exception as e:
-        app.logger.exception('EURES invitations send failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES invitations send failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/invitations/remind', methods=['POST'])
@@ -10017,7 +10026,7 @@ def admin_eures_invitations_remind(form_id: str):
                 errors.append({
                     'record_id': record_id,
                     'email': fields.get('email', ''),
-                    'error': str(e),
+                    'error': _safe_error_message(502),
                 })
 
         return jsonify({
@@ -10028,8 +10037,8 @@ def admin_eures_invitations_remind(form_id: str):
             'errors': errors,
         }), 200
     except Exception as e:
-        app.logger.exception('EURES invitations remind failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES invitations remind failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/cockpit', methods=['GET'])
@@ -10049,8 +10058,8 @@ def admin_eures_cockpit(form_id: str):
             'cockpit': build_eures_cockpit_summary(),
         }), 200
     except Exception as e:
-        app.logger.exception('EURES cockpit summary failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES cockpit summary failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/tasks', methods=['GET'])
@@ -10082,8 +10091,8 @@ def admin_eures_tasks(form_id: str):
             'rows': rows,
         }), 200
     except Exception as e:
-        app.logger.exception('EURES tasks list failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES tasks list failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/questionnaires/<role>', methods=['GET'])
@@ -10115,8 +10124,8 @@ def admin_eures_questionnaire_responses(form_id: str, role: str):
             'rows': rows,
         }), 200
     except Exception as e:
-        app.logger.exception('EURES questionnaire response list failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES questionnaire response list failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/employers', methods=['GET'])
@@ -10140,8 +10149,8 @@ def admin_eures_employers(form_id: str):
             'rows': rows,
         }), 200
     except Exception as e:
-        app.logger.exception('EURES employers list failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES employers list failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/questionnaires/<role>/<int:record_id>/cv', methods=['GET'])
@@ -10184,8 +10193,8 @@ def admin_eures_questionnaire_response_cv(form_id: str, role: str, record_id: in
             download_name=cv_name,
         )
     except Exception as e:
-        app.logger.exception('EURES questionnaire CV download failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES questionnaire CV download failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/questionnaires/<role>/<int:record_id>/status', methods=['POST'])
@@ -10238,8 +10247,8 @@ def admin_eures_questionnaire_response_status(form_id: str, role: str, record_id
             'status': status,
         }), 200
     except Exception as e:
-        app.logger.exception('EURES questionnaire response status update failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES questionnaire response status update failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/questionnaires/<role>/<int:record_id>', methods=['DELETE'])
@@ -10281,8 +10290,8 @@ def admin_eures_questionnaire_response_delete(form_id: str, role: str, record_id
             'deleted_matchings': deleted_matchings,
         }), 200
     except Exception as e:
-        app.logger.exception('EURES questionnaire response delete failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES questionnaire response delete failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/no-match', methods=['GET'])
@@ -10314,8 +10323,8 @@ def admin_eures_no_match(form_id: str):
             'rows': rows,
         }), 200
     except Exception as e:
-        app.logger.exception('EURES no-match list failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES no-match list failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/no-match/<role>/<int:record_id>/send', methods=['POST'])
@@ -10379,8 +10388,8 @@ def admin_eures_no_match_send(form_id: str, role: str, record_id: int):
             'email_result': brevo_result,
         }), 200
     except Exception as e:
-        app.logger.exception('EURES no-match notification send failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES no-match notification send failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/no-match/<role>/<int:record_id>/dismiss', methods=['POST'])
@@ -10429,8 +10438,8 @@ def admin_eures_no_match_dismiss(form_id: str, role: str, record_id: int):
             'notification_status': 'dismissed',
         }), 200
     except Exception as e:
-        app.logger.exception('EURES no-match notification dismiss failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES no-match notification dismiss failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/new-job-requests', methods=['GET'])
@@ -10462,8 +10471,8 @@ def admin_eures_new_job_requests(form_id: str):
             'rows': rows,
         }), 200
     except Exception as e:
-        app.logger.exception('EURES new job requests list failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES new job requests list failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/new-job-requests/<int:record_id>/status', methods=['POST'])
@@ -10511,8 +10520,8 @@ def admin_eures_new_job_request_status(form_id: str, record_id: int):
             'status': status,
         }), 200
     except Exception as e:
-        app.logger.exception('EURES new job request status update failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES new job request status update failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/new-employer-alerts/<int:record_id>/status', methods=['POST'])
@@ -10560,8 +10569,8 @@ def admin_eures_new_employer_alert_status(form_id: str, record_id: int):
             'status': status,
         }), 200
     except Exception as e:
-        app.logger.exception('EURES new employer alert status update failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES new employer alert status update failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/matchings', methods=['GET'])
@@ -10593,8 +10602,8 @@ def admin_eures_matchings(form_id: str):
             'rows': rows,
         }), 200
     except Exception as e:
-        app.logger.exception('EURES admin matchings list failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES admin matchings list failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/matchings/manual', methods=['POST'])
@@ -10727,8 +10736,8 @@ def admin_eures_manual_matching(form_id: str):
             'candidate_email_result': candidate_brevo_result,
         }), 200
     except Exception as e:
-        app.logger.exception('EURES manual matching failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES manual matching failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/spontaneous-candidate', methods=['POST'])
@@ -10843,14 +10852,14 @@ def admin_eures_spontaneous_candidate(form_id: str):
             try:
                 update_eures_spontaneous_record(tracking_record_id, {
                     'status': 'send_error',
-                    'status_note': str(e)[:500],
+                    'status_note': 'Upstream operation failed.',
                     'updated_at': _now_iso_utc(),
                     'updated_by': get_admin_actor(form_id),
                 })
             except Exception:
-                app.logger.exception('EURES spontaneous tracking error update failed')
-        app.logger.exception('EURES spontaneous candidate application failed')
-        return jsonify({'error': str(e)}), 500
+                app.logger.error('EURES spontaneous tracking error update failed')
+        app.logger.error('EURES spontaneous candidate application failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/spontaneous-candidates', methods=['GET'])
@@ -10861,8 +10870,8 @@ def admin_eures_spontaneous_candidates(form_id: str):
     try:
         return jsonify({'ok': True, 'rows': list_eures_spontaneous_records()}), 200
     except Exception as e:
-        app.logger.exception('EURES spontaneous applications list failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES spontaneous applications list failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/spontaneous-candidates/<int:record_id>/status', methods=['POST'])
@@ -10887,8 +10896,8 @@ def admin_eures_spontaneous_candidate_status(form_id: str, record_id: int):
         update_eures_spontaneous_record(record_id, fields)
         return jsonify({'ok': True, 'record_id': record_id, 'status': status}), 200
     except Exception as e:
-        app.logger.exception('EURES spontaneous application status update failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES spontaneous application status update failed')
+        return _client_error('', 500)
 
 
 @app.route('/eures-beta/spontaneous-feedback', methods=['GET'])
@@ -10921,8 +10930,8 @@ def eures_spontaneous_feedback():
         )
         return Response(message, status=200, mimetype='text/plain')
     except Exception as e:
-        app.logger.exception('EURES spontaneous employer feedback failed')
-        return Response(f'Erreur lors de l’enregistrement : {e}', status=500, mimetype='text/plain')
+        app.logger.error('EURES spontaneous employer feedback failed')
+        return Response(_safe_error_message(500), status=500, mimetype='text/plain')
 
 
 @app.route('/eures-beta/spontaneous-feedback-test', methods=['GET'])
@@ -10983,8 +10992,8 @@ def admin_eures_matching_test_emails(form_id: str):
             **result,
         }), 200
     except Exception as e:
-        app.logger.exception('EURES matching test emails failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES matching test emails failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/email-tests/send', methods=['POST'])
@@ -11017,8 +11026,8 @@ def admin_eures_email_test_send(form_id: str):
             **result,
         }), 200
     except Exception as e:
-        app.logger.exception('EURES admin email test failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES admin email test failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/matchings/<int:record_id>/decision', methods=['POST'])
@@ -11141,8 +11150,8 @@ def admin_eures_matching_decision(form_id: str, record_id: int):
             'candidate_email_result': candidate_brevo_result,
         }), 200
     except Exception as e:
-        app.logger.exception('EURES matching decision update failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES matching decision update failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/matchings/<int:record_id>/candidate-email', methods=['POST'])
@@ -11192,8 +11201,8 @@ def admin_eures_matching_candidate_email(form_id: str, record_id: int):
             'candidate_email_result': candidate_brevo_result,
         }), 200
     except Exception as e:
-        app.logger.exception('EURES matching candidate notification resend failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES matching candidate notification resend failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/matchings/<int:record_id>/workflow', methods=['POST'])
@@ -11269,8 +11278,8 @@ def admin_eures_matching_workflow(form_id: str, record_id: int):
             'relation_result_at': updated_fields.get('relation_result_at', ''),
         }), 200
     except Exception as e:
-        app.logger.exception('EURES matching workflow update failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES matching workflow update failed')
+        return _client_error('', 500)
 
 
 def _find_eures_employer_fields_for_matching(matching_fields: dict, headers: dict) -> dict:
@@ -11370,8 +11379,8 @@ def eures_matching_feedback():
     except BadSignature:
         return Response('Lien invalide ou expiré.', status=400, mimetype='text/plain')
     except Exception as e:
-        app.logger.exception('EURES feedback token decode failed')
-        return Response(f'Erreur de lecture du lien : {e}', status=500, mimetype='text/plain')
+        app.logger.error('EURES feedback token decode failed')
+        return Response(_safe_error_message(500), status=500, mimetype='text/plain')
 
     record_id = int(payload.get('record_id') or 0)
     response_code = str(payload.get('response') or '').strip().lower()
@@ -11398,8 +11407,8 @@ def eures_matching_feedback():
             employer_fields = _find_eures_employer_fields_for_matching(matching_fields, headers)
             return _render_eures_whatsapp_phone_confirmation(token, record_id, matching_fields, employer_fields)
         except Exception as e:
-            app.logger.exception('EURES employer WhatsApp confirmation page failed')
-            return Response(f'Erreur lors de la préparation de la confirmation WhatsApp : {e}', status=500, mimetype='text/plain')
+            app.logger.error('EURES employer WhatsApp confirmation page failed')
+            return Response(_safe_error_message(500), status=500, mimetype='text/plain')
 
     update_fields = _matching_workflow_update_fields(
         'accepte_employeur' if response_code in {'contact_whatsapp', 'contact_no_whatsapp'} else 'refuse_employeur',
@@ -11434,8 +11443,8 @@ def eures_matching_feedback():
             },
         )
     except Exception as e:
-        app.logger.exception('EURES employer response update failed')
-        return Response(f'Erreur lors de l’enregistrement de votre réponse : {e}', status=500, mimetype='text/plain')
+        app.logger.error('EURES employer response update failed')
+        return Response(_safe_error_message(500), status=500, mimetype='text/plain')
 
     html = f"""<!doctype html>
 <html lang="fr">
@@ -11492,8 +11501,8 @@ def admin_eures_documentation_documents(form_id: str):
         result = save_documentation_document(request.get_json(silent=True) or {}, actor=actor)
         return jsonify(result), (200 if result.get('ok') else (409 if result.get('conflict') else 400))
     except Exception as exc:
-        app.logger.exception('EURES project documentation failed')
-        return jsonify({'error': str(exc)}), 500
+        app.logger.error('EURES project documentation failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/documentation/documents/<int:record_id>', methods=['GET', 'PATCH'])
@@ -11514,8 +11523,8 @@ def admin_eures_documentation_document(form_id: str, record_id: int):
         result = save_documentation_document(payload, actor=actor)
         return jsonify(result), (200 if result.get('ok') else (409 if result.get('conflict') else 400))
     except Exception as exc:
-        app.logger.exception('EURES project documentation document failed')
-        return jsonify({'error': str(exc)}), 500
+        app.logger.error('EURES project documentation document failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/tracking/cards', methods=['GET', 'POST'])
@@ -11532,8 +11541,8 @@ def admin_eures_tracking_cards(form_id: str):
         result = save_tracking_card(payload, actor=actor, language=language)
         return jsonify(result), (200 if result.get('ok') else 400)
     except Exception as e:
-        app.logger.exception('EURES tracking cards failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES tracking cards failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/tracking/cards/<int:record_id>', methods=['GET', 'PATCH', 'DELETE'])
@@ -11558,8 +11567,8 @@ def admin_eures_tracking_card(form_id: str, record_id: int):
         result = save_tracking_card(payload, actor=actor, language=language)
         return jsonify(result), (200 if result.get('ok') else 400)
     except Exception as e:
-        app.logger.exception('EURES tracking card failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES tracking card failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/tracking/cards/<int:record_id>/comments', methods=['POST'])
@@ -11574,8 +11583,8 @@ def admin_eures_tracking_card_comment(form_id: str, record_id: int):
         card = add_tracking_comment(record_id, payload.get('body') or '', actor, language=language)
         return jsonify({'ok': True, 'card': card})
     except Exception as e:
-        app.logger.exception('EURES tracking comment failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES tracking comment failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/tracking/ai/draft', methods=['POST'])
@@ -11618,8 +11627,8 @@ def admin_eures_tracking_ai_validate(form_id: str):
         result = validate_tracking_card(payload, existing=existing, actor=actor, language=language)
         return jsonify({'ok': not bool(result['errors']), **result}), (200 if not result['errors'] else 400)
     except Exception as e:
-        app.logger.exception('EURES tracking validation failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES tracking validation failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/admin/tracking/ai/translate', methods=['POST'])
@@ -11647,8 +11656,8 @@ def eures_tracking_github_webhook(form_id: str):
         result = apply_tracking_github_event(payload, event_name)
         return jsonify(result), 200
     except Exception as e:
-        app.logger.exception('EURES tracking GitHub webhook failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES tracking GitHub webhook failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/tracking/deployments/webhook', methods=['POST'])
@@ -11664,8 +11673,8 @@ def eures_tracking_deployment_webhook(form_id: str):
         result = apply_tracking_deployment_event(payload)
         return jsonify(result), 200
     except Exception as e:
-        app.logger.exception('EURES tracking deployment webhook failed')
-        return jsonify({'error': str(e)}), 500
+        app.logger.error('EURES tracking deployment webhook failed')
+        return _client_error('', 500)
 
 
 @app.route('/api/forms/<form_id>/public-stats', methods=['GET'])
@@ -11680,7 +11689,7 @@ def public_stats(form_id: str):
     try:
         return jsonify(build_eures_public_stats()), 200
     except Exception:
-        logger.exception('Unhandled error while handling request')
+        logger.error('Unhandled error while handling request')
         return _client_error('Internal server error.', 500)
 
 
@@ -11743,7 +11752,7 @@ def _write_eures_visit_analytics_fallback(event: dict) -> bool:
                 handle.write(json.dumps(event, ensure_ascii=False, separators=(',', ':')) + '\n')
         return True
     except Exception:
-        app.logger.exception('EURES visit analytics fallback write failed')
+        app.logger.error('EURES visit analytics fallback write failed')
         return False
 
 
@@ -11768,9 +11777,9 @@ def _record_eures_visit_analytics_event(event_type: str, payload: dict | None = 
             resp = write_grist_records('POST', url, {'records': [{'fields': fields}]}, headers)
             if resp.status_code == 200:
                 return {'ok': True, 'stored': True, 'storage': 'grist', 'event_id': fields['event_id']}
-            app.logger.warning('EURES visit analytics Grist write failed: HTTP %s - %s', resp.status_code, resp.text)
+            app.logger.warning('EURES visit analytics Grist write failed: HTTP %s', resp.status_code)
         except Exception:
-            app.logger.exception('EURES visit analytics Grist write failed')
+            app.logger.error('EURES visit analytics Grist write failed')
 
     fallback_ok = _write_eures_visit_analytics_fallback(fields)
     if fallback_ok:
@@ -11788,11 +11797,11 @@ def _read_eures_visit_analytics_events_from_grist(days: int = 30, limit: int = 5
         url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}/records"
         resp = requests.get(url, headers=headers, params={'limit': str(limit)})
         if resp.status_code != 200:
-            app.logger.warning('EURES visit analytics Grist read failed: HTTP %s - %s', resp.status_code, resp.text)
+            app.logger.warning('EURES visit analytics Grist read failed: HTTP %s', resp.status_code)
             return []
         records = resp.json().get('records', [])
     except Exception:
-        app.logger.exception('EURES visit analytics Grist read failed')
+        app.logger.error('EURES visit analytics Grist read failed')
         return []
 
     if days <= 0:
@@ -12079,8 +12088,8 @@ def admin_magic_link_consume(form_id: str):
     except BadSignature:
         return Response('Lien invalide ou expire.', status=400, mimetype='text/plain')
     except Exception as e:
-        app.logger.exception('Admin magic link decode failed')
-        return Response(f'Erreur de lecture du lien : {e}', status=500, mimetype='text/plain')
+        app.logger.error('Admin magic link decode failed')
+        return Response(_safe_error_message(500), status=500, mimetype='text/plain')
 
     email = normalize_email(payload.get('email'))
     token_form_id = str(payload.get('form_id') or '').strip()
