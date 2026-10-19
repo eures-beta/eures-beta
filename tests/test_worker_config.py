@@ -23,8 +23,8 @@ class WorkerConfigTest(unittest.TestCase):
         self.assertEqual(cfg.threads, 1)
         self.assertEqual(cfg.worker_class_str, 'sync')
         self.assertEqual(cfg.timeout, 30)
-        self.assertEqual(cfg.max_requests, 1000)
-        self.assertEqual(cfg.max_requests_jitter, 100)
+        self.assertEqual(cfg.max_requests, 0)
+        self.assertEqual(cfg.max_requests_jitter, 0)
 
     def test_timeout_is_explicitly_configurable(self):
         self.assertEqual(self.config(GUNICORN_TIMEOUT='45').timeout, 45)
