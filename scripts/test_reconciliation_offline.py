@@ -14,6 +14,7 @@ for key in list(os.environ):
         del os.environ[key]
 os.environ['SESSION_SECRET'] = 'offline-tests-only'
 os.environ['EURES_EMAIL_ACTION_SECRET'] = 'offline-email-tests-only'
+os.environ['PUBLIC_APP_BASE_URL'] = 'https://app.example.test'
 
 
 def block_network(*args, **kwargs):

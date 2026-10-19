@@ -19,7 +19,7 @@ This repository currently contains the historical EURES Beta application built w
 - Maintain the existing Flask/Grist implementation for tasks concerning EURES Beta. Do not introduce a framework or database migration without a separately scoped and explicitly approved task.
 - Django-specific mechanisms, PostgreSQL migrations and PostgreSQL tests below apply when working on the target implementation. For the historical application, use the existing framework and data-access mechanisms and apply equivalent security, permissions and quality requirements.
 - The five quality pillars below apply to relevant new user-facing work in both implementations. These rules do not claim that all existing code already meets them and do not authorise unrelated remediation.
-- France Travail is the target hosting environment. The historical Scalingo deployment and any France Travail server must be inspected separately; never assume they run identical code.
+- Hosting configuration and operational procedures belong in the private deployment repositories. Verify the effective version of each environment separately.
 - A code change, branch push or pull request is not authorisation to merge, deploy, change hosting configuration or write to real Grist data. Obtain explicit authorisation for those operations within their identified scope.
 - Preserve unrelated local work and backup branches. Check the repository path, branch, HEAD, remotes and working-tree status before editing.
 - Use a dedicated branch and pull request. Request review from the GitHub account `dejafait` when instructed to involve dejafait. Report whether review was requested, completed or approved; these are distinct states.
@@ -122,7 +122,7 @@ Introducing another ORM, database, major frontend framework or structural infras
 
 # 3. MUST — HOSTING AND CONFIGURATION
 
-The target hosting environment is a server provided by France Travail.
+Hosting is configured separately for each environment in the appropriate private deployment repository.
 
 The application core must not depend directly on a particular hosting provider.
 

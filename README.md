@@ -1,4 +1,4 @@
-# EURES Beta
+# Match Europe Flask
 
 Application web de la bêta EURES, destinée à recueillir les informations des candidats et les besoins des employeurs, et à accompagner leur mise en relation.
 
@@ -26,13 +26,13 @@ Une fonctionnalité en cours de développement n’est pas considérée comme di
 
 ## Où se trouve la version de référence ?
 
-Le dépôt commun est [eures-beta/eures-beta](https://github.com/eures-beta/eures-beta).
+Le dépôt commun est [eures-beta/match-europe-flask](https://github.com/eures-beta/match-europe-flask).
 
 - **GitHub / `main`** : version commune après intégration et validation.
 - **Copies locales** : environnements de travail, chacun dans un dossier ou un worktree séparé.
 - **Production** : version précise déployée et vérifiée, qui peut être antérieure à `main`.
 
-Le dépôt comporte une configuration de déploiement pour Scalingo. Le serveur dédié France Travail est la cible évoquée pour la production ; son rôle effectif et sa procédure de déploiement restent à confirmer avant de documenter une migration réalisée.
+Le code est indépendant de l’hébergeur. Les paramètres et procédures d’exploitation propres aux environnements sont conservés séparément dans les dépôts privés de déploiement.
 
 ## Circuit du code jusqu’à la production
 
@@ -68,8 +68,8 @@ Les règles suivantes constituent le fonctionnement proposé. Leur application a
 Prérequis : Git et `uv`. Le projet demande Python 3.10 minimum ; `.python-version` indique Python 3.13.
 
 ```bash
-git clone https://github.com/eures-beta/eures-beta.git
-cd eures-beta
+git clone https://github.com/eures-beta/match-europe-flask.git
+cd match-europe-flask
 uv sync --locked
 cp .env.example .env
 ```
@@ -94,6 +94,7 @@ Le fichier `.env.example` fournit les premiers paramètres. Les principaux group
 
 - **Grist** : `GRIST_API_KEY`, `GRIST_BASE_URL`, `GRIST_DOC_EURES_BETA` et noms des tables candidates, employeurs, statistiques et suivi projet.
 - **Administration** : identifiants, mode d’authentification, liste des e-mails autorisés et durée de validité des liens de connexion.
+- **URL publique** : `PUBLIC_APP_BASE_URL` pour construire les liens hors requête ; pendant une requête, son origine sert de valeur par défaut.
 - **Brevo** : clé API, adresse et nom de l’expéditeur.
 - **OpenAI, optionnel** : `OPENAI_API_KEY` et `OPENAI_TEXT_MODEL` pour la traduction automatique.
 
@@ -108,21 +109,6 @@ uv run python -m unittest tests.test_public_stats tests.test_eures_beta_only_mod
 ```
 
 Ajouter les vérifications adaptées aux modules modifiés. Pour une PR portant uniquement sur le README, vérifier le contenu, les liens et le rendu GitHub ; un déploiement de l’application n’est pas nécessaire.
-
-## Mettre en production
-
-L’intégration d’une PR et le déploiement sont deux opérations distinctes. Avant toute activation d’un déploiement automatique, vérifier les workflows et les intégrations déjà configurés.
-
-Pour chaque déploiement :
-
-1. Identifier le commit validé à déployer et l’environnement cible.
-2. Obtenir l’autorisation de déploiement et préparer le retour à la version précédente.
-3. Vérifier les paramètres, les dépendances et les éventuelles migrations de données.
-4. Déployer cette version avec la procédure de l’hébergeur.
-5. Vérifier la version réellement servie et les parcours concernés, y compris l’administration si elle est modifiée.
-6. Consigner le commit, la date, l’environnement et le résultat des contrôles.
-
-La procédure spécifique au serveur dédié France Travail doit être complétée après vérification de son fonctionnement. Une migration de base de données peut nécessiter une procédure de retour arrière distincte de celle du code.
 
 ## Suivi projet EURES
 

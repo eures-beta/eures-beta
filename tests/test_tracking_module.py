@@ -458,16 +458,16 @@ class TrackingModuleTest(unittest.TestCase):
             'reference': 'EURES-23',
             'status': 'success',
             'environment': 'production',
-            'deployment_url': 'https://eures-beta.osc-fr1.scalingo.io',
+            'deployment_url': 'https://app.example.test',
         })
 
         self.assertTrue(result['ok'])
         self.assertTrue(result['updated'])
         self.assertEqual(result['card']['statut'], 'fait')
         self.assertEqual(result['card']['production_environment'], 'production')
-        self.assertEqual(result['card']['production_url'], 'https://eures-beta.osc-fr1.scalingo.io')
+        self.assertEqual(result['card']['production_url'], 'https://app.example.test')
         self.assertTrue(result['card']['production_deployed_at'])
-        self.assertIn('https://eures-beta.osc-fr1.scalingo.io', result['card']['liens'])
+        self.assertIn('https://app.example.test', result['card']['liens'])
         self.assertTrue(any(event['action'] == 'deployment_succeeded' for event in result['card']['historique']))
 
     @patch.dict(app.os.environ, {'EURES_TRACKING_DEPLOY_WEBHOOK_SECRET': 'deploy-secret'}, clear=False)

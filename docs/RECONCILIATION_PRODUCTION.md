@@ -1,8 +1,8 @@
-# Réconciliation du dépôt EURES avec le code déployé
+# Provenance du code EURES repris
 
 ## Origine vérifiée
 
-Le 8 octobre 2026, le dernier déploiement réussi de l’application Scalingo `eures-beta`, région `osc-fr1`, correspond au commit `5d46873e6210956875eb9401596caad137df548a`, déployé le 18 septembre 2026. Le dépôt Git Scalingo annonce le même commit. Le conteneur `web-1` est en fonctionnement. Ces contrôles ne démontrent pas les parcours authentifiés ni l’usage réel du service.
+Le code de référence repris correspond au commit `5d46873e6210956875eb9401596caad137df548a` du dépôt historique. Cette note conserve la provenance du code, sans journal d’exploitation ni configuration d’hébergement.
 
 Le `main` du dépôt GitHub dédié est alors au commit `d64f88cd5cbc260c8249cd9ba3842158bc876247`. La source déployée provient du dépôt historique commun ; copier celui-ci intégralement introduirait FAGERH et des documents privés dans ce dépôt public.
 
@@ -45,4 +45,4 @@ La réussite locale n’autorise pas un déploiement : restent à vérifier la c
 
 La PR du README est indépendante ; son fichier n’est pas remplacé par cette réconciliation. La sauvegarde locale des travaux des 8 et 9 septembre est conservée jusqu’à validation de la reprise.
 
-Aucun déploiement, redémarrage, changement Scalingo ou écriture Grist n’a été réalisé pour cette préparation.
+Cette note décrit la provenance du code ; elle ne décrit pas le déploiement d’un environnement.
