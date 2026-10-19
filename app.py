@@ -85,20 +85,46 @@ _EURES_VISIT_ANALYTICS_LOCK = threading.Lock()
 
 # Default request cap; questionnaire submissions have a bounded CV-aware allowance.
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
-# Honor X-Forwarded-For from trusted proxies so rate limiting keys on the real client IP.
-# Set PROXY_FIX_X_FOR to the number of proxies in front of the app (0 if directly exposed).
-_proxy_hops = int(os.environ.get('PROXY_FIX_X_FOR', '1') or '0')
-if _proxy_hops > 0:
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=_proxy_hops, x_proto=_proxy_hops, x_host=_proxy_hops)
+# Forwarded headers are untrusted unless deployment explicitly identifies its proxies.
+def _trusted_proxy_hops(name: str) -> int:
+    value = int(os.environ.get(name, '0') or '0')
+    if not 0 <= value <= 10:
+        raise ValueError(f'{name} must be between 0 and 10')
+    return value
 
-# Per-IP rate limiting on public endpoints. Defaults to in-memory storage (counted per worker);
-# set RATELIMIT_STORAGE_URI (e.g. redis://...) for exact limits shared across workers.
+
+app.wsgi_app = ProxyFix(
+    app.wsgi_app,
+    x_for=_trusted_proxy_hops('PROXY_FIX_X_FOR'),
+    x_proto=_trusted_proxy_hops('PROXY_FIX_X_PROTO'),
+    x_host=_trusted_proxy_hops('PROXY_FIX_X_HOST'),
+)
+
+
+def _public_api_limit_exempt() -> bool:
+    return not request.path.startswith('/api/') or '/admin/' in request.path
+
+
 limiter = Limiter(
     key_func=get_remote_address,
     app=app,
-    default_limits=[],
+    default_limits=['120 per minute'],
+    default_limits_exempt_when=_public_api_limit_exempt,
     storage_uri=os.environ.get('RATELIMIT_STORAGE_URI', 'memory://'),
+    headers_enabled=True,
 )
+
+
+@app.errorhandler(429)
+def rate_limit_exceeded(error):
+    language = request.accept_languages.best_match(['fr', 'en', 'de']) or 'fr'
+    message = {
+        'fr': 'Trop de requêtes. Veuillez réessayer plus tard.',
+        'en': 'Too many requests. Please try again later.',
+        'de': 'Zu viele Anfragen. Bitte versuchen Sie es später erneut.',
+    }[language]
+    return jsonify({'error': message}), 429
+
 
 GRIST_BASE_URL = os.environ.get('GRIST_BASE_URL', 'https://grist.numerique.gouv.fr').rstrip('/')
 APP_MODE = os.environ.get('APP_MODE', 'eures-beta').strip().lower() or 'eures-beta'
@@ -1305,7 +1331,10 @@ def admin_required(fn):
         if denied:
             return denied
         return fn(*args, **kwargs)
-    return wrapper
+    return limiter.shared_limit(
+        '20 per minute', scope='admin-authentication',
+        deduct_when=lambda response: response.status_code in {401, 403},
+    )(wrapper)
 
 
 
@@ -1731,7 +1760,7 @@ def proxy_eures_public_request(path: str = '') -> Response:
     }
     upstream_headers['X-Forwarded-Host'] = request.host
     upstream_headers['X-Forwarded-Proto'] = request.scheme
-    upstream_headers['X-Forwarded-For'] = request.headers.get('X-Forwarded-For', request.remote_addr or '')
+    upstream_headers['X-Forwarded-For'] = request.remote_addr or ''
 
     upstream_response = requests.request(
         method=request.method,
@@ -2124,7 +2153,7 @@ def proxy_eures_public_request(path: str = '') -> Response:
     }
     upstream_headers['X-Forwarded-Host'] = request.host
     upstream_headers['X-Forwarded-Proto'] = request.scheme
-    upstream_headers['X-Forwarded-For'] = request.headers.get('X-Forwarded-For', request.remote_addr or '')
+    upstream_headers['X-Forwarded-For'] = request.remote_addr or ''
 
     upstream_response = requests.request(
         method=request.method,
@@ -2243,9 +2272,6 @@ def _eures_public_write_session_key(role: str) -> str:
 
 
 def _get_client_ip() -> str:
-    forwarded = str(request.headers.get('X-Forwarded-For') or '').strip()
-    if forwarded:
-        return forwarded.split(',', 1)[0].strip()
     return str(request.remote_addr or '').strip()
 
 
@@ -8887,6 +8913,7 @@ def get_record(form_id: str):
 
 
 @app.route('/api/forms/<form_id>/write-token', methods=['GET'])
+@limiter.limit('30 per minute')
 def issue_public_write_token(form_id: str):
     """Issue a short-lived public write token for EURES beta public forms."""
     proxied = maybe_proxy_eures_request(form_id)
@@ -8925,6 +8952,7 @@ def get_form_access(form_id: str):
 
 
 @app.route('/api/forms/<form_id>/employer-referrals', methods=['POST'])
+@limiter.limit('5 per minute')
 def create_eures_employer_referral(form_id: str):
     """Create and send one employer invitation from an existing employer link."""
     proxied = maybe_proxy_eures_request(form_id)
@@ -11957,6 +11985,7 @@ def serve_form_file(form_id: str, filename: str):
 
 
 @app.route('/admin/<form_id>/login', methods=['GET', 'POST'])
+@limiter.limit('10 per minute', methods=['POST'])
 def admin_login(form_id: str):
     """Magic-link login entrypoint for admin surfaces."""
     if not is_form_enabled(form_id):
@@ -11990,7 +12019,7 @@ def admin_login(form_id: str):
         extra={
             'form_id': form_id,
             'email': email,
-            'client_ip': request.headers.get('X-Forwarded-For', request.remote_addr or ''),
+            'client_ip': request.remote_addr or '',
         },
     )
 
@@ -12155,7 +12184,8 @@ def network_required(fn):
         if proxied is not None:
             return proxied
         return fn(*args, **kwargs)
-    return guarded
+    return limiter.shared_limit('20 per minute', scope='admin-authentication',
+                                deduct_when=lambda response: response.status_code in {401, 403})(guarded)
 
 
 @app.after_request
@@ -12457,7 +12487,8 @@ def admin_users_required(fn):
             return jsonify({'error': 'Authorization unavailable' if unavailable
                             else 'Access denied'}), 503 if unavailable else 403
         return fn(*args, **kwargs)
-    return guarded
+    return limiter.shared_limit('20 per minute', scope='admin-authentication',
+                                deduct_when=lambda response: response.status_code in {401, 403})(guarded)
 
 
 def _admin_users_error(error):

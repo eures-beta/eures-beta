@@ -22,5 +22,9 @@ def block_network(*args, **kwargs):
 
 socket.create_connection = block_network
 socket.socket.connect = block_network
+# Independent unit cases must not share a production rate-limit window.
+# Dedicated rate-limit regression cases explicitly enable and reset the limiter.
+import app
+app.limiter.enabled = False
 result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.discover('tests'))
 raise SystemExit(not result.wasSuccessful())

@@ -206,3 +206,12 @@ L'anti double-enregistrement repose aujourd'hui sur :
 - un verrou mémoire côté backend
 
 Avec le `Procfile` actuel (`gunicorn app:app` sans nombre de workers forcé), l'hypothèse de base est un déploiement simple compatible avec ce verrou process-local. Si `WEB_CONCURRENCY` ou un mode multi-worker est activé plus tard, il faudra durcir l'idempotence au niveau de la persistance.
+
+
+### Rate limits and trusted proxies
+
+All public API endpoints have a per-IP baseline of 120 requests/minute; record, export and recovery routes retain tighter limits. Write-token issuance is limited to 30/minute. Failed Basic/session authentication is limited to 20/minute across the existing admin_required endpoints; successful navigation is not charged. Magic-link login POSTs are separately limited to 10/minute. Responses include JSON FR/EN/DE errors and retry headers.
+
+Forwarded headers are ignored by default. Configure `PROXY_FIX_X_FOR`, `PROXY_FIX_X_PROTO` and `PROXY_FIX_X_HOST` independently only after verifying which headers a trusted ingress overwrites and how many trusted hops set each. The application must not be directly reachable behind that configured ingress. Client rate keys use verified `request.remote_addr`, never raw forwarded headers.
+
+`RATELIMIT_STORAGE_URI` defaults to `memory://` for the current single-worker service. Multi-worker/multi-instance operation requires a shared backend, for example `redis://...`; Redis support is included in the lockfile. Do not enable multi-worker operation before the other persistence/idempotence requirements are resolved. No external service is provisioned by this PR. Health checks and static assets are exempt from the public-API baseline.
