@@ -1,0 +1,1 @@
+fetch('/api/forms/eures-beta/admin/utilisateurs/access',{credentials:'same-origin',cache:'no-store'}).then(r=>r.ok?r.json():null).then(data=>{if(data&&data.allowed)document.getElementById('users-link').hidden=false;}).catch(()=>{});

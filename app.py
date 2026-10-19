@@ -8834,7 +8834,10 @@ def set_security_headers(response):
     response.headers.setdefault('X-Frame-Options', 'DENY')
     response.headers.setdefault('X-Content-Type-Options', 'nosniff')
     response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
-    response.headers.setdefault('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+    # HSTS is opt-in: the application cannot infer HTTPS readiness for every host.
+    hsts_age = int(os.environ.get('SECURITY_HSTS_MAX_AGE', '0'))
+    if request.is_secure and hsts_age > 0:
+        response.headers.setdefault('Strict-Transport-Security', f'max-age={hsts_age}')
     response.headers.setdefault(
         'Content-Security-Policy',
         "default-src 'self'; base-uri 'none'; object-src 'none'; "

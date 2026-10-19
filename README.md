@@ -206,3 +206,8 @@ L'anti double-enregistrement repose aujourd'hui sur :
 - un verrou mémoire côté backend
 
 Avec le `Procfile` actuel (`gunicorn app:app` sans nombre de workers forcé), l'hypothèse de base est un déploiement simple compatible avec ce verrou process-local. Si `WEB_CONCURRENCY` ou un mode multi-worker est activé plus tard, il faudra durcir l'idempotence au niveau de la persistance.
+
+
+### Browser security headers
+
+Admin scripts are served from same-origin files in `assets/admin/`, allowing an enforced CSP without inline-script exceptions. Test admin pages after adding scripts or external resource origins. HSTS is disabled by default; set `SECURITY_HSTS_MAX_AGE` to a non-negative number of seconds only after HTTPS is verified. It is emitted only for HTTPS requests and does not include subdomains.
