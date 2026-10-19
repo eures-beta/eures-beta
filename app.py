@@ -33,7 +33,7 @@ from urllib.parse import urljoin, urlparse
 from itsdangerous import BadSignature, SignatureExpired, URLSafeSerializer, URLSafeTimedSerializer
 from dotenv import load_dotenv
 import requests
-from flask import Flask, request, jsonify, redirect, send_file, send_from_directory, Response, session, url_for, g
+from flask import Flask, request, jsonify, redirect, send_file, send_from_directory, Response, session, url_for, g, has_request_context
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from eures_beta_email_templates import (
     get_candidate_invitation_template,
@@ -98,7 +98,6 @@ EURES_TRACKING_TABLE_DEFAULT = 'Suivi_Projet'
 EURES_DOCUMENTATION_TABLE_DEFAULT = 'Documentation_Projet'
 EURES_SPONTANEOUS_TABLE_DEFAULT = 'Candidatures_spontanees'
 EURES_VISIT_ANALYTICS_TABLE_DEFAULT = 'Visites_Match_Europe'
-EURES_PUBLIC_PROXY_BASE_URL = os.environ.get('EURES_PUBLIC_PROXY_BASE_URL', 'https://eures-beta.osc-fr1.scalingo.io').rstrip('/')
 EURES_VISIT_ANALYTICS_ENABLED = str(os.environ.get('EURES_VISIT_ANALYTICS_ENABLED', 'true')).strip().lower() not in {'0', 'false', 'no', 'off'}
 EURES_VISIT_ANALYTICS_FILE = Path(os.environ.get('EURES_VISIT_ANALYTICS_FILE', '/tmp/eures_beta_visit_analytics.jsonl'))
 EURES_VISIT_ANALYTICS_EVENT_TYPES = {
@@ -1657,9 +1656,9 @@ def get_public_app_base_url() -> str:
     configured = os.environ.get('PUBLIC_APP_BASE_URL', '').strip()
     if configured:
         return configured.rstrip('/')
-    if request and request.url_root:
+    if has_request_context():
         return request.url_root.rstrip('/')
-    return 'https://eures-beta.osc-fr1.scalingo.io'
+    raise RuntimeError('PUBLIC_APP_BASE_URL is required outside a request.')
 
 
 def get_eures_email_header_image_url() -> str:
@@ -1672,105 +1671,24 @@ def get_eures_email_header_image_url() -> str:
     return ''
 
 
-def _proxy_eures_location_header(location: str) -> str:
-    """Rewrite absolute redirects back to the current public host."""
-    value = str(location or '').strip()
-    if not value:
-        return value
-    if value.startswith(EURES_PUBLIC_PROXY_BASE_URL):
-        current_base = request.host_url.rstrip('/')
-        return current_base + value[len(EURES_PUBLIC_PROXY_BASE_URL):]
-    return value
 
 
-def proxy_eures_public_request(path: str = '') -> Response:
-    """Proxy one public EURES beta request to the dedicated Scalingo app."""
-    target_path = '/' + str(path or '').lstrip('/')
-    target_url = f'{EURES_PUBLIC_PROXY_BASE_URL}{target_path}'
-    if request.query_string:
-        target_url = f'{target_url}?{request.query_string.decode("utf-8", errors="ignore")}'
-
-    excluded_headers = {
-        'host',
-        'content-length',
-        'connection',
-        'transfer-encoding',
-        'accept-encoding',
-    }
-    upstream_headers = {
-        key: value
-        for key, value in request.headers.items()
-        if key.lower() not in excluded_headers
-    }
-    upstream_headers['X-Forwarded-Host'] = request.host
-    upstream_headers['X-Forwarded-Proto'] = request.scheme
-    upstream_headers['X-Forwarded-For'] = request.headers.get('X-Forwarded-For', request.remote_addr or '')
-
-    upstream_response = requests.request(
-        method=request.method,
-        url=target_url,
-        headers=upstream_headers,
-        data=request.get_data(),
-        cookies=request.cookies,
-        allow_redirects=False,
-        timeout=60,
-    )
-
-    downstream = Response(upstream_response.content, status=upstream_response.status_code)
-    hop_by_hop = {
-        'content-length',
-        'connection',
-        'transfer-encoding',
-        'content-encoding',
-    }
-    for key, value in upstream_response.headers.items():
-        lowered = key.lower()
-        if lowered in hop_by_hop:
-            continue
-        if lowered == 'location':
-            value = _proxy_eures_location_header(value)
-        downstream.headers[key] = value
-    return downstream
 
 
 def should_proxy_eures_public_request(form_id: str) -> bool:
-    """Enable EURES proxying only on the public Fagerh domain."""
-    if is_eures_beta_only_mode():
-        return False
-    if str(form_id or '').strip().lower() != 'eures-beta':
-        return False
-    forced = os.environ.get('EURES_PUBLIC_PROXY_ENABLED', '').strip().lower()
-    if forced in {'1', 'true', 'yes', 'on'}:
-        return True
-    if forced in {'0', 'false', 'no', 'off'}:
-        return False
-    host = str(request.host or '').split(':', 1)[0].strip().lower()
-    return host == 'formulaires.inclusion.gouv.fr'
+    """Compatibility hook: this standalone application always handles its own routes."""
+    return False
 
 
 
 def maybe_proxy_eures_request(form_id: str) -> Response | None:
-    """Proxy only the EURES beta public surface when served by Fagerh."""
-    if should_proxy_eures_public_request(form_id):
-        return proxy_eures_public_request(request.path)
+    """Compatibility hook for existing extensions; requests are served locally."""
     return None
 
 
 def get_default_home_form_id() -> str:
-    """Resolve which form should be used as the root redirect for the current app."""
-    if is_eures_beta_only_mode():
-        return 'eures-beta'
-    configured = str(os.environ.get('DEFAULT_HOME_FORM_ID') or '').strip()
-    if configured:
-        return configured
-
-    host = str(request.host or '').split(':', 1)[0].strip().lower()
-    if host in {
-        'eures-beta.osc-fr1.scalingo.io',
-        'www.eures-beta.osc-fr1.scalingo.io',
-    }:
-        return 'eures-beta'
-    return 'fagerh'
+    """The standalone application has the same home route on every host."""
+    return 'eures-beta'
 
 
 
@@ -2050,9 +1968,9 @@ def get_public_app_base_url() -> str:
     configured = os.environ.get('PUBLIC_APP_BASE_URL', '').strip()
     if configured:
         return configured.rstrip('/')
-    if request and request.url_root:
+    if has_request_context():
         return request.url_root.rstrip('/')
-    return 'https://eures-beta.osc-fr1.scalingo.io'
+    raise RuntimeError('PUBLIC_APP_BASE_URL is required outside a request.')
 
 
 def get_eures_email_header_image_url() -> str:
@@ -2065,105 +1983,24 @@ def get_eures_email_header_image_url() -> str:
     return ''
 
 
-def _proxy_eures_location_header(location: str) -> str:
-    """Rewrite absolute redirects back to the current public host."""
-    value = str(location or '').strip()
-    if not value:
-        return value
-    if value.startswith(EURES_PUBLIC_PROXY_BASE_URL):
-        current_base = request.host_url.rstrip('/')
-        return current_base + value[len(EURES_PUBLIC_PROXY_BASE_URL):]
-    return value
 
 
-def proxy_eures_public_request(path: str = '') -> Response:
-    """Proxy one public EURES beta request to the dedicated Scalingo app."""
-    target_path = '/' + str(path or '').lstrip('/')
-    target_url = f'{EURES_PUBLIC_PROXY_BASE_URL}{target_path}'
-    if request.query_string:
-        target_url = f'{target_url}?{request.query_string.decode("utf-8", errors="ignore")}'
-
-    excluded_headers = {
-        'host',
-        'content-length',
-        'connection',
-        'transfer-encoding',
-        'accept-encoding',
-    }
-    upstream_headers = {
-        key: value
-        for key, value in request.headers.items()
-        if key.lower() not in excluded_headers
-    }
-    upstream_headers['X-Forwarded-Host'] = request.host
-    upstream_headers['X-Forwarded-Proto'] = request.scheme
-    upstream_headers['X-Forwarded-For'] = request.headers.get('X-Forwarded-For', request.remote_addr or '')
-
-    upstream_response = requests.request(
-        method=request.method,
-        url=target_url,
-        headers=upstream_headers,
-        data=request.get_data(),
-        cookies=request.cookies,
-        allow_redirects=False,
-        timeout=60,
-    )
-
-    downstream = Response(upstream_response.content, status=upstream_response.status_code)
-    hop_by_hop = {
-        'content-length',
-        'connection',
-        'transfer-encoding',
-        'content-encoding',
-    }
-    for key, value in upstream_response.headers.items():
-        lowered = key.lower()
-        if lowered in hop_by_hop:
-            continue
-        if lowered == 'location':
-            value = _proxy_eures_location_header(value)
-        downstream.headers[key] = value
-    return downstream
 
 
 def should_proxy_eures_public_request(form_id: str) -> bool:
-    """Enable EURES proxying only on the public Fagerh domain."""
-    if is_eures_beta_only_mode():
-        return False
-    if str(form_id or '').strip().lower() != 'eures-beta':
-        return False
-    forced = os.environ.get('EURES_PUBLIC_PROXY_ENABLED', '').strip().lower()
-    if forced in {'1', 'true', 'yes', 'on'}:
-        return True
-    if forced in {'0', 'false', 'no', 'off'}:
-        return False
-    host = str(request.host or '').split(':', 1)[0].strip().lower()
-    return host == 'formulaires.inclusion.gouv.fr'
+    """Compatibility hook: this standalone application always handles its own routes."""
+    return False
 
 
 
 def maybe_proxy_eures_request(form_id: str) -> Response | None:
-    """Proxy only the EURES beta public surface when served by Fagerh."""
-    if should_proxy_eures_public_request(form_id):
-        return proxy_eures_public_request(request.path)
+    """Compatibility hook for existing extensions; requests are served locally."""
     return None
 
 
 def get_default_home_form_id() -> str:
-    """Resolve which form should be used as the root redirect for the current app."""
-    if is_eures_beta_only_mode():
-        return 'eures-beta'
-    configured = str(os.environ.get('DEFAULT_HOME_FORM_ID') or '').strip()
-    if configured:
-        return configured
-
-    host = str(request.host or '').split(':', 1)[0].strip().lower()
-    if host in {
-        'eures-beta.osc-fr1.scalingo.io',
-        'www.eures-beta.osc-fr1.scalingo.io',
-    }:
-        return 'eures-beta'
-    return 'fagerh'
+    """The standalone application has the same home route on every host."""
+    return 'eures-beta'
 
 
 
@@ -11305,8 +11142,6 @@ def _render_eures_whatsapp_phone_confirmation(token: str, record_id: int, matchi
 @app.route('/eures-beta/matching-feedback', methods=['GET', 'POST'])
 def eures_matching_feedback():
     """Record employer feedback from email CTA links."""
-    if should_proxy_eures_public_request('eures-beta'):
-        return proxy_eures_public_request(request.path)
     token = str((request.form.get('token') if request.method == 'POST' else request.args.get('token')) or '').strip()
     if not token:
         return Response('Lien invalide : token manquant.', status=400, mimetype='text/plain')

@@ -1,69 +1,44 @@
 import unittest
-from unittest.mock import Mock, patch
-
+from unittest.mock import patch
 import app
 
 
-class EuresPublicProxyTest(unittest.TestCase):
+class EuresLocalRoutingTest(unittest.TestCase):
     def setUp(self):
         self.client = app.app.test_client()
-        mode = patch.object(app, 'APP_MODE', '')
-        mode.start()
-        self.addCleanup(mode.stop)
 
-    @patch.object(app.requests, 'request')
-    def test_public_domain_proxies_eures_form_root(self, requests_request):
-        requests_request.return_value = Mock(
-            status_code=200,
-            content=b'proxied-eures',
-            headers={'Content-Type': 'text/html; charset=utf-8'},
-        )
+    def test_form_is_served_locally_on_any_host_without_proxying(self):
+        with patch.object(app.requests, 'request') as request:
+            for host in ['https://app.example.test', 'http://localhost:5005']:
+                response = self.client.get('/forms/eures-beta/', base_url=host)
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(b'<html', response.data)
+                response.close()
+        request.assert_not_called()
 
-        response = self.client.get(
-            '/forms/eures-beta/',
-            base_url='https://formulaires.inclusion.gouv.fr',
-        )
+    def test_admin_requires_local_auth_instead_of_upstream_forwarding(self):
+        with patch.dict(app.os.environ, {'ADMIN_AUTH_MODE_EURES_BETA': 'basic',
+                                        'ADMIN_USERNAME_EURES_BETA': 'fictional',
+                                        'ADMIN_PASSWORD_EURES_BETA': 'fictional-secret'}), patch.object(app.requests, 'request') as request:
+            response = self.client.get('/admin/eures-beta/', base_url='https://app.example.test')
+        self.assertEqual(response.status_code, 401)
+        request.assert_not_called()
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, b'proxied-eures')
-        requests_request.assert_called_once()
-        self.assertEqual(
-            requests_request.call_args.kwargs['url'],
-            'https://eures-beta.osc-fr1.scalingo.io/forms/eures-beta/',
-        )
+    def test_old_proxy_flag_cannot_enable_forwarding(self):
+        with patch.dict(app.os.environ, {'EURES_PUBLIC_PROXY_ENABLED': 'true'}), app.app.test_request_context('/'):
+            self.assertFalse(app.should_proxy_eures_public_request('eures-beta'))
+            self.assertIsNone(app.maybe_proxy_eures_request('eures-beta'))
 
-    @patch.object(app.requests, 'request')
-    def test_scalingo_domain_serves_local_eures_form_root(self, requests_request):
-        response = self.client.get(
-            '/forms/eures-beta/',
-            base_url='https://eures-beta.osc-fr1.scalingo.io',
-        )
+    def test_public_urls_use_configuration_or_request_origin(self):
+        with patch.dict(app.os.environ, {'PUBLIC_APP_BASE_URL': 'https://configured.example.test/'}):
+            self.assertEqual(app.get_public_app_base_url(), 'https://configured.example.test')
+        with patch.dict(app.os.environ, {'PUBLIC_APP_BASE_URL': ''}), app.app.test_request_context('/', base_url='https://app.example.test'):
+            self.assertEqual(app.get_public_app_base_url(), 'https://app.example.test')
+        with patch.dict(app.os.environ, {'PUBLIC_APP_BASE_URL': ''}):
+            with self.assertRaisesRegex(RuntimeError, 'PUBLIC_APP_BASE_URL'):
+                app.get_public_app_base_url()
 
-        self.assertEqual(response.status_code, 200)
-        requests_request.assert_not_called()
-        response.close()
-
-    @patch.object(app.requests, 'request')
-    def test_public_domain_proxies_eures_admin_before_local_auth(self, requests_request):
-        requests_request.return_value = Mock(
-            status_code=302,
-            content=b'',
-            headers={'Location': '/admin/eures-beta/login'},
-        )
-
-        response = self.client.get(
-            '/admin/eures-beta',
-            base_url='https://formulaires.inclusion.gouv.fr',
-        )
-
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.headers['Location'], '/admin/eures-beta/login')
-        requests_request.assert_called_once()
-        self.assertEqual(
-            requests_request.call_args.kwargs['url'],
-            'https://eures-beta.osc-fr1.scalingo.io/admin/eures-beta',
-        )
-
-
-if __name__ == '__main__':
-    unittest.main()
+    def test_home_does_not_depend_on_a_provider_hostname(self):
+        with patch.object(app, 'APP_MODE', ''):
+            response = self.client.get('/', base_url='https://app.example.test')
+        self.assertEqual(response.headers['Location'], '/forms/eures-beta/')
