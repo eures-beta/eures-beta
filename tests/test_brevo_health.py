@@ -74,7 +74,7 @@ class BrevoHealthTest(unittest.TestCase):
         self.assertFalse(health['api_ok'])
         self.assertEqual(health['status'], 'api_error')
         self.assertEqual(health['http_status'], 401)
-        self.assertEqual(health['message'], 'Key not found')
+        self.assertEqual(health['message'], 'Brevo API returned HTTP 401.')
 
     @patch.object(app, 'admin_required', lambda f: f)
     @patch.object(app, 'get_brevo_health')
