@@ -640,3 +640,20 @@ The five permanent quality pillars for every user-facing feature are:
 5. **EURES / ELA brand compliance**
 
 **A feature missing any of these five pillars is not considered complete.**
+
+## Descriptions des pull requests
+
+Avant de créer ou de modifier une description de PR, lire le modèle commun :
+https://github.com/eures-beta/.github/blob/main/pull_request_template.md
+
+Cette lecture est obligatoire, y compris avec la CLI ou l’API GitHub : le modèle
+hérité n’est pas présent dans le clone local. Rédiger en français, conserver les
+rubriques pertinentes et remplacer les textes d’aide par le pourquoi, le comment
+et les instructions de test propres à la PR. Les sections indiquées comme
+optionnelles peuvent être omises si elles ne s’appliquent pas.
+
+Distinguer les tests exécutés de ceux restant à faire ; ne cocher que les
+vérifications réalisées. Si le modèle est inaccessible, le signaler et utiliser
+les rubriques Pourquoi, Comment, À vérifier et Comment tester, sans inventer
+son contenu. Ne pas recopier le modèle dans ce dépôt : GitHub utilise le modèle
+commun en l’absence de modèle local.
