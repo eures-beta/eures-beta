@@ -39,11 +39,38 @@
       line-height: 1.6;
     }
 
-    .admin-branding {
+    .admin-partners {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 1.5rem 2rem;
+      margin-bottom: 1.5rem;
+      padding: 1.25rem;
+      background: #fff;
+      border-radius: 12px;
+    }
+
+    .admin-partners img {
       display: block;
-      width: clamp(160px, 18vw, 260px);
+      width: auto;
       height: auto;
-      margin-bottom: 1rem;
+      max-width: 100%;
+      object-fit: contain;
+    }
+
+    .admin-partners .partner-eures { width: 260px; }
+    .admin-partners .partner-ft { width: 220px; }
+    .admin-partners .partner-adem { width: 180px; }
+    .admin-partners .partner-forem { width: 140px; }
+
+    @media (max-width: 600px) {
+      .admin-partners {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1.5rem;
+        padding: 1rem;
+      }
+      .admin-partners img { max-height: 90px; }
     }
 
     .kpis {
@@ -2162,14 +2189,21 @@
 <body>
   <div class="admin-shell">
     <section class="admin-card admin-head">
-      <img class="admin-branding" src="/assets/eures-email-header.png" alt="République Française, France Travail et EURES">
+      <div class="admin-partners">
+        <img class="partner-eures" src="/assets/partners/eures-ela.jpg" alt="EURES / European Labour Authority">
+        <img class="partner-ft" src="/assets/partners/france-travail.svg" alt="République française / France Travail">
+        <img class="partner-adem" src="/assets/partners/adem.png" alt="ADEM">
+        <img class="partner-forem" src="/assets/partners/forem.png" alt="Le Forem">
+      </div>
       <h1>Admin EURES beta</h1>
       <p>Piloter les invitations et valider les matchings entre candidats et entreprises. Vous pouvez importer des contacts, envoyer les invitations, puis suivre les réponses et les mises en relation.</p>
-      <p style="margin-top:0.9rem;"><a class="btn-neutral" id="network-link" href="/admin/eures-beta/reseau" hidden>Réseau</a>
+      <p style="margin-top:0.9rem;"><a class="btn-neutral" id="network-link" href="/admin/eures-beta/reseau" hidden>Annuaire</a>
 <script src="/assets/admin/admin-1.js"></script>
 <a class="btn-neutral" id="users-link" href="/admin/eures-beta/utilisateurs" hidden>Utilisateurs &amp; droits</a>
 <script src="/assets/admin/admin-2.js"></script>
-<a class="btn-neutral" href="/admin/eures-beta/suivi">Ouvrir le suivi projet / kanban</a></p>
+<a class="btn-neutral" href="/admin/eures-beta/suivi">Ouvrir le suivi projet / kanban</a>
+<a class="btn-neutral" id="documentation-link" href="/admin/eures-beta/documentation">Documentation</a></p>
+<script src="/assets/admin/admin-navigation.js"></script>
       <div class="global-watch" id="global-response-watch" hidden>
         <div class="status-line" id="global-response-watch-text"></div>
         <div class="global-watch-actions">
