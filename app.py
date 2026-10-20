@@ -24,6 +24,8 @@ import csv
 import secrets
 import threading
 import unicodedata
+from contextvars import ContextVar
+from copy import deepcopy
 from html import escape
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
@@ -4047,14 +4049,41 @@ def write_grist_records(method: str, url: str, payload: dict, headers: dict, max
     return resp
 
 
+# A snapshot lasts only for one admin builder invocation, including nested builders.
+# No candidate data or credentials survive into another request or worker context.
+_ADMIN_GRIST_READS = ContextVar('admin_grist_reads', default=None)
+_ADMIN_GRIST_TIMEOUT = (3.05, 15)
+
+
+def reuse_admin_grist_reads(builder):
+    @wraps(builder)
+    def wrapped(*args, **kwargs):
+        if _ADMIN_GRIST_READS.get() is not None:
+            return builder(*args, **kwargs)
+        token = _ADMIN_GRIST_READS.set({})
+        try:
+            return builder(*args, **kwargs)
+        finally:
+            _ADMIN_GRIST_READS.reset(token)
+    return wrapped
+
+
 def fetch_table_records(doc_id: str, table_id: str, headers: dict, limit: int = 5000):
-    """Read records from a Grist table."""
+    """Read Grist records, reusing identical reads within an admin snapshot."""
+    cache = _ADMIN_GRIST_READS.get()
+    key = (GRIST_BASE_URL, doc_id, table_id, tuple(sorted(headers.items())), limit)
+    if cache is not None and key in cache:
+        return deepcopy(cache[key])
     url = f"{GRIST_BASE_URL}/api/docs/{doc_id}/tables/{table_id}/records"
-    resp = requests.get(url, params={'limit': limit}, headers=headers)
+    options = {'timeout': _ADMIN_GRIST_TIMEOUT} if cache is not None else {}
+    resp = requests.get(url, params={'limit': limit}, headers=headers, **options)
     if resp.status_code != 200:
         raise RuntimeError(f'Failed to read {table_id}: HTTP {resp.status_code} - {resp.text}')
     payload = _parse_response_json_safe(resp)
-    return payload.get('records', []) if isinstance(payload, dict) else []
+    records = payload.get('records', []) if isinstance(payload, dict) else []
+    if cache is not None:
+        cache[key] = deepcopy(records)
+    return records
 
 
 def _month_key(value) -> str | None:
@@ -7360,6 +7389,7 @@ def _compute_eures_delay_hours(start_value, end_value) -> float | None:
     return delta
 
 
+@reuse_admin_grist_reads
 def build_eures_admin_tasks(status: str = 'pending') -> list[dict]:
     """Return one unified admin task list for the cockpit."""
     rows = []
@@ -7500,6 +7530,7 @@ def build_eures_admin_tasks(status: str = 'pending') -> list[dict]:
     return rows
 
 
+@reuse_admin_grist_reads
 def build_eures_cockpit_summary() -> dict:
     """Build a compact cockpit payload for the EURES beta admin home."""
     matchings_all = list_eures_admin_matchings(status='all')

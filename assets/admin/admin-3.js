@@ -5232,11 +5232,12 @@ const state = {
     activateTab("tasks");
     setTechnicalView("health");
     setInvitationView("dashboard");
-    startQuestionnaireAutoRefresh();
-    loadCockpit();
-    loadTasks();
-    loadInvitations();
-    loadQuestionnaireResponses("candidate");
-    loadQuestionnaireResponses("employer");
-    loadBrevoHealth();
-    loadMatchings();
+    async function loadInitialAdminData() {
+      // Keep hidden panels and external health checks off the critical path.
+      await loadTasks();
+      await loadCockpit();
+      await loadQuestionnaireResponses("candidate");
+      await loadQuestionnaireResponses("employer");
+      startQuestionnaireAutoRefresh();
+    }
+    loadInitialAdminData();
