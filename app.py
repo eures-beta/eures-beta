@@ -80,7 +80,7 @@ _EURES_TRACKING_SAVE_LOCK = threading.Lock()
 _EURES_DOCUMENTATION_SAVE_LOCK = threading.Lock()
 _EURES_VISIT_ANALYTICS_LOCK = threading.Lock()
 
-# Cap request bodies to bound memory use and blunt large-payload DoS (forms/exports are small JSON).
+# Default request cap; questionnaire submissions have a bounded CV-aware allowance.
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
 
 GRIST_BASE_URL = os.environ.get('GRIST_BASE_URL', 'https://grist.numerique.gouv.fr').rstrip('/')
@@ -550,6 +550,8 @@ EURES_RESPONSE_ADMIN_FIELDS = {
 }
 EURES_RESPONSE_ALLOWED_STATUSES = {'active', 'disabled'}
 EURES_CV_MAX_BYTES = 3 * 1024 * 1024
+# Base64 adds 4/3 overhead; reserve 1 MiB for the remaining questionnaire JSON.
+EURES_RECORD_MAX_CONTENT_LENGTH = 4 * ((EURES_CV_MAX_BYTES + 2) // 3) + 1024 * 1024
 EURES_CV_ALLOWED_MIME_TYPES = {
     'application/pdf',
     'application/msword',
@@ -1024,6 +1026,14 @@ def is_form_enabled(form_id: str) -> bool:
     if is_eures_beta_only_mode():
         return form_id == 'eures-beta'
     return True
+
+
+@app.before_request
+def limit_questionnaire_body():
+    """Allow the advertised CV size without lifting limits on other endpoints."""
+    if (request.endpoint == 'save_record' and request.method == 'POST'
+            and (request.view_args or {}).get('form_id') == 'eures-beta'):
+        request.max_content_length = EURES_RECORD_MAX_CONTENT_LENGTH
 
 
 @app.before_request

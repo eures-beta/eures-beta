@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.10"
 
 [[package]]
@@ -154,7 +154,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "flask", specifier = ">=3.0" },
+    { name = "flask", specifier = ">=3.1" },
     { name = "flask-cors", specifier = ">=4.0" },
     { name = "gunicorn", specifier = ">=22.0" },
     { name = "openpyxl", specifier = ">=3.1" },
