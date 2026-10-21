@@ -4,7 +4,7 @@ Fichiers destinés aux ressources publiques de Match Europe. Ils sont affichés 
 
 - `eures-ela.jpg` : copie exacte du fichier fourni `LOGOS/EURES_ELA/EURES_ELA_logos_combined.jpg`.
 - `adem.png` : rendu PNG à 300 dpi du fichier fourni `LOGOS/ADEM/Logo_Adem_H_Denomination.pdf`, page et proportions conservées.
-- `forem.png` : logo officiel téléchargé le 15 octobre 2026 depuis https://www.leforem.be/content/dam/leforem/fr/images/logos/Logo-Forem-noir.png (page source : https://www.leforem.be/charte-graphique). La signature personnelle fournie dans `LOGOS/FOREM/` est exclue.
+- `forem.png` : copie exacte du fichier « Forem_LOGO new (4).png », officiellement transmis à Eric et fourni pour remplacement le 21 octobre 2026. Fichier conservé sans retouche ni recadrage (795 × 229 pixels). Remplace la version téléchargée le 15 octobre 2026. La signature personnelle fournie dans `LOGOS/FOREM/` est exclue.
 
 - `france-travail.svg` : copie exacte du bloc marque officiel « République française + France Travail », horizontal, couleurs positives, RVB, extrait le 15 octobre 2026 de https://logo.francetravail.org/fichier/8/download (fichier source : `LogoFranceTravail/Bloc Marque RVB/Couleurs/Bloc_Marque_RF_France_Travail_RVB_Horizontal_Coul_Positif.svg`). Remplace la copie du favicon précédemment préparée. Le fichier est affiché sans modification dans le bandeau d’administration.
 
