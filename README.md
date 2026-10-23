@@ -65,6 +65,12 @@ Les règles suivantes constituent le fonctionnement proposé. Leur application a
 
 ## Installer et lancer en local
 
+Le Makefile à la racine fournit `make help`, `make install`, `make run`,
+`make test` (suite Python) et `make test-js` (suite JavaScript, Node.js requis).
+Le serveur reste sur loopback ; `PORT` et `HOST` sont personnalisables.
+Ces raccourcis conservent le fonctionnement de `.env` décrit ci-dessous.
+Cette application utilise Grist, sans base SQL locale à migrer.
+
 Prérequis : Git et `uv`. Le projet demande Python 3.10 minimum ; `.python-version` indique Python 3.13.
 
 ```bash
