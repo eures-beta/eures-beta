@@ -14,3 +14,11 @@ dependencies = [
 
 [project.scripts]
 serve = "app:app.run"
+
+[tool.black]
+required-version = "26.10.1"
+line-length = 88
+target-version = ["py310"]
+# Conserver les guillemets existants limite le diff et préserve les adaptations FT.
+skip-string-normalization = true
+extend-exclude = "/(build|staticfiles|\\.venv-quality)/"
