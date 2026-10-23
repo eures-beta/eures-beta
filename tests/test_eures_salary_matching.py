@@ -11,7 +11,9 @@ class EuresSalaryMatchingTest(unittest.TestCase):
             "tally_q38_salary_min": minimum,
         }
 
-    def employer(self, period="Per month", amount_type="gross", minimum="2600", maximum="3000"):
+    def employer(
+        self, period="Per month", amount_type="gross", minimum="2600", maximum="3000"
+    ):
         return {
             "tally_q40_salary_type": period,
             "tally_q40_salary_amount_type": amount_type,

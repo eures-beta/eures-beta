@@ -33,10 +33,27 @@ from io import BytesIO, StringIO
 from functools import wraps
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
-from itsdangerous import BadSignature, SignatureExpired, URLSafeSerializer, URLSafeTimedSerializer
+from itsdangerous import (
+    BadSignature,
+    SignatureExpired,
+    URLSafeSerializer,
+    URLSafeTimedSerializer,
+)
 from dotenv import load_dotenv
 import requests
-from flask import Flask, request, jsonify, redirect, send_file, send_from_directory, Response, session, url_for, g, has_request_context
+from flask import (
+    Flask,
+    request,
+    jsonify,
+    redirect,
+    send_file,
+    send_from_directory,
+    Response,
+    session,
+    url_for,
+    g,
+    has_request_context,
+)
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from eures_beta_email_templates import (
     get_candidate_invitation_template,
@@ -52,7 +69,10 @@ DOCS_DIR = BASE_DIR / 'docs'
 PRIVATE_DOCUMENTS_DIR = BASE_DIR / 'private_documents'
 
 EURES_PRIVATE_DOCUMENTS = {
-    'note-conception-eten-v0.pdf': ('Note_de_conception_ETEN_V0.pdf', 'application/pdf'),
+    'note-conception-eten-v0.pdf': (
+        'Note_de_conception_ETEN_V0.pdf',
+        'application/pdf',
+    ),
     'note-conception-eten-v0.docx': (
         'Note_de_conception_ETEN_V0.docx',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -71,7 +91,10 @@ app.config.update(
     ),
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
-    SESSION_COOKIE_SECURE=str(os.environ.get('SESSION_COOKIE_SECURE', 'true')).strip().lower() not in {'0', 'false', 'no', 'off'},
+    SESSION_COOKIE_SECURE=str(os.environ.get('SESSION_COOKIE_SECURE', 'true'))
+    .strip()
+    .lower()
+    not in {'0', 'false', 'no', 'off'},
     PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
     SESSION_REFRESH_EACH_REQUEST=False,
 )
@@ -105,6 +128,7 @@ def _client_error(message: str, status: int):
 @app.errorhandler(Exception)
 def handle_unexpected_error(error):
     from werkzeug.exceptions import HTTPException
+
     if isinstance(error, HTTPException) and (error.code or 500) < 500:
         return error
     # Exception messages and tracebacks may contain upstream bodies or credentials.
@@ -112,7 +136,9 @@ def handle_unexpected_error(error):
     return _client_error('', getattr(error, 'code', None) or 500)
 
 
-GRIST_BASE_URL = os.environ.get('GRIST_BASE_URL', 'https://grist.numerique.gouv.fr').rstrip('/')
+GRIST_BASE_URL = os.environ.get(
+    'GRIST_BASE_URL', 'https://grist.numerique.gouv.fr'
+).rstrip('/')
 APP_MODE = os.environ.get('APP_MODE', 'eures-beta').strip().lower() or 'eures-beta'
 _TABLE_COLUMNS_CACHE: dict[tuple[str, str], dict[str, object]] = {}
 _TABLE_COLUMNS_CACHE_TTL_SECONDS = 60
@@ -127,8 +153,14 @@ EURES_TRACKING_TABLE_DEFAULT = 'Suivi_Projet'
 EURES_DOCUMENTATION_TABLE_DEFAULT = 'Documentation_Projet'
 EURES_SPONTANEOUS_TABLE_DEFAULT = 'Candidatures_spontanees'
 EURES_VISIT_ANALYTICS_TABLE_DEFAULT = 'Visites_Match_Europe'
-EURES_VISIT_ANALYTICS_ENABLED = str(os.environ.get('EURES_VISIT_ANALYTICS_ENABLED', 'true')).strip().lower() not in {'0', 'false', 'no', 'off'}
-EURES_VISIT_ANALYTICS_FILE = Path(os.environ.get('EURES_VISIT_ANALYTICS_FILE', '/tmp/eures_beta_visit_analytics.jsonl'))
+EURES_VISIT_ANALYTICS_ENABLED = str(
+    os.environ.get('EURES_VISIT_ANALYTICS_ENABLED', 'true')
+).strip().lower() not in {'0', 'false', 'no', 'off'}
+EURES_VISIT_ANALYTICS_FILE = Path(
+    os.environ.get(
+        'EURES_VISIT_ANALYTICS_FILE', '/tmp/eures_beta_visit_analytics.jsonl'
+    )
+)
 EURES_VISIT_ANALYTICS_EVENT_TYPES = {
     'page_view',
     'cta_click',
@@ -660,7 +692,10 @@ EURES_INVITATION_ALLOWED_STATUSES = {
 EURES_INVITATION_SENDABLE_STATUSES = {'invitation_a_envoyer', 'erreur_envoi'}
 EURES_DUPLICATE_FOLLOWUP_ALLOWED_STATUSES = {'pending', 'reminded', 'ignored'}
 EURES_MANUAL_FT_INVITATION_SOURCES = {'ft_manual_email', 'france_travail_manual_email'}
-EURES_MANUAL_FT_INVITATION_SENDERS = {'admin_ft_email_manual', 'france_travail_email_manual'}
+EURES_MANUAL_FT_INVITATION_SENDERS = {
+    'admin_ft_email_manual',
+    'france_travail_email_manual',
+}
 EURES_SECTOR_CANONICAL_MAP = {
     'vente': 'vente',
     'commerce': 'vente',
@@ -690,12 +725,36 @@ EURES_SECTOR_CANONICAL_MAP = {
     'accessible rapidement': 'polyvalent',
 }
 EURES_CANDIDAT_SECTOR_SALARY_FIELDS = {
-    'vente': ('tally_q20_salary_type', 'tally_q20_salary_amount_type', 'tally_q20_salary_min'),
-    'nettoyage': ('tally_q22_salary_type', 'tally_q22_salary_amount_type', 'tally_q22_salary_min'),
-    'hotellerie': ('tally_q25_salary_type', 'tally_q25_salary_amount_type', 'tally_q25_salary_min'),
-    'agriculture': ('tally_q27_salary_type', 'tally_q27_salary_amount_type', 'tally_q27_salary_min'),
-    'polyvalent': ('tally_q29_salary_type', 'tally_q29_salary_amount_type', 'tally_q29_salary_min'),
-    'industrie_production': ('tally_q38_salary_type', 'tally_q38_salary_amount_type', 'tally_q38_salary_min'),
+    'vente': (
+        'tally_q20_salary_type',
+        'tally_q20_salary_amount_type',
+        'tally_q20_salary_min',
+    ),
+    'nettoyage': (
+        'tally_q22_salary_type',
+        'tally_q22_salary_amount_type',
+        'tally_q22_salary_min',
+    ),
+    'hotellerie': (
+        'tally_q25_salary_type',
+        'tally_q25_salary_amount_type',
+        'tally_q25_salary_min',
+    ),
+    'agriculture': (
+        'tally_q27_salary_type',
+        'tally_q27_salary_amount_type',
+        'tally_q27_salary_min',
+    ),
+    'polyvalent': (
+        'tally_q29_salary_type',
+        'tally_q29_salary_amount_type',
+        'tally_q29_salary_min',
+    ),
+    'industrie_production': (
+        'tally_q38_salary_type',
+        'tally_q38_salary_amount_type',
+        'tally_q38_salary_min',
+    ),
 }
 EURES_CANDIDAT_SECTOR_JOB_TITLE_FIELDS = {
     'vente': 'tally_q20_job_title',
@@ -706,12 +765,42 @@ EURES_CANDIDAT_SECTOR_JOB_TITLE_FIELDS = {
     'industrie_production': 'tally_q38_job_title',
 }
 EURES_EMPLOYEUR_SECTOR_SALARY_FIELDS = {
-    'vente': ('tally_q10_salary_type', 'tally_q10_salary_amount_type', 'tally_q10_salary_min', 'tally_q10_salary_max'),
-    'nettoyage': ('tally_q11_salary_type', 'tally_q11_salary_amount_type', 'tally_q11_salary_min', 'tally_q11_salary_max'),
-    'hotellerie': ('tally_q12_salary_type', 'tally_q12_salary_amount_type', 'tally_q12_salary_min', 'tally_q12_salary_max'),
-    'agriculture': ('tally_q13_salary_type', 'tally_q13_salary_amount_type', 'tally_q13_salary_min', 'tally_q13_salary_max'),
-    'polyvalent': ('tally_q14_salary_type', 'tally_q14_salary_amount_type', 'tally_q14_salary_min', 'tally_q14_salary_max'),
-    'industrie_production': ('tally_q40_salary_type', 'tally_q40_salary_amount_type', 'tally_q40_salary_min', 'tally_q40_salary_max'),
+    'vente': (
+        'tally_q10_salary_type',
+        'tally_q10_salary_amount_type',
+        'tally_q10_salary_min',
+        'tally_q10_salary_max',
+    ),
+    'nettoyage': (
+        'tally_q11_salary_type',
+        'tally_q11_salary_amount_type',
+        'tally_q11_salary_min',
+        'tally_q11_salary_max',
+    ),
+    'hotellerie': (
+        'tally_q12_salary_type',
+        'tally_q12_salary_amount_type',
+        'tally_q12_salary_min',
+        'tally_q12_salary_max',
+    ),
+    'agriculture': (
+        'tally_q13_salary_type',
+        'tally_q13_salary_amount_type',
+        'tally_q13_salary_min',
+        'tally_q13_salary_max',
+    ),
+    'polyvalent': (
+        'tally_q14_salary_type',
+        'tally_q14_salary_amount_type',
+        'tally_q14_salary_min',
+        'tally_q14_salary_max',
+    ),
+    'industrie_production': (
+        'tally_q40_salary_type',
+        'tally_q40_salary_amount_type',
+        'tally_q40_salary_min',
+        'tally_q40_salary_max',
+    ),
 }
 EURES_EMPLOYEUR_SECTOR_JOB_TITLE_FIELDS = {
     'vente': 'tally_q10_job_title',
@@ -868,13 +957,102 @@ FIELD_LABELS = {
 }
 COH_LABELS = {
     'genre': ('Genre', ['Hommes', 'Femmes', 'Autre']),
-    'age': ('Âge', ['16-17 ans', '18-19 ans', '20-24 ans', '25-29 ans', '30-34 ans', '35-39 ans', '40-44 ans', '45-49 ans', '50-54 ans', '55-59 ans', '60 ans et +', 'Je ne sais pas']),
-    'niveau_entree': ("Niveau de formation à l'entrée", ['Niveau 2 (CEP, sans formation)', 'Niveau 3 (CAP, BEP)', 'Niveau 4 (Bac, Bac pro)', 'Niveau 5 (Bac +2, BTS)', 'Niveau 6 (Bac +3, Bac +4)', 'Niveau 7 (Bac +5)', 'Je ne sais pas']),
-    'situation_entree': ("Situation à l'entrée", ['En emploi du secteur privé', 'Dont entreprises adaptées', 'Dont alternance (secteur privé)', 'En emploi secteur public', 'FPT', 'Dont contractuels (FPT)', 'Dont alternance (FPT)', 'FPH', 'Dont contractuels (FPH)', 'Dont alternance (FPH)', 'FPE', 'Dont contractuels (FPE)', 'Dont alternance (FPE)', 'En activité non salariée', "Travailleurs d'ESAT", "Sans emploi depuis moins d'1 an", 'Sans emploi depuis 1 à 2 ans', 'Sans emploi depuis 2 ans ou plus', "N'avaient jamais travaillé", 'En formation', 'Je ne sais pas']),
-    'ressources_entree': ("Ressources à l'entrée", ['Salaire', 'AAH', 'Allocations chômage', 'RSA', 'Indemnités Journalières', 'Rentes AT/MP / Pension invalidité', 'Autres', 'Aucune', 'Je ne sais pas']),
-    'pathologies': ('Pathologies', ['1 pathologie', '2 pathologies', '3 pathologies et plus', 'Non connu']),
-    'origine_handicap': ('Origine du handicap', ['Congénitale', 'Maladie', 'Accident de vie privée', 'Accident travail / Pro', 'Maladie professionnelle', 'Autres', 'Non connue']),
-    'lesion_origine': ('Origine de la lésion cérébrale (UEROS)', ['Traumatisme crânien', 'AVC', 'Tumeur cérébrale', 'Epilepsie', 'Autres pathologies neuro', 'Non connue']),
+    'age': (
+        'Âge',
+        [
+            '16-17 ans',
+            '18-19 ans',
+            '20-24 ans',
+            '25-29 ans',
+            '30-34 ans',
+            '35-39 ans',
+            '40-44 ans',
+            '45-49 ans',
+            '50-54 ans',
+            '55-59 ans',
+            '60 ans et +',
+            'Je ne sais pas',
+        ],
+    ),
+    'niveau_entree': (
+        "Niveau de formation à l'entrée",
+        [
+            'Niveau 2 (CEP, sans formation)',
+            'Niveau 3 (CAP, BEP)',
+            'Niveau 4 (Bac, Bac pro)',
+            'Niveau 5 (Bac +2, BTS)',
+            'Niveau 6 (Bac +3, Bac +4)',
+            'Niveau 7 (Bac +5)',
+            'Je ne sais pas',
+        ],
+    ),
+    'situation_entree': (
+        "Situation à l'entrée",
+        [
+            'En emploi du secteur privé',
+            'Dont entreprises adaptées',
+            'Dont alternance (secteur privé)',
+            'En emploi secteur public',
+            'FPT',
+            'Dont contractuels (FPT)',
+            'Dont alternance (FPT)',
+            'FPH',
+            'Dont contractuels (FPH)',
+            'Dont alternance (FPH)',
+            'FPE',
+            'Dont contractuels (FPE)',
+            'Dont alternance (FPE)',
+            'En activité non salariée',
+            "Travailleurs d'ESAT",
+            "Sans emploi depuis moins d'1 an",
+            'Sans emploi depuis 1 à 2 ans',
+            'Sans emploi depuis 2 ans ou plus',
+            "N'avaient jamais travaillé",
+            'En formation',
+            'Je ne sais pas',
+        ],
+    ),
+    'ressources_entree': (
+        "Ressources à l'entrée",
+        [
+            'Salaire',
+            'AAH',
+            'Allocations chômage',
+            'RSA',
+            'Indemnités Journalières',
+            'Rentes AT/MP / Pension invalidité',
+            'Autres',
+            'Aucune',
+            'Je ne sais pas',
+        ],
+    ),
+    'pathologies': (
+        'Pathologies',
+        ['1 pathologie', '2 pathologies', '3 pathologies et plus', 'Non connu'],
+    ),
+    'origine_handicap': (
+        'Origine du handicap',
+        [
+            'Congénitale',
+            'Maladie',
+            'Accident de vie privée',
+            'Accident travail / Pro',
+            'Maladie professionnelle',
+            'Autres',
+            'Non connue',
+        ],
+    ),
+    'lesion_origine': (
+        'Origine de la lésion cérébrale (UEROS)',
+        [
+            'Traumatisme crânien',
+            'AVC',
+            'Tumeur cérébrale',
+            'Epilepsie',
+            'Autres pathologies neuro',
+            'Non connue',
+        ],
+    ),
 }
 HANDICAP_TYPES = [
     'Déficiences intellectuelles',
@@ -991,7 +1169,12 @@ def _admin_env_value(base: str, form_id: str, default: str = '') -> str:
 
 
 def get_admin_auth_mode(form_id: str) -> str:
-    mode = _admin_env_value('ADMIN_AUTH_MODE', form_id, default='basic').strip().lower().replace('-', '_')
+    mode = (
+        _admin_env_value('ADMIN_AUTH_MODE', form_id, default='basic')
+        .strip()
+        .lower()
+        .replace('-', '_')
+    )
     if mode not in {'basic', 'magic_link', 'hybrid'}:
         return 'basic'
     return mode
@@ -999,11 +1182,7 @@ def get_admin_auth_mode(form_id: str) -> str:
 
 def get_admin_allowed_emails(form_id: str) -> set[str]:
     raw = _admin_env_value('ADMIN_ALLOWED_EMAILS', form_id)
-    return {
-        normalize_email(part)
-        for part in raw.split(',')
-        if normalize_email(part)
-    }
+    return {normalize_email(part) for part in raw.split(',') if normalize_email(part)}
 
 
 def get_admin_magic_link_ttl_seconds(form_id: str) -> int:
@@ -1034,7 +1213,11 @@ def get_admin_session_ttl_seconds(form_id: str) -> int:
 
 
 def is_admin_session_persistent(form_id: str) -> bool:
-    raw = _admin_env_value('ADMIN_SESSION_PERSISTENT', form_id, default='false').strip().lower()
+    raw = (
+        _admin_env_value('ADMIN_SESSION_PERSISTENT', form_id, default='false')
+        .strip()
+        .lower()
+    )
     return raw in {'1', 'true', 'yes', 'on'}
 
 
@@ -1060,8 +1243,11 @@ def is_form_enabled(form_id: str) -> bool:
 @app.before_request
 def limit_questionnaire_body():
     """Allow the advertised CV size without lifting limits on other endpoints."""
-    if (request.endpoint == 'save_record' and request.method == 'POST'
-            and (request.view_args or {}).get('form_id') == 'eures-beta'):
+    if (
+        request.endpoint == 'save_record'
+        and request.method == 'POST'
+        and (request.view_args or {}).get('form_id') == 'eures-beta'
+    ):
         request.max_content_length = EURES_RECORD_MAX_CONTENT_LENGTH
 
 
@@ -1078,7 +1264,6 @@ def is_eures_beta_only_mode() -> bool:
     return APP_MODE in {'eures-beta', 'eures_beta', 'eures-only', 'eures_only'}
 
 
-
 def _admin_session_key(form_id: str) -> str:
     return f'admin_session:{form_id}'
 
@@ -1092,7 +1277,9 @@ def _current_admin_session(form_id: str) -> dict | None:
         return None
     authenticated_at_raw = str(payload.get('authenticated_at') or '')
     try:
-        authenticated_at = datetime.fromisoformat(authenticated_at_raw.replace('Z', '+00:00'))
+        authenticated_at = datetime.fromisoformat(
+            authenticated_at_raw.replace('Z', '+00:00')
+        )
     except Exception:
         _clear_admin_session(form_id)
         return None
@@ -1144,10 +1331,15 @@ def get_admin_actor(form_id: str, fallback: str = 'admin') -> str:
 def _admin_auth_error_response(form_id: str):
     login_url = url_for('admin_login', form_id=form_id)
     if request.path.startswith('/api/'):
-        return jsonify({
-            'error': 'Authentication required',
-            'login_url': login_url,
-        }), 401
+        return (
+            jsonify(
+                {
+                    'error': 'Authentication required',
+                    'login_url': login_url,
+                }
+            ),
+            401,
+        )
     return redirect(login_url)
 
 
@@ -1197,7 +1389,9 @@ def _require_admin_magic_link_auth(form_id: str):
     return _admin_auth_error_response(form_id)
 
 
-def build_admin_magic_link_email(form_id: str, email: str, login_link: str) -> tuple[str, str, str, str]:
+def build_admin_magic_link_email(
+    form_id: str, email: str, login_link: str
+) -> tuple[str, str, str, str]:
     title = f'Connexion admin {form_id}'
     subject = f'[{form_id}] Votre lien de connexion admin'
     text_body = (
@@ -1258,10 +1452,14 @@ def build_admin_magic_login_link(form_id: str, token: str) -> str:
     path = url_for('admin_magic_link_consume', form_id=form_id, token=token)
     if form_id == 'eures-beta':
         return f"{get_public_app_base_url()}{path}"
-    return url_for('admin_magic_link_consume', form_id=form_id, token=token, _external=True)
+    return url_for(
+        'admin_magic_link_consume', form_id=form_id, token=token, _external=True
+    )
 
 
-def _render_admin_login_page(form_id: str, message: str = '', error: str = '') -> Response:
+def _render_admin_login_page(
+    form_id: str, message: str = '', error: str = ''
+) -> Response:
     html = f"""<!doctype html>
 <html lang="fr">
   <head>
@@ -1297,6 +1495,7 @@ def _render_admin_login_page(form_id: str, message: str = '', error: str = '') -
 
 def admin_required(fn):
     """Decorator to protect admin pages and APIs with basic auth."""
+
     @wraps(fn)
     def wrapper(*args, **kwargs):
         form_id = str(kwargs.get('form_id') or '')
@@ -1316,23 +1515,8 @@ def admin_required(fn):
         if denied:
             return denied
         return fn(*args, **kwargs)
+
     return wrapper
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 def get_form_config(form_id: str, role: str | None = None) -> dict:
@@ -1358,7 +1542,6 @@ def get_form_config(form_id: str, role: str | None = None) -> dict:
     }
 
 
-
 def _eures_permission_session():
     """Validated personal identity only; legacy sessions have no version yet."""
     current = _current_admin_session('eures-beta')
@@ -1366,14 +1549,18 @@ def _eures_permission_session():
         return None
     return {
         'email': current['email'],
-        'Version_session': session.get(_admin_session_key('eures-beta'), {}).get('Version_session'),
+        'Version_session': session.get(_admin_session_key('eures-beta'), {}).get(
+            'Version_session'
+        ),
     }
 
 
 def _eures_permission_reader():
     from eures_permissions import GristAuthorizationReader
+
     return GristAuthorizationReader(
-        lambda: get_form_config('eures-beta', 'candidate') or get_form_config('eures-beta'),
+        lambda: get_form_config('eures-beta', 'candidate')
+        or get_form_config('eures-beta'),
         lambda: GRIST_BASE_URL,
     )
 
@@ -1381,17 +1568,22 @@ def _eures_permission_reader():
 def get_eures_authorization():
     """Phase 1 diagnostic on demand; no automatic checks on current routes."""
     from eures_permissions import resolve_authorization
-    return resolve_authorization(_eures_permission_session(), _eures_permission_reader())
+
+    return resolve_authorization(
+        _eures_permission_session(), _eures_permission_reader()
+    )
 
 
 def has_permission(permission):
     from eures_permissions import has_permission as check
+
     return check(permission, _eures_permission_session(), _eures_permission_reader())
 
 
 def require_permission(permission):
     """Ready for Phase 2, deliberately unused by current routes."""
     from eures_permissions import require_permission as check
+
     return check(permission, _eures_permission_session(), _eures_permission_reader())
 
 
@@ -1401,12 +1593,14 @@ def eures_permission_http_response(permission):
     Deliberately not attached to business routes during Phase 2A.
     """
     from eures_permissions import PermissionDenied
+
     try:
         require_permission(permission)
     except PermissionDenied as error:
         unavailable = str(error) == 'grist_unavailable'
-        return jsonify({'error': 'Authorization unavailable' if unavailable
-                        else 'Access denied'}), 503 if unavailable else 403
+        return jsonify(
+            {'error': 'Authorization unavailable' if unavailable else 'Access denied'}
+        ), (503 if unavailable else 403)
     return None
 
 
@@ -1420,13 +1614,13 @@ def get_form_access_settings(form_id: str) -> dict:
     else:
         read_only = str(read_only_env).strip().lower() in {'1', 'true', 'yes', 'on'}
 
-    default_message = (
-        "La période de saisie est close. Vous pouvez désormais uniquement consulter vos réponses."
-    )
-    message = str(
-        os.environ.get(f'FORM_READONLY_MESSAGE_{form_id_upper}')
+    default_message = "La période de saisie est close. Vous pouvez désormais uniquement consulter vos réponses."
+    message = (
+        str(
+            os.environ.get(f'FORM_READONLY_MESSAGE_{form_id_upper}') or default_message
+        ).strip()
         or default_message
-    ).strip() or default_message
+    )
 
     return {
         'read_only': read_only,
@@ -1442,7 +1636,9 @@ def get_eures_stats_config() -> dict | None:
 
     return {
         'doc_id': base['doc_id'],
-        'table_id': os.environ.get('GRIST_TABLE_EURES_BETA_STATS', EURES_STATS_TABLE_DEFAULT),
+        'table_id': os.environ.get(
+            'GRIST_TABLE_EURES_BETA_STATS', EURES_STATS_TABLE_DEFAULT
+        ),
         'api_key': base.get('api_key'),
     }
 
@@ -1466,7 +1662,9 @@ def get_eures_spontaneous_config() -> dict | None:
         return None
     return {
         'doc_id': base['doc_id'],
-        'table_id': os.environ.get('GRIST_TABLE_EURES_BETA_SPONTANEOUS', EURES_SPONTANEOUS_TABLE_DEFAULT),
+        'table_id': os.environ.get(
+            'GRIST_TABLE_EURES_BETA_SPONTANEOUS', EURES_SPONTANEOUS_TABLE_DEFAULT
+        ),
         'api_key': base.get('api_key'),
     }
 
@@ -1478,7 +1676,9 @@ def get_eures_invitations_config() -> dict | None:
         return None
     return {
         'doc_id': base['doc_id'],
-        'table_id': os.environ.get('GRIST_TABLE_EURES_BETA_INVITATIONS', EURES_INVITATIONS_TABLE_DEFAULT),
+        'table_id': os.environ.get(
+            'GRIST_TABLE_EURES_BETA_INVITATIONS', EURES_INVITATIONS_TABLE_DEFAULT
+        ),
         'api_key': base.get('api_key'),
     }
 
@@ -1487,7 +1687,8 @@ def get_brevo_config() -> dict:
     return {
         'api_key': os.environ.get('BREVO_API_KEY', '').strip(),
         'from_email': os.environ.get('BREVO_FROM_EMAIL', '').strip(),
-        'from_name': os.environ.get('BREVO_FROM_NAME', 'EURES beta').strip() or 'EURES beta',
+        'from_name': os.environ.get('BREVO_FROM_NAME', 'EURES beta').strip()
+        or 'EURES beta',
         'reply_to_email': os.environ.get('BREVO_REPLY_TO_EMAIL', '').strip(),
         'reply_to_name': os.environ.get('BREVO_REPLY_TO_NAME', '').strip(),
     }
@@ -1510,13 +1711,21 @@ def get_brevo_health(check_api: bool = False, timeout: int = 8) -> dict:
         'api_ok': None,
         'http_status': None,
         'status': 'ok' if configured else 'missing_config',
-        'message': 'Brevo configuration complete.' if configured else 'BREVO_API_KEY or BREVO_FROM_EMAIL is missing.',
+        'message': (
+            'Brevo configuration complete.'
+            if configured
+            else 'BREVO_API_KEY or BREVO_FROM_EMAIL is missing.'
+        ),
         'checks': [
             {
                 'key': 'api_key',
                 'label': 'Clé API Brevo',
                 'status': 'ok' if api_key_configured else 'error',
-                'detail': 'Présente dans la configuration serveur.' if api_key_configured else 'Variable BREVO_API_KEY manquante.',
+                'detail': (
+                    'Présente dans la configuration serveur.'
+                    if api_key_configured
+                    else 'Variable BREVO_API_KEY manquante.'
+                ),
             },
             {
                 'key': 'from_email',
@@ -1534,7 +1743,11 @@ def get_brevo_health(check_api: bool = False, timeout: int = 8) -> dict:
                 'key': 'api_reachability',
                 'label': 'Connexion à l’API Brevo',
                 'status': 'pending' if check_api and configured else 'not_checked',
-                'detail': 'Vérification en cours.' if check_api and configured else 'Non vérifiée dans cet appel.',
+                'detail': (
+                    'Vérification en cours.'
+                    if check_api and configured
+                    else 'Non vérifiée dans cet appel.'
+                ),
             },
         ],
     }
@@ -1594,7 +1807,9 @@ def ensure_brevo_ready(check_api: bool = False) -> dict:
     """Raise a readable error when Brevo is not ready for transactional sends."""
     health = get_brevo_health(check_api=check_api)
     if not health['configured']:
-        raise RuntimeError('Brevo configuration is incomplete. Missing BREVO_API_KEY or BREVO_FROM_EMAIL.')
+        raise RuntimeError(
+            'Brevo configuration is incomplete. Missing BREVO_API_KEY or BREVO_FROM_EMAIL.'
+        )
     if check_api and health['api_ok'] is not True:
         raise RuntimeError(f"Brevo API check failed: {health['message']}")
     return health
@@ -1605,7 +1820,11 @@ def _now_iso_utc() -> str:
 
 
 def _initial_matching_workflow_status(scoring_status: str) -> str:
-    return 'a_valider_admin' if str(scoring_status or '').strip().lower() in {'a_valider', 'auto_envoyable'} else 'calcule'
+    return (
+        'a_valider_admin'
+        if str(scoring_status or '').strip().lower() in {'a_valider', 'auto_envoyable'}
+        else 'calcule'
+    )
 
 
 def _matching_workflow_status(fields: dict) -> str:
@@ -1616,7 +1835,9 @@ def _matching_workflow_status(fields: dict) -> str:
         return 'embauche_confirmee'
     if (fields or {}).get('mise_en_relation_at'):
         return 'mise_en_relation_faite'
-    employer_response = str((fields or {}).get('employer_response') or '').strip().lower()
+    employer_response = (
+        str((fields or {}).get('employer_response') or '').strip().lower()
+    )
     if employer_response == 'contact':
         return 'accepte_employeur'
     if employer_response == 'not_contact':
@@ -1677,18 +1898,28 @@ def _matching_workflow_label(status: str) -> str:
 
 
 def get_eures_mail_signature_name() -> str:
-    return os.environ.get('EURES_SIGNATURE_NAME', 'Eric Barthélémy').strip() or 'Eric Barthélémy'
+    return (
+        os.environ.get('EURES_SIGNATURE_NAME', 'Eric Barthélémy').strip()
+        or 'Eric Barthélémy'
+    )
 
 
 def get_eures_mail_signature_role() -> str:
-    return os.environ.get('EURES_SIGNATURE_ROLE', 'Conseiller EURES - France Travail').strip() or 'Conseiller EURES - France Travail'
+    return (
+        os.environ.get(
+            'EURES_SIGNATURE_ROLE', 'Conseiller EURES - France Travail'
+        ).strip()
+        or 'Conseiller EURES - France Travail'
+    )
 
 
 def get_eures_privacy_url(lang: str = 'fr') -> str:
     normalized_lang = str(lang or 'fr').strip().lower()
     if normalized_lang not in {'fr', 'en', 'de'}:
         normalized_lang = 'fr'
-    return f"{get_public_app_base_url()}/forms/eures-beta/privacy?lang={normalized_lang}"
+    return (
+        f"{get_public_app_base_url()}/forms/eures-beta/privacy?lang={normalized_lang}"
+    )
 
 
 def get_public_app_base_url() -> str:
@@ -1710,14 +1941,9 @@ def get_eures_email_header_image_url() -> str:
     return ''
 
 
-
-
-
-
 def should_proxy_eures_public_request(form_id: str) -> bool:
     """Compatibility hook: this standalone application always handles its own routes."""
     return False
-
 
 
 def maybe_proxy_eures_request(form_id: str) -> Response | None:
@@ -1730,7 +1956,6 @@ def get_default_home_form_id() -> str:
     return 'eures-beta'
 
 
-
 def get_eures_tracking_config() -> dict | None:
     """Get configuration for the EURES project tracking table."""
     base = get_form_config('eures-beta', 'candidate') or get_form_config('eures-beta')
@@ -1738,7 +1963,9 @@ def get_eures_tracking_config() -> dict | None:
         return None
     return {
         'doc_id': base['doc_id'],
-        'table_id': os.environ.get('GRIST_TABLE_EURES_BETA_TRACKING', EURES_TRACKING_TABLE_DEFAULT),
+        'table_id': os.environ.get(
+            'GRIST_TABLE_EURES_BETA_TRACKING', EURES_TRACKING_TABLE_DEFAULT
+        ),
         'api_key': base.get('api_key'),
     }
 
@@ -1765,7 +1992,10 @@ def get_eures_visit_analytics_config() -> dict | None:
         return None
     return {
         'doc_id': base['doc_id'],
-        'table_id': os.environ.get('GRIST_TABLE_EURES_BETA_VISIT_ANALYTICS', EURES_VISIT_ANALYTICS_TABLE_DEFAULT),
+        'table_id': os.environ.get(
+            'GRIST_TABLE_EURES_BETA_VISIT_ANALYTICS',
+            EURES_VISIT_ANALYTICS_TABLE_DEFAULT,
+        ),
         'api_key': base.get('api_key'),
     }
 
@@ -1774,7 +2004,8 @@ def get_brevo_config() -> dict:
     return {
         'api_key': os.environ.get('BREVO_API_KEY', '').strip(),
         'from_email': os.environ.get('BREVO_FROM_EMAIL', '').strip(),
-        'from_name': os.environ.get('BREVO_FROM_NAME', 'EURES beta').strip() or 'EURES beta',
+        'from_name': os.environ.get('BREVO_FROM_NAME', 'EURES beta').strip()
+        or 'EURES beta',
         'reply_to_email': os.environ.get('BREVO_REPLY_TO_EMAIL', '').strip(),
         'reply_to_name': os.environ.get('BREVO_REPLY_TO_NAME', '').strip(),
     }
@@ -1797,13 +2028,21 @@ def get_brevo_health(check_api: bool = False, timeout: int = 8) -> dict:
         'api_ok': None,
         'http_status': None,
         'status': 'ok' if configured else 'missing_config',
-        'message': 'Brevo configuration complete.' if configured else 'BREVO_API_KEY or BREVO_FROM_EMAIL is missing.',
+        'message': (
+            'Brevo configuration complete.'
+            if configured
+            else 'BREVO_API_KEY or BREVO_FROM_EMAIL is missing.'
+        ),
         'checks': [
             {
                 'key': 'api_key',
                 'label': 'Clé API Brevo',
                 'status': 'ok' if api_key_configured else 'error',
-                'detail': 'Présente dans la configuration serveur.' if api_key_configured else 'Variable BREVO_API_KEY manquante.',
+                'detail': (
+                    'Présente dans la configuration serveur.'
+                    if api_key_configured
+                    else 'Variable BREVO_API_KEY manquante.'
+                ),
             },
             {
                 'key': 'from_email',
@@ -1821,7 +2060,11 @@ def get_brevo_health(check_api: bool = False, timeout: int = 8) -> dict:
                 'key': 'api_reachability',
                 'label': 'Connexion à l’API Brevo',
                 'status': 'pending' if check_api and configured else 'not_checked',
-                'detail': 'Vérification en cours.' if check_api and configured else 'Non vérifiée dans cet appel.',
+                'detail': (
+                    'Vérification en cours.'
+                    if check_api and configured
+                    else 'Non vérifiée dans cet appel.'
+                ),
             },
         ],
     }
@@ -1881,7 +2124,9 @@ def ensure_brevo_ready(check_api: bool = False) -> dict:
     """Raise a readable error when Brevo is not ready for transactional sends."""
     health = get_brevo_health(check_api=check_api)
     if not health['configured']:
-        raise RuntimeError('Brevo configuration is incomplete. Missing BREVO_API_KEY or BREVO_FROM_EMAIL.')
+        raise RuntimeError(
+            'Brevo configuration is incomplete. Missing BREVO_API_KEY or BREVO_FROM_EMAIL.'
+        )
     if check_api and health['api_ok'] is not True:
         raise RuntimeError(f"Brevo API check failed: {health['message']}")
     return health
@@ -1892,7 +2137,11 @@ def _now_iso_utc() -> str:
 
 
 def _initial_matching_workflow_status(scoring_status: str) -> str:
-    return 'a_valider_admin' if str(scoring_status or '').strip().lower() in {'a_valider', 'auto_envoyable'} else 'calcule'
+    return (
+        'a_valider_admin'
+        if str(scoring_status or '').strip().lower() in {'a_valider', 'auto_envoyable'}
+        else 'calcule'
+    )
 
 
 def _matching_workflow_status(fields: dict) -> str:
@@ -1903,7 +2152,9 @@ def _matching_workflow_status(fields: dict) -> str:
         return 'embauche_confirmee'
     if (fields or {}).get('mise_en_relation_at'):
         return 'mise_en_relation_faite'
-    employer_response = str((fields or {}).get('employer_response') or '').strip().lower()
+    employer_response = (
+        str((fields or {}).get('employer_response') or '').strip().lower()
+    )
     if employer_response == 'contact':
         return 'accepte_employeur'
     if employer_response == 'not_contact':
@@ -1983,24 +2234,40 @@ def _relation_result_workflow_status(result: str) -> str:
     result = str(result or '').strip().lower()
     if result == 'embauche_confirmee':
         return 'embauche_confirmee'
-    if result in {'refus_employeur', 'refus_candidat', 'sans_suite', 'sans_reponse_candidat', 'sans_reponse_employeur'}:
+    if result in {
+        'refus_employeur',
+        'refus_candidat',
+        'sans_suite',
+        'sans_reponse_candidat',
+        'sans_reponse_employeur',
+    }:
         return 'relation_terminee'
     return 'mise_en_relation_faite'
 
 
 def get_eures_mail_signature_name() -> str:
-    return os.environ.get('EURES_SIGNATURE_NAME', 'Eric Barthélémy').strip() or 'Eric Barthélémy'
+    return (
+        os.environ.get('EURES_SIGNATURE_NAME', 'Eric Barthélémy').strip()
+        or 'Eric Barthélémy'
+    )
 
 
 def get_eures_mail_signature_role() -> str:
-    return os.environ.get('EURES_SIGNATURE_ROLE', 'Conseiller EURES - France Travail').strip() or 'Conseiller EURES - France Travail'
+    return (
+        os.environ.get(
+            'EURES_SIGNATURE_ROLE', 'Conseiller EURES - France Travail'
+        ).strip()
+        or 'Conseiller EURES - France Travail'
+    )
 
 
 def get_eures_privacy_url(lang: str = 'fr') -> str:
     normalized_lang = str(lang or 'fr').strip().lower()
     if normalized_lang not in {'fr', 'en', 'de'}:
         normalized_lang = 'fr'
-    return f"{get_public_app_base_url()}/forms/eures-beta/privacy?lang={normalized_lang}"
+    return (
+        f"{get_public_app_base_url()}/forms/eures-beta/privacy?lang={normalized_lang}"
+    )
 
 
 def get_public_app_base_url() -> str:
@@ -2022,14 +2289,9 @@ def get_eures_email_header_image_url() -> str:
     return ''
 
 
-
-
-
-
 def should_proxy_eures_public_request(form_id: str) -> bool:
     """Compatibility hook: this standalone application always handles its own routes."""
     return False
-
 
 
 def maybe_proxy_eures_request(form_id: str) -> Response | None:
@@ -2040,7 +2302,6 @@ def maybe_proxy_eures_request(form_id: str) -> Response | None:
 def get_default_home_form_id() -> str:
     """The standalone application has the same home route on every host."""
     return 'eures-beta'
-
 
 
 def get_eures_email_action_serializer() -> URLSafeSerializer:
@@ -2055,9 +2316,8 @@ def get_eures_email_action_serializer() -> URLSafeSerializer:
 
 
 def get_eures_public_write_serializer() -> URLSafeTimedSerializer:
-    secret = (
-        os.environ.get('EURES_PUBLIC_WRITE_SECRET', '').strip()
-        or app.config.get('SECRET_KEY', '')
+    secret = os.environ.get('EURES_PUBLIC_WRITE_SECRET', '').strip() or app.config.get(
+        'SECRET_KEY', ''
     )
     if not secret:
         raise RuntimeError('Missing EURES public write secret configuration.')
@@ -2074,7 +2334,9 @@ def get_eures_public_write_ttl_seconds() -> int:
 
 
 def get_eures_public_write_rate_limit() -> tuple[int, int]:
-    raw_window = str(os.environ.get('EURES_PUBLIC_WRITE_RATE_LIMIT_WINDOW_SECONDS', '3600')).strip()
+    raw_window = str(
+        os.environ.get('EURES_PUBLIC_WRITE_RATE_LIMIT_WINDOW_SECONDS', '3600')
+    ).strip()
     raw_max = str(os.environ.get('EURES_PUBLIC_WRITE_RATE_LIMIT_MAX', '20')).strip()
     try:
         window_seconds = int(raw_window)
@@ -2108,11 +2370,13 @@ def _issue_eures_public_write_token(role: str) -> str:
         'issued_at': datetime.now(timezone.utc).isoformat(),
     }
     session.modified = True
-    return get_eures_public_write_serializer().dumps({
-        'form_id': 'eures-beta',
-        'role': normalized_role,
-        'nonce': nonce,
-    })
+    return get_eures_public_write_serializer().dumps(
+        {
+            'form_id': 'eures-beta',
+            'role': normalized_role,
+            'nonce': nonce,
+        }
+    )
 
 
 def _validate_eures_public_write_token(role: str, token: str) -> tuple[bool, str]:
@@ -2120,28 +2384,45 @@ def _validate_eures_public_write_token(role: str, token: str) -> tuple[bool, str
     if not normalized_role:
         return False, 'Role invalide.'
     if not token:
-        return False, 'Session du formulaire invalide ou expirée. Rechargez la page avant de renvoyer.'
+        return (
+            False,
+            'Session du formulaire invalide ou expirée. Rechargez la page avant de renvoyer.',
+        )
     try:
         payload = get_eures_public_write_serializer().loads(
             token,
             max_age=get_eures_public_write_ttl_seconds(),
         )
     except SignatureExpired:
-        return False, 'Session du formulaire expirée. Rechargez la page avant de renvoyer.'
+        return (
+            False,
+            'Session du formulaire expirée. Rechargez la page avant de renvoyer.',
+        )
     except BadSignature:
-        return False, 'Session du formulaire invalide. Rechargez la page avant de renvoyer.'
+        return (
+            False,
+            'Session du formulaire invalide. Rechargez la page avant de renvoyer.',
+        )
     except Exception:
         app.logger.error('EURES public write token decode failed')
-        return False, 'Impossible de vérifier la session du formulaire. Rechargez la page puis réessayez.'
+        return (
+            False,
+            'Impossible de vérifier la session du formulaire. Rechargez la page puis réessayez.',
+        )
 
     if str(payload.get('form_id') or '') != 'eures-beta':
         return False, 'Jeton de formulaire invalide.'
     if _normalize_eures_invitation_role(payload.get('role') or '') != normalized_role:
         return False, 'Jeton de formulaire invalide pour ce parcours.'
     nonce = str(payload.get('nonce') or '').strip()
-    session_payload = session.get(_eures_public_write_session_key(normalized_role)) or {}
+    session_payload = (
+        session.get(_eures_public_write_session_key(normalized_role)) or {}
+    )
     if str(session_payload.get('nonce') or '').strip() != nonce:
-        return False, 'Session du formulaire expirée. Rechargez la page avant de renvoyer.'
+        return (
+            False,
+            'Session du formulaire expirée. Rechargez la page avant de renvoyer.',
+        )
     return True, ''
 
 
@@ -2152,7 +2433,11 @@ def _check_eures_public_write_rate_limit(role: str) -> tuple[bool, int]:
     window_seconds, max_attempts = get_eures_public_write_rate_limit()
     key = (_get_client_ip(), normalized_role)
     now = time.time()
-    bucket = [ts for ts in _EURES_PUBLIC_WRITE_ATTEMPTS.get(key, []) if now - ts < window_seconds]
+    bucket = [
+        ts
+        for ts in _EURES_PUBLIC_WRITE_ATTEMPTS.get(key, [])
+        if now - ts < window_seconds
+    ]
     if len(bucket) >= max_attempts:
         _EURES_PUBLIC_WRITE_ATTEMPTS[key] = bucket
         return False, int(max(1, window_seconds - (now - bucket[0])))
@@ -2211,7 +2496,9 @@ def _eures_invitation_lookup_key(role: str, email: str) -> tuple[str, str]:
 
 
 def _extract_csv_rows(csv_text: str) -> list[dict]:
-    raw_text = str(csv_text or '').replace('\r\n', '\n').replace('\r', '\n').lstrip('\ufeff')
+    raw_text = (
+        str(csv_text or '').replace('\r\n', '\n').replace('\r', '\n').lstrip('\ufeff')
+    )
     if not raw_text.strip():
         return []
 
@@ -2224,7 +2511,9 @@ def _extract_csv_rows(csv_text: str) -> list[dict]:
     buffer = StringIO(raw_text)
     reader = csv.DictReader(buffer, dialect=dialect)
     if reader.fieldnames:
-        reader.fieldnames = [str(name or '').strip().lstrip('\ufeff') for name in reader.fieldnames]
+        reader.fieldnames = [
+            str(name or '').strip().lstrip('\ufeff') for name in reader.fieldnames
+        ]
 
     rows = []
     for row in reader:
@@ -2318,24 +2607,38 @@ def _eures_invitation_target_job_labels(value, language: str = 'fr') -> list[str
 
 
 def _normalize_eures_invitation_row(row: dict, actor: str, batch_id: str) -> dict:
-    role = _normalize_eures_invitation_role(_coalesce_row_value(row, 'role', 'type', 'profil', 'profile'))
+    role = _normalize_eures_invitation_role(
+        _coalesce_row_value(row, 'role', 'type', 'profil', 'profile')
+    )
     email = normalize_email(_coalesce_row_value(row, 'email', 'mail', 'contact_email'))
     language = _coalesce_row_value(row, 'language', 'langue', 'lang') or 'fr'
-    invitation_status = _normalize_eures_invitation_status(
-        _coalesce_row_value(row, 'invitation_status', 'status', 'statut')
-    ) or 'invitation_a_envoyer'
-    token = _coalesce_row_value(row, 'invite_token', 'token') or _generate_eures_invitation_token()
+    invitation_status = (
+        _normalize_eures_invitation_status(
+            _coalesce_row_value(row, 'invitation_status', 'status', 'statut')
+        )
+        or 'invitation_a_envoyer'
+    )
+    token = (
+        _coalesce_row_value(row, 'invite_token', 'token')
+        or _generate_eures_invitation_token()
+    )
     return {
         'role': role,
         'email': email,
         'first_name': _coalesce_row_value(row, 'first_name', 'prenom', 'prénom'),
         'last_name': _coalesce_row_value(row, 'last_name', 'nom'),
-        'company_name': _coalesce_row_value(row, 'company_name', 'entreprise', 'company'),
+        'company_name': _coalesce_row_value(
+            row, 'company_name', 'entreprise', 'company'
+        ),
         'language': language.lower(),
         'source': _coalesce_row_value(row, 'source', 'origine') or 'csv_import',
-        'external_ref': _coalesce_row_value(row, 'external_ref', 'external_id', 'id_externe', 'id'),
+        'external_ref': _coalesce_row_value(
+            row, 'external_ref', 'external_id', 'id_externe', 'id'
+        ),
         'invite_token': token,
-        'invite_link': _build_eures_invitation_link(role, language, token) if role else '',
+        'invite_link': (
+            _build_eures_invitation_link(role, language, token) if role else ''
+        ),
         'invitation_status': invitation_status,
         'invitation_status_updated_at': _now_iso_utc(),
         'invitation_status_updated_by': actor,
@@ -2345,17 +2648,32 @@ def _normalize_eures_invitation_row(row: dict, actor: str, batch_id: str) -> dic
         'sent_at': _coalesce_row_value(row, 'sent_at', 'sent_date', 'date_envoi'),
         'sent_by': _coalesce_row_value(row, 'sent_by', 'sender', 'envoye_par'),
         'brevo_message_id': _coalesce_row_value(row, 'brevo_message_id'),
-        'sponsor_invitation_record_id': _coalesce_row_value(row, 'sponsor_invitation_record_id'),
+        'sponsor_invitation_record_id': _coalesce_row_value(
+            row, 'sponsor_invitation_record_id'
+        ),
         'sponsor_email': normalize_email(_coalesce_row_value(row, 'sponsor_email')),
         'sponsor_company_name': _coalesce_row_value(row, 'sponsor_company_name'),
         'invited_by_type': _coalesce_row_value(row, 'invited_by_type') or 'admin',
         'invite_scope': _coalesce_row_value(row, 'invite_scope') or '',
         'campaign_type': _normalize_eures_invitation_campaign_type(
-            _coalesce_row_value(row, 'campaign_type', 'type_campagne', 'campagne_type', 'email_template')
+            _coalesce_row_value(
+                row, 'campaign_type', 'type_campagne', 'campagne_type', 'email_template'
+            )
         ),
-        'target_job_keys': _serialize_eures_invitation_target_job_keys(
-            _coalesce_row_raw_value(row, 'target_job_keys', 'target_jobs', 'target_job', 'metier_cible', 'metiers_cibles')
-        ) if role == 'candidate' else '',
+        'target_job_keys': (
+            _serialize_eures_invitation_target_job_keys(
+                _coalesce_row_raw_value(
+                    row,
+                    'target_job_keys',
+                    'target_jobs',
+                    'target_job',
+                    'metier_cible',
+                    'metiers_cibles',
+                )
+            )
+            if role == 'candidate'
+            else ''
+        ),
         'notes': _coalesce_row_value(row, 'notes', 'note', 'comment', 'commentaire'),
     }
 
@@ -2372,59 +2690,92 @@ def list_eures_invitations() -> list[dict]:
         fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
         days_since_sent = _days_since(fields.get('sent_at'), now=now)
         needs_reminder = _eures_invitation_needs_reminder(fields, now=now)
-        rows.append({
-            'record_id': rec.get('id'),
-            'role': fields.get('role', ''),
-            'email': fields.get('email', ''),
-            'first_name': fields.get('first_name', ''),
-            'last_name': fields.get('last_name', ''),
-            'company_name': fields.get('company_name', ''),
-            'language': fields.get('language', ''),
-            'source': fields.get('source', ''),
-            'external_ref': fields.get('external_ref', ''),
-            'invite_token': fields.get('invite_token', ''),
-            'invite_link': fields.get('invite_link', ''),
-            'invitation_status': fields.get('invitation_status', 'invitation_a_envoyer'),
-            'sent_at': fields.get('sent_at', ''),
-            'sent_by': fields.get('sent_by', ''),
-            'brevo_message_id': fields.get('brevo_message_id', ''),
-            'answered_at': fields.get('answered_at', ''),
-            'reminder_count': _safe_int(fields.get('reminder_count')),
-            'last_reminder_at': fields.get('last_reminder_at', ''),
-            'last_reminder_by': fields.get('last_reminder_by', ''),
-            'sponsor_invitation_record_id': fields.get('sponsor_invitation_record_id', ''),
-            'sponsor_email': fields.get('sponsor_email', ''),
-            'sponsor_company_name': fields.get('sponsor_company_name', ''),
-            'invited_by_type': fields.get('invited_by_type', ''),
-            'invite_scope': fields.get('invite_scope', ''),
-            'campaign_type': _normalize_eures_invitation_campaign_type(fields.get('campaign_type', '')),
-            'target_job_keys': _normalize_eures_invitation_target_job_keys(fields.get('target_job_keys', '')),
-            'target_job_labels': _eures_invitation_target_job_labels(fields.get('target_job_keys', ''), fields.get('language', 'fr')),
-            'first_submission_at': fields.get('first_submission_at', ''),
-            'last_submission_at': fields.get('last_submission_at', ''),
-            'submission_count': _safe_int(fields.get('submission_count')),
-            'linked_form_role': fields.get('linked_form_role', ''),
-            'linked_record_id': fields.get('linked_record_id', ''),
-            'linked_record_key': fields.get('linked_record_key', ''),
-            'matching_status': fields.get('matching_status', ''),
-            'duplicate_followup_status': fields.get('duplicate_followup_status', ''),
-            'duplicate_followup_type': fields.get('duplicate_followup_type', ''),
-            'duplicate_followup_target_record_id': fields.get('duplicate_followup_target_record_id', ''),
-            'duplicate_followup_target_status': fields.get('duplicate_followup_target_status', ''),
-            'duplicate_followup_message': fields.get('duplicate_followup_message', ''),
-            'duplicate_followup_created_at': fields.get('duplicate_followup_created_at', ''),
-            'duplicate_followup_created_by': fields.get('duplicate_followup_created_by', ''),
-            'duplicate_followup_processed_at': fields.get('duplicate_followup_processed_at', ''),
-            'duplicate_followup_processed_by': fields.get('duplicate_followup_processed_by', ''),
-            'duplicate_followup_note': fields.get('duplicate_followup_note', ''),
-            'notes': fields.get('notes', ''),
-            'import_batch_id': fields.get('import_batch_id', ''),
-            'imported_at': fields.get('imported_at', ''),
-            'imported_by': fields.get('imported_by', ''),
-            'days_since_sent': days_since_sent,
-            'needs_reminder': needs_reminder,
-        })
-    rows.sort(key=lambda row: (str(row.get('invitation_status') or ''), -int(row.get('record_id') or 0)))
+        rows.append(
+            {
+                'record_id': rec.get('id'),
+                'role': fields.get('role', ''),
+                'email': fields.get('email', ''),
+                'first_name': fields.get('first_name', ''),
+                'last_name': fields.get('last_name', ''),
+                'company_name': fields.get('company_name', ''),
+                'language': fields.get('language', ''),
+                'source': fields.get('source', ''),
+                'external_ref': fields.get('external_ref', ''),
+                'invite_token': fields.get('invite_token', ''),
+                'invite_link': fields.get('invite_link', ''),
+                'invitation_status': fields.get(
+                    'invitation_status', 'invitation_a_envoyer'
+                ),
+                'sent_at': fields.get('sent_at', ''),
+                'sent_by': fields.get('sent_by', ''),
+                'brevo_message_id': fields.get('brevo_message_id', ''),
+                'answered_at': fields.get('answered_at', ''),
+                'reminder_count': _safe_int(fields.get('reminder_count')),
+                'last_reminder_at': fields.get('last_reminder_at', ''),
+                'last_reminder_by': fields.get('last_reminder_by', ''),
+                'sponsor_invitation_record_id': fields.get(
+                    'sponsor_invitation_record_id', ''
+                ),
+                'sponsor_email': fields.get('sponsor_email', ''),
+                'sponsor_company_name': fields.get('sponsor_company_name', ''),
+                'invited_by_type': fields.get('invited_by_type', ''),
+                'invite_scope': fields.get('invite_scope', ''),
+                'campaign_type': _normalize_eures_invitation_campaign_type(
+                    fields.get('campaign_type', '')
+                ),
+                'target_job_keys': _normalize_eures_invitation_target_job_keys(
+                    fields.get('target_job_keys', '')
+                ),
+                'target_job_labels': _eures_invitation_target_job_labels(
+                    fields.get('target_job_keys', ''), fields.get('language', 'fr')
+                ),
+                'first_submission_at': fields.get('first_submission_at', ''),
+                'last_submission_at': fields.get('last_submission_at', ''),
+                'submission_count': _safe_int(fields.get('submission_count')),
+                'linked_form_role': fields.get('linked_form_role', ''),
+                'linked_record_id': fields.get('linked_record_id', ''),
+                'linked_record_key': fields.get('linked_record_key', ''),
+                'matching_status': fields.get('matching_status', ''),
+                'duplicate_followup_status': fields.get(
+                    'duplicate_followup_status', ''
+                ),
+                'duplicate_followup_type': fields.get('duplicate_followup_type', ''),
+                'duplicate_followup_target_record_id': fields.get(
+                    'duplicate_followup_target_record_id', ''
+                ),
+                'duplicate_followup_target_status': fields.get(
+                    'duplicate_followup_target_status', ''
+                ),
+                'duplicate_followup_message': fields.get(
+                    'duplicate_followup_message', ''
+                ),
+                'duplicate_followup_created_at': fields.get(
+                    'duplicate_followup_created_at', ''
+                ),
+                'duplicate_followup_created_by': fields.get(
+                    'duplicate_followup_created_by', ''
+                ),
+                'duplicate_followup_processed_at': fields.get(
+                    'duplicate_followup_processed_at', ''
+                ),
+                'duplicate_followup_processed_by': fields.get(
+                    'duplicate_followup_processed_by', ''
+                ),
+                'duplicate_followup_note': fields.get('duplicate_followup_note', ''),
+                'notes': fields.get('notes', ''),
+                'import_batch_id': fields.get('import_batch_id', ''),
+                'imported_at': fields.get('imported_at', ''),
+                'imported_by': fields.get('imported_by', ''),
+                'days_since_sent': days_since_sent,
+                'needs_reminder': needs_reminder,
+            }
+        )
+    rows.sort(
+        key=lambda row: (
+            str(row.get('invitation_status') or ''),
+            -int(row.get('record_id') or 0),
+        )
+    )
     return rows
 
 
@@ -2434,11 +2785,15 @@ def upsert_eures_invitation_rows(rows: list[dict], actor: str) -> dict:
         raise RuntimeError('EURES invitations configuration is incomplete.')
     headers = _eures_admin_headers(config)
     ensure_table_columns(config, EURES_INVITATION_FIELDS, headers)
-    existing_records = fetch_table_records(config['doc_id'], config['table_id'], headers)
+    existing_records = fetch_table_records(
+        config['doc_id'], config['table_id'], headers
+    )
     by_key: dict[tuple[str, str], dict] = {}
     for rec in existing_records:
         fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
-        key = _eures_invitation_lookup_key(fields.get('role', ''), fields.get('email', ''))
+        key = _eures_invitation_lookup_key(
+            fields.get('role', ''), fields.get('email', '')
+        )
         if key[0] and key[1]:
             by_key[key] = rec
 
@@ -2447,25 +2802,40 @@ def upsert_eures_invitation_rows(rows: list[dict], actor: str) -> dict:
     to_update = []
     skipped = []
     for raw_row in rows:
-        normalized = _normalize_eures_invitation_row(raw_row, actor=actor, batch_id=batch_id)
+        normalized = _normalize_eures_invitation_row(
+            raw_row, actor=actor, batch_id=batch_id
+        )
         role = normalized['role']
         email = normalized['email']
         if role not in EURES_INVITATION_ALLOWED_ROLES or not email:
-            skipped.append({
-                'row': raw_row,
-                'reason': 'missing_or_invalid_role_or_email',
-            })
+            skipped.append(
+                {
+                    'row': raw_row,
+                    'reason': 'missing_or_invalid_role_or_email',
+                }
+            )
             continue
         existing = by_key.get((role, email))
         if existing:
-            existing_fields = existing.get('fields', {}) if isinstance(existing.get('fields'), dict) else {}
+            existing_fields = (
+                existing.get('fields', {})
+                if isinstance(existing.get('fields'), dict)
+                else {}
+            )
             merged = dict(existing_fields)
-            merged.update({
-                key: value for key, value in normalized.items()
-                if value not in (None, '')
-            })
-            merged['invite_token'] = existing_fields.get('invite_token') or normalized['invite_token']
-            merged['invite_link'] = _build_eures_invitation_link(role, merged.get('language', 'fr'), merged['invite_token'])
+            merged.update(
+                {
+                    key: value
+                    for key, value in normalized.items()
+                    if value not in (None, '')
+                }
+            )
+            merged['invite_token'] = (
+                existing_fields.get('invite_token') or normalized['invite_token']
+            )
+            merged['invite_link'] = _build_eures_invitation_link(
+                role, merged.get('language', 'fr'), merged['invite_token']
+            )
             to_update.append({'id': existing['id'], 'fields': merged})
         else:
             to_create.append({'fields': normalized})
@@ -2474,11 +2844,15 @@ def upsert_eures_invitation_rows(rows: list[dict], actor: str) -> dict:
     if to_create:
         resp = write_grist_records('POST', base_url, {'records': to_create}, headers)
         if resp.status_code != 200:
-            raise RuntimeError(f'Failed to create invitations: HTTP {resp.status_code} - {resp.text}')
+            raise RuntimeError(
+                f'Failed to create invitations: HTTP {resp.status_code} - {resp.text}'
+            )
     if to_update:
         resp = write_grist_records('PATCH', base_url, {'records': to_update}, headers)
         if resp.status_code != 200:
-            raise RuntimeError(f'Failed to update invitations: HTTP {resp.status_code} - {resp.text}')
+            raise RuntimeError(
+                f'Failed to update invitations: HTTP {resp.status_code} - {resp.text}'
+            )
 
     return {
         'ok': True,
@@ -2489,7 +2863,9 @@ def upsert_eures_invitation_rows(rows: list[dict], actor: str) -> dict:
     }
 
 
-def update_eures_invitation_record_by_id(record_id: int, fields: dict, headers: dict | None = None):
+def update_eures_invitation_record_by_id(
+    record_id: int, fields: dict, headers: dict | None = None
+):
     """Patch one invitation record by Grist record id."""
     config = get_eures_invitations_config()
     if not config:
@@ -2500,9 +2876,16 @@ def update_eures_invitation_record_by_id(record_id: int, fields: dict, headers: 
     allowed_columns = get_table_columns(config, headers)
     filtered_fields = {k: v for k, v in fields.items() if k in allowed_columns}
     base_url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}/records"
-    resp = write_grist_records('PATCH', base_url, {'records': [{'id': record_id, 'fields': filtered_fields}]}, headers)
+    resp = write_grist_records(
+        'PATCH',
+        base_url,
+        {'records': [{'id': record_id, 'fields': filtered_fields}]},
+        headers,
+    )
     if resp.status_code != 200:
-        raise RuntimeError(f'Failed to update invitation: HTTP {resp.status_code} - {resp.text}')
+        raise RuntimeError(
+            f'Failed to update invitation: HTTP {resp.status_code} - {resp.text}'
+        )
     return resp
 
 
@@ -2516,11 +2899,15 @@ def delete_eures_invitation_record_by_id(record_id: int, headers: dict | None = 
     delete_url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}/records/delete"
     resp = write_grist_records('POST', delete_url, [int(record_id)], headers)
     if resp.status_code not in {200, 202, 204}:
-        raise RuntimeError(f'Failed to delete invitation: HTTP {resp.status_code} - {resp.text}')
+        raise RuntimeError(
+            f'Failed to delete invitation: HTTP {resp.status_code} - {resp.text}'
+        )
     return resp
 
 
-def find_eures_invitation_by_token(invite_token: str, headers: dict | None = None) -> dict | None:
+def find_eures_invitation_by_token(
+    invite_token: str, headers: dict | None = None
+) -> dict | None:
     """Find one invitation row by invite token."""
     token = str(invite_token or '').strip()
     if not token:
@@ -2538,7 +2925,9 @@ def find_eures_invitation_by_token(invite_token: str, headers: dict | None = Non
     return None
 
 
-def find_eures_invitation_by_role_email(role: str, email: str, headers: dict | None = None) -> dict | None:
+def find_eures_invitation_by_role_email(
+    role: str, email: str, headers: dict | None = None
+) -> dict | None:
     """Find one invitation row by normalized role and email."""
     normalized_role = _normalize_eures_invitation_role(role)
     normalized_email = normalize_email(email)
@@ -2552,12 +2941,16 @@ def find_eures_invitation_by_role_email(role: str, email: str, headers: dict | N
     records = fetch_table_records(config['doc_id'], config['table_id'], headers)
     for rec in records:
         fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
-        if _eures_invitation_lookup_key(fields.get('role', ''), fields.get('email', '')) == (normalized_role, normalized_email):
+        if _eures_invitation_lookup_key(
+            fields.get('role', ''), fields.get('email', '')
+        ) == (normalized_role, normalized_email):
             return rec
     return None
 
 
-def find_eures_questionnaire_by_role_email(role: str, email: str, headers: dict | None = None) -> dict | None:
+def find_eures_questionnaire_by_role_email(
+    role: str, email: str, headers: dict | None = None
+) -> dict | None:
     """Find one returned EURES questionnaire by normalized role and email."""
     normalized_role = _normalize_eures_invitation_role(role)
     normalized_email = normalize_email(email)
@@ -2602,16 +2995,27 @@ def check_eures_invitation_send_conflict(
         raise RuntimeError('EURES invitations configuration is incomplete.')
     if invitation_headers is None:
         invitation_headers = _eures_admin_headers(config)
-    invitation_records = fetch_table_records(config['doc_id'], config['table_id'], invitation_headers)
+    invitation_records = fetch_table_records(
+        config['doc_id'], config['table_id'], invitation_headers
+    )
     for rec in invitation_records:
         record_id = int(rec.get('id') or 0)
         if current_record_id and record_id == int(current_record_id):
             continue
         fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
-        if _eures_invitation_lookup_key(fields.get('role', ''), fields.get('email', '')) != (normalized_role, normalized_email):
+        if _eures_invitation_lookup_key(
+            fields.get('role', ''), fields.get('email', '')
+        ) != (normalized_role, normalized_email):
             continue
         status = str(fields.get('invitation_status') or '').strip().lower()
-        if status in {'invitation_envoyee', 'questionnaire_recu', 'rapprochement_a_confirmer', 'rapprochee', 'matching_calcule', 'traitee'}:
+        if status in {
+            'invitation_envoyee',
+            'questionnaire_recu',
+            'rapprochement_a_confirmer',
+            'rapprochee',
+            'matching_calcule',
+            'traitee',
+        }:
             return {
                 'type': 'existing_invitation',
                 'record_id': record_id,
@@ -2657,16 +3061,22 @@ def build_eures_invitation_conflict_indexes(
     invitation_by_key: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for rec in invitation_records:
         fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
-        key = _eures_invitation_lookup_key(fields.get('role', ''), fields.get('email', ''))
+        key = _eures_invitation_lookup_key(
+            fields.get('role', ''), fields.get('email', '')
+        )
         if not all(key):
             continue
-        invitation_by_key[key].append({
-            'record_id': int(rec.get('id') or 0),
-            'status': str(fields.get('invitation_status') or '').strip().lower(),
-        })
+        invitation_by_key[key].append(
+            {
+                'record_id': int(rec.get('id') or 0),
+                'status': str(fields.get('invitation_status') or '').strip().lower(),
+            }
+        )
 
     target_roles = {
-        _normalize_eures_invitation_role((rec.get('fields', {}) if isinstance(rec, dict) else {}).get('role', ''))
+        _normalize_eures_invitation_role(
+            (rec.get('fields', {}) if isinstance(rec, dict) else {}).get('role', '')
+        )
         for rec in target_records
     }
     target_roles.discard('')
@@ -2749,19 +3159,23 @@ def mark_eures_duplicate_followup_pending(
     conflict_status = str((conflict or {}).get('status') or '').strip().lower()
     conflict_message = str((conflict or {}).get('message') or '').strip()
     note = str((conflict or {}).get('note') or '').strip()
-    update_eures_invitation_record_by_id(record_id, {
-        'duplicate_followup_status': status,
-        'duplicate_followup_type': conflict_type,
-        'duplicate_followup_target_record_id': str(conflict_record_id or ''),
-        'duplicate_followup_target_status': conflict_status,
-        'duplicate_followup_message': conflict_message,
-        'duplicate_followup_created_at': _now_iso_utc(),
-        'duplicate_followup_created_by': actor,
-        'duplicate_followup_processed_at': '',
-        'duplicate_followup_processed_by': '',
-        'duplicate_followup_note': note,
-        'notes': note[:500] if note else '',
-    }, headers=headers)
+    update_eures_invitation_record_by_id(
+        record_id,
+        {
+            'duplicate_followup_status': status,
+            'duplicate_followup_type': conflict_type,
+            'duplicate_followup_target_record_id': str(conflict_record_id or ''),
+            'duplicate_followup_target_status': conflict_status,
+            'duplicate_followup_message': conflict_message,
+            'duplicate_followup_created_at': _now_iso_utc(),
+            'duplicate_followup_created_by': actor,
+            'duplicate_followup_processed_at': '',
+            'duplicate_followup_processed_by': '',
+            'duplicate_followup_note': note,
+            'notes': note[:500] if note else '',
+        },
+        headers=headers,
+    )
 
 
 def clear_eures_duplicate_followup(
@@ -2789,7 +3203,9 @@ def clear_eures_duplicate_followup(
     update_eures_invitation_record_by_id(record_id, update_fields, headers=headers)
 
 
-def send_eures_invitation_reminder_by_record_id(record_id: int, actor: str, headers: dict | None = None) -> dict:
+def send_eures_invitation_reminder_by_record_id(
+    record_id: int, actor: str, headers: dict | None = None
+) -> dict:
     """Send one reminder email for an existing EURES invitation row."""
     config = get_eures_invitations_config()
     if not config:
@@ -2802,23 +3218,37 @@ def send_eures_invitation_reminder_by_record_id(record_id: int, actor: str, head
     fields = rec.get('fields', {}) if isinstance(rec.get('fields'), dict) else {}
     current_status = str(fields.get('invitation_status') or '').strip().lower()
     if current_status != 'invitation_envoyee':
-        raise RuntimeError("La relance n'est possible que pour une invitation déjà envoyée.")
+        raise RuntimeError(
+            "La relance n'est possible que pour une invitation déjà envoyée."
+        )
     if _is_manual_ft_invitation(fields):
-        raise RuntimeError("Cette invitation a été envoyée manuellement depuis l'adresse France Travail ; elle ne doit pas être relancée par Brevo.")
+        raise RuntimeError(
+            "Cette invitation a été envoyée manuellement depuis l'adresse France Travail ; elle ne doit pas être relancée par Brevo."
+        )
     if str(fields.get('answered_at') or '').strip():
         raise RuntimeError('Le questionnaire a déjà été reçu pour cette invitation.')
-    recipient, subject, text_body, html_body, invite_token, invite_link = build_brevo_invitation_email(fields, kind='reminder')
-    brevo_result = send_brevo_transactional_email(recipient, subject, text_body, html_body)
-    update_eures_invitation_record_by_id(record_id, {
-        'invite_token': invite_token,
-        'invite_link': invite_link,
-        'invitation_status_updated_at': _now_iso_utc(),
-        'invitation_status_updated_by': actor,
-        'reminder_count': _safe_int(fields.get('reminder_count')) + 1,
-        'last_reminder_at': _now_iso_utc(),
-        'last_reminder_by': actor,
-        'last_reminder_message_id': str((brevo_result or {}).get('messageId') or ''),
-    }, headers=headers)
+    recipient, subject, text_body, html_body, invite_token, invite_link = (
+        build_brevo_invitation_email(fields, kind='reminder')
+    )
+    brevo_result = send_brevo_transactional_email(
+        recipient, subject, text_body, html_body
+    )
+    update_eures_invitation_record_by_id(
+        record_id,
+        {
+            'invite_token': invite_token,
+            'invite_link': invite_link,
+            'invitation_status_updated_at': _now_iso_utc(),
+            'invitation_status_updated_by': actor,
+            'reminder_count': _safe_int(fields.get('reminder_count')) + 1,
+            'last_reminder_at': _now_iso_utc(),
+            'last_reminder_by': actor,
+            'last_reminder_message_id': str(
+                (brevo_result or {}).get('messageId') or ''
+            ),
+        },
+        headers=headers,
+    )
     return {
         'record_id': int(rec.get('id') or 0),
         'email': recipient,
@@ -2835,7 +3265,11 @@ def get_eures_active_employer_invitation(invite_token: str) -> tuple[dict | None
     invitation = find_eures_invitation_by_token(invite_token, headers=headers)
     if not invitation:
         return None, "Lien d'invitation introuvable."
-    fields = invitation.get('fields', {}) if isinstance(invitation.get('fields'), dict) else {}
+    fields = (
+        invitation.get('fields', {})
+        if isinstance(invitation.get('fields'), dict)
+        else {}
+    )
     if _normalize_eures_invitation_role(fields.get('role', '')) != 'employer':
         return None, "Ce lien n'autorise pas l'accès employeur."
     if str(fields.get('invitation_status') or '').strip().lower() == 'desactivee':
@@ -2843,7 +3277,12 @@ def get_eures_active_employer_invitation(invite_token: str) -> tuple[dict | None
     return invitation, ''
 
 
-def link_eures_invitation_after_save(role: str, request_fields: dict, saved_record: dict, matching_result: dict | None = None) -> dict:
+def link_eures_invitation_after_save(
+    role: str,
+    request_fields: dict,
+    saved_record: dict,
+    matching_result: dict | None = None,
+) -> dict:
     """Link a saved EURES questionnaire to its invitation when possible."""
     if _normalize_eures_invitation_role(role) not in EURES_INVITATION_ALLOWED_ROLES:
         return {'linked': False, 'reason': 'unsupported_role'}
@@ -2854,7 +3293,11 @@ def link_eures_invitation_after_save(role: str, request_fields: dict, saved_reco
 
     headers = _eures_admin_headers(config)
     invite_token = str((request_fields or {}).get('invite_token') or '').strip()
-    saved_fields = saved_record.get('fields', {}) if isinstance(saved_record.get('fields'), dict) else {}
+    saved_fields = (
+        saved_record.get('fields', {})
+        if isinstance(saved_record.get('fields'), dict)
+        else {}
+    )
     email = normalize_email(
         (request_fields or {}).get('email')
         or saved_fields.get('email')
@@ -2886,9 +3329,15 @@ def link_eures_invitation_after_save(role: str, request_fields: dict, saved_reco
     if not record_id:
         return {'linked': False, 'reason': 'invalid_invitation_record'}
 
-    saved_record_key = str(saved_fields.get('id_tally') or saved_fields.get('uuid') or '').strip()
+    saved_record_key = str(
+        saved_fields.get('id_tally') or saved_fields.get('uuid') or ''
+    ).strip()
     now = _now_iso_utc()
-    invitation_fields = invitation.get('fields', {}) if isinstance(invitation.get('fields'), dict) else {}
+    invitation_fields = (
+        invitation.get('fields', {})
+        if isinstance(invitation.get('fields'), dict)
+        else {}
+    )
     notes = str(invitation_fields.get('notes') or '').strip()
     if link_mode == 'email':
         fallback_note = 'Lien questionnaire/invitation rapproche via email.'
@@ -2924,7 +3373,9 @@ def link_eures_invitation_after_save(role: str, request_fields: dict, saved_reco
         'invite_scope': str(invitation_fields.get('invite_scope') or ''),
         'company_name': str(invitation_fields.get('company_name') or ''),
         'sponsor_email': str(invitation_fields.get('sponsor_email') or ''),
-        'sponsor_company_name': str(invitation_fields.get('sponsor_company_name') or ''),
+        'sponsor_company_name': str(
+            invitation_fields.get('sponsor_company_name') or ''
+        ),
     }
 
 
@@ -2964,11 +3415,21 @@ def _build_eures_candidate_invitation_email(
     eyebrow = str(template.get('eyebrow') or '').strip()
     title = str(template.get('title') or '').strip()
     hook = str(template.get('hook') or '').strip()
-    body = [str(item or '').strip() for item in template.get('body', []) if str(item or '').strip()]
-    cta_label = str(template.get('cta_label') or 'Voir si mon profil correspond').strip()
+    body = [
+        str(item or '').strip()
+        for item in template.get('body', [])
+        if str(item or '').strip()
+    ]
+    cta_label = str(
+        template.get('cta_label') or 'Voir si mon profil correspond'
+    ).strip()
     cta_note = str(template.get('cta_note') or '').strip()
     info_title = str(template.get('info_title') or '').strip()
-    info_items = [str(item or '').strip() for item in template.get('info_items', []) if str(item or '').strip()]
+    info_items = [
+        str(item or '').strip()
+        for item in template.get('info_items', [])
+        if str(item or '').strip()
+    ]
     legal_intro = str(template.get('legal_intro') or '').strip()
     footer_network = str(template.get('footer_network') or '').strip()
     header_image_url = get_eures_email_header_image_url()
@@ -2994,16 +3455,18 @@ def _build_eures_candidate_invitation_email(
         text_lines.extend(['', legal_intro])
     if footer_network:
         text_lines.extend(['', footer_network])
-    text_lines.extend([
-        '',
-        f'Informations sur vos données : {privacy_url}',
-        '',
-        'Cordialement,',
-        '',
-        signature_name,
-        signature_role,
-        '',
-    ])
+    text_lines.extend(
+        [
+            '',
+            f'Informations sur vos données : {privacy_url}',
+            '',
+            'Cordialement,',
+            '',
+            signature_name,
+            signature_role,
+            '',
+        ]
+    )
     text_body = '\n'.join(text_lines)
 
     body_html = f"""
@@ -3075,7 +3538,9 @@ def _build_eures_candidate_invitation_email(
     return subject, text_body, body_html
 
 
-def build_brevo_invitation_email(invitation_row: dict, kind: str = 'initial') -> tuple[str, str, str, str]:
+def build_brevo_invitation_email(
+    invitation_row: dict, kind: str = 'initial'
+) -> tuple[str, str, str, str]:
     """Build recipient, subject, text body and HTML body for one invitation."""
     role = _normalize_eures_invitation_role(invitation_row.get('role', ''))
     if role not in EURES_INVITATION_ALLOWED_ROLES:
@@ -3087,15 +3552,36 @@ def build_brevo_invitation_email(invitation_row: dict, kind: str = 'initial') ->
     language = str(invitation_row.get('language') or 'fr').strip().lower()
     if language not in {'fr', 'en', 'de'}:
         language = 'fr'
-    invite_token = str(invitation_row.get('invite_token') or '').strip() or _generate_eures_invitation_token()
-    invite_link = str(invitation_row.get('invite_link') or '').strip() or _build_eures_invitation_link(role, language, invite_token)
+    invite_token = (
+        str(invitation_row.get('invite_token') or '').strip()
+        or _generate_eures_invitation_token()
+    )
+    invite_link = str(
+        invitation_row.get('invite_link') or ''
+    ).strip() or _build_eures_invitation_link(role, language, invite_token)
     signature_name = get_eures_mail_signature_name()
     signature_role = get_eures_mail_signature_role()
     privacy_url = get_eures_privacy_url(language)
     reminder_mode = kind == 'reminder'
-    target_job_keys = _normalize_eures_invitation_target_job_keys(invitation_row.get('target_job_keys', '')) if role == 'candidate' else []
-    target_job_labels = _eures_invitation_target_job_labels(target_job_keys, language) if role == 'candidate' else []
-    campaign_type = _normalize_eures_invitation_campaign_type(invitation_row.get('campaign_type', '')) if role == 'candidate' else ''
+    target_job_keys = (
+        _normalize_eures_invitation_target_job_keys(
+            invitation_row.get('target_job_keys', '')
+        )
+        if role == 'candidate'
+        else []
+    )
+    target_job_labels = (
+        _eures_invitation_target_job_labels(target_job_keys, language)
+        if role == 'candidate'
+        else []
+    )
+    campaign_type = (
+        _normalize_eures_invitation_campaign_type(
+            invitation_row.get('campaign_type', '')
+        )
+        if role == 'candidate'
+        else ''
+    )
     if language == 'en':
         hello = "Hello,"
     elif language == 'de':
@@ -3183,7 +3669,8 @@ def build_brevo_invitation_email(invitation_row: dict, kind: str = 'initial') ->
         title_block = f"{title}\n\n" if title else ""
         title_html = (
             f'<h1 style="margin:0;font-size:28px;line-height:1.18;font-weight:700;color:#16253d;">{escape(title)}</h1>'
-            if title else ''
+            if title
+            else ''
         )
         text_body = (
             f"{hello}\n\n"
@@ -3267,13 +3754,18 @@ def get_table_columns(config: dict, headers: dict) -> set[str]:
     cache_key = (str(config.get('doc_id') or ''), str(config.get('table_id') or ''))
     cached = _TABLE_COLUMNS_CACHE.get(cache_key)
     now = time.time()
-    if cached and (now - float(cached.get('loaded_at', 0))) < _TABLE_COLUMNS_CACHE_TTL_SECONDS:
+    if (
+        cached
+        and (now - float(cached.get('loaded_at', 0))) < _TABLE_COLUMNS_CACHE_TTL_SECONDS
+    ):
         return set(cached.get('columns', set()))
 
     url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}/columns"
     resp = requests.get(url, headers=headers)
     if resp.status_code != 200:
-        raise RuntimeError(f'Failed to read table columns: HTTP {resp.status_code} - {resp.text}')
+        raise RuntimeError(
+            f'Failed to read table columns: HTTP {resp.status_code} - {resp.text}'
+        )
     payload = resp.json()
     columns = set()
     for col in payload.get('columns', []):
@@ -3309,7 +3801,9 @@ def ensure_table_columns(config: dict, columns: set[str], headers: dict):
     }
     resp = requests.post(url, json=payload, headers=headers)
     if resp.status_code != 200:
-        raise RuntimeError(f'Failed to create columns in {config["table_id"]}: HTTP {resp.status_code} - {resp.text}')
+        raise RuntimeError(
+            f'Failed to create columns in {config["table_id"]}: HTTP {resp.status_code} - {resp.text}'
+        )
 
     cache_key = (str(config.get('doc_id') or ''), str(config.get('table_id') or ''))
     _TABLE_COLUMNS_CACHE.pop(cache_key, None)
@@ -3398,11 +3892,23 @@ def _format_conditional_display_name(raw_name: str) -> str:
     if not parts:
         return raw
     if parts[0] == 'Directes ORP CDAPH':
-        return 'Prestations directes: ' + ' > '.join(parts[1:]) if len(parts) > 1 else 'Prestations directes'
+        return (
+            'Prestations directes: ' + ' > '.join(parts[1:])
+            if len(parts) > 1
+            else 'Prestations directes'
+        )
     if parts[0] == 'Directes hors ORP CDAPH':
-        return 'Prestations directes sans ORP CDAPH: ' + ' > '.join(parts[1:]) if len(parts) > 1 else 'Prestations directes sans ORP CDAPH'
+        return (
+            'Prestations directes sans ORP CDAPH: ' + ' > '.join(parts[1:])
+            if len(parts) > 1
+            else 'Prestations directes sans ORP CDAPH'
+        )
     if parts[0] == 'Indirectes':
-        return 'Prestations indirectes: ' + ' > '.join(parts[1:]) if len(parts) > 1 else 'Prestations indirectes'
+        return (
+            'Prestations indirectes: ' + ' > '.join(parts[1:])
+            if len(parts) > 1
+            else 'Prestations indirectes'
+        )
     return raw
 
 
@@ -3442,7 +3948,9 @@ def humanize_export_path(path: str) -> str:
 
     if parts[0] == 'coh' and len(parts) >= 2:
         block_key, index = _array_index(parts[1])
-        title, labels = COH_LABELS.get(block_key, (humanize_export_field(block_key), []))
+        title, labels = COH_LABELS.get(
+            block_key, (humanize_export_field(block_key), [])
+        )
         if index is not None and 0 <= index < len(labels):
             return f'{title} - {labels[index]}'
         return title
@@ -3456,11 +3964,25 @@ def humanize_export_path(path: str) -> str:
         return f'{prefix} - {suffix}'
 
     if first_name == 'handicapMatrix' and len(parts) >= 2:
-        handicap = HANDICAP_TYPES[first_index] if first_index is not None and 0 <= first_index < len(HANDICAP_TYPES) else 'Type de handicap'
+        handicap = (
+            HANDICAP_TYPES[first_index]
+            if first_index is not None and 0 <= first_index < len(HANDICAP_TYPES)
+            else 'Type de handicap'
+        )
         col = EXPORT_KEY_LABELS.get(parts[1], humanize_export_field(parts[1]))
         return f'Type de handicap principal et associé - {handicap} - {col}'
 
-    if parts[0] in {'directAvecOrp', 'directSansOrp', 'indirect', 'pecFileActive', 'preconisationsBloc', 'sortiesBloc', 'suspensionsBloc', 'orienteursBloc', 'formationsSelection'}:
+    if parts[0] in {
+        'directAvecOrp',
+        'directSansOrp',
+        'indirect',
+        'pecFileActive',
+        'preconisationsBloc',
+        'sortiesBloc',
+        'suspensionsBloc',
+        'orienteursBloc',
+        'formationsSelection',
+    }:
         group_labels = {
             'directAvecOrp': 'Prestations directes avec ORP CDAPH',
             'directSansOrp': 'Prestations directes sans ORP CDAPH',
@@ -3488,12 +4010,19 @@ def humanize_export_path(path: str) -> str:
         label = EXPORT_KEY_LABELS.get(name, humanize_export_field(name))
         return f'{label} {index + 1}' if index is not None else label
 
-    return ' - '.join(EXPORT_KEY_LABELS.get(_array_index(part)[0], humanize_export_field(_array_index(part)[0])) for part in parts)
+    return ' - '.join(
+        EXPORT_KEY_LABELS.get(
+            _array_index(part)[0], humanize_export_field(_array_index(part)[0])
+        )
+        for part in parts
+    )
 
 
 def should_skip_readable_export_path(path: str) -> bool:
     """Hide internal navigation/state fields that are not useful in a user-readable export."""
-    first = _array_index(_split_export_path(path)[0])[0] if _split_export_path(path) else ''
+    first = (
+        _array_index(_split_export_path(path)[0])[0] if _split_export_path(path) else ''
+    )
     return first in {
         'visitedBlocks',
         'currentConditionalId',
@@ -3556,7 +4085,10 @@ def _append_table(ws, headers, rows):
 
 
 def _new_sheet(workbook, title):
-    safe = ''.join(ch for ch in str(title or 'Feuille') if ch not in r'[]:*?/\\')[:31] or 'Feuille'
+    safe = (
+        ''.join(ch for ch in str(title or 'Feuille') if ch not in r'[]:*?/\\')[:31]
+        or 'Feuille'
+    )
     if safe in workbook.sheetnames:
         base = safe[:27]
         i = 2
@@ -3600,7 +4132,11 @@ def build_readable_xlsx(payload: dict) -> BytesIO:
             for item in metiers
             if isinstance(item, dict)
         ]
-        _append_table(_new_sheet(wb, 'Metiers'), ['Métier', 'Mode', 'ETP', 'ETP CDI', 'ETP CDD'], rows)
+        _append_table(
+            _new_sheet(wb, 'Metiers'),
+            ['Métier', 'Mode', 'ETP', 'ETP CDI', 'ETP CDD'],
+            rows,
+        )
 
     formations = _safe_json(fields.get('catalogue_formations_json'), [])
     if isinstance(formations, list):
@@ -3614,7 +4150,11 @@ def build_readable_xlsx(payload: dict) -> BytesIO:
             for item in formations
             if isinstance(item, dict)
         ]
-        _append_table(_new_sheet(wb, 'Formations'), ['Formation', 'Niveau', 'Secteur', 'Nombre'], rows)
+        _append_table(
+            _new_sheet(wb, 'Formations'),
+            ['Formation', 'Niveau', 'Secteur', 'Nombre'],
+            rows,
+        )
 
     prestations = _safe_json(fields.get('prestations_json'), {})
     prestation_rows = []
@@ -3623,18 +4163,26 @@ def build_readable_xlsx(payload: dict) -> BytesIO:
             if not isinstance(section, dict):
                 continue
             label = _format_conditional_display_name(section_key)
-            prestation_rows.append((label, humanize_export_path('done'), section.get('done', '')))
+            prestation_rows.append(
+                (label, humanize_export_path('done'), section.get('done', ''))
+            )
             for path, value in _flatten_for_xlsx(section):
                 if path in {'done'} or should_skip_readable_export_path(path):
                     continue
                 prestation_rows.append((label, humanize_export_path(path), value))
-    _append_table(_new_sheet(wb, 'Prestations'), ['Section', 'Champ', 'Valeur'], prestation_rows)
+    _append_table(
+        _new_sheet(wb, 'Prestations'), ['Section', 'Champ', 'Valeur'], prestation_rows
+    )
 
     details = _details_payload(fields)
     wizard = details.get(WIZARD_STATE_KEY) if isinstance(details, dict) else {}
     runtime = wizard.get('runtime') if isinstance(wizard, dict) else {}
-    conditional_defs = runtime.get('conditionalDefs') if isinstance(runtime, dict) else []
-    conditional_state = runtime.get('conditionalState') if isinstance(runtime, dict) else {}
+    conditional_defs = (
+        runtime.get('conditionalDefs') if isinstance(runtime, dict) else []
+    )
+    conditional_state = (
+        runtime.get('conditionalState') if isinstance(runtime, dict) else {}
+    )
     conditional_rows = []
     if isinstance(conditional_defs, list) and isinstance(conditional_state, dict):
         for item in conditional_defs:
@@ -3645,15 +4193,25 @@ def build_readable_xlsx(payload: dict) -> BytesIO:
             state = conditional_state.get(cond_id, {})
             if not isinstance(state, dict):
                 continue
-            conditional_rows.append((name, humanize_export_path('done'), state.get('done', '')))
+            conditional_rows.append(
+                (name, humanize_export_path('done'), state.get('done', ''))
+            )
             for path, value in _flatten_for_xlsx(state):
                 if path == 'done' or should_skip_readable_export_path(path):
                     continue
                 conditional_rows.append((name, humanize_export_path(path), value))
-    _append_table(_new_sheet(wb, 'Etapes conditionnelles'), ['Étape', 'Champ', 'Valeur'], conditional_rows)
+    _append_table(
+        _new_sheet(wb, 'Etapes conditionnelles'),
+        ['Étape', 'Champ', 'Valeur'],
+        conditional_rows,
+    )
 
     selection_rows = []
-    for column in ['prestations_orp_json', 'prestations_indirectes_json', 'finess_json']:
+    for column in [
+        'prestations_orp_json',
+        'prestations_indirectes_json',
+        'finess_json',
+    ]:
         parsed = _safe_json(fields.get(column), {})
         for path, value in _flatten_for_xlsx(parsed, column):
             selection_rows.append((humanize_export_path(path), value))
@@ -3688,13 +4246,17 @@ def compute_quick_step_progress(fields: dict) -> dict:
 
     details_json = _details_payload(fields)
     prestations_orp_legacy = _safe_json(fields.get('prestations_orp_json'), {})
-    prestations_orp_canonical = _details_get(details_json, ('prestations', 'selection', 'orp'), {})
+    prestations_orp_canonical = _details_get(
+        details_json, ('prestations', 'selection', 'orp'), {}
+    )
     prestations_orp = {}
     if isinstance(prestations_orp_canonical, dict):
         prestations_orp.update(prestations_orp_canonical)
     if isinstance(prestations_orp_legacy, dict):
         prestations_orp.update(prestations_orp_legacy)
-    vos_prestations_done = _has_value(fields.get('pec')) or _has_any_checked(prestations_orp)
+    vos_prestations_done = _has_value(fields.get('pec')) or _has_any_checked(
+        prestations_orp
+    )
 
     contexte_done = (
         _has_value(fields.get('q32_implantation'))
@@ -3722,12 +4284,16 @@ def compute_quick_step_progress(fields: dict) -> dict:
                 if not isinstance(item, dict):
                     continue
                 cond_id = str(item.get('id') or '').strip()
-                cond_name = _format_conditional_display_name(str(item.get('name') or '').strip())
+                cond_name = _format_conditional_display_name(
+                    str(item.get('name') or '').strip()
+                )
                 if not cond_id or not cond_name:
                     continue
                 cond_expected_labels.append(cond_name)
                 state = runtime_state.get(cond_id)
-                if isinstance(state, dict) and (_as_bool(state.get('done')) or _as_bool(state.get('__completed'))):
+                if isinstance(state, dict) and (
+                    _as_bool(state.get('done')) or _as_bool(state.get('__completed'))
+                ):
                     cond_done_labels.append(cond_name)
 
     if not cond_expected_labels:
@@ -3741,8 +4307,12 @@ def compute_quick_step_progress(fields: dict) -> dict:
             cond_expected_labels.append('Prestations totales DEAc')
 
         prestations_json = _safe_json(fields.get('prestations_json'), {})
-        prestations_json_canonical = _details_get(details_json, ('prestations', 'conditional', 'state_by_key'), {})
-        if (not isinstance(prestations_json, dict) or not prestations_json) and isinstance(prestations_json_canonical, dict):
+        prestations_json_canonical = _details_get(
+            details_json, ('prestations', 'conditional', 'state_by_key'), {}
+        )
+        if (
+            not isinstance(prestations_json, dict) or not prestations_json
+        ) and isinstance(prestations_json_canonical, dict):
             prestations_json = prestations_json_canonical
         if isinstance(prestations_json, dict):
             if _has_any_number_data(prestations_json.get('esrp')):
@@ -3781,7 +4351,11 @@ def compute_quick_step_progress(fields: dict) -> dict:
                     state = {}
                 # New canonical location (schema v2)
                 if not state:
-                    canonical_state = _details_get(details_json, ('prestations', 'conditional', 'state_by_key', key), {})
+                    canonical_state = _details_get(
+                        details_json,
+                        ('prestations', 'conditional', 'state_by_key', key),
+                        {},
+                    )
                     if isinstance(canonical_state, dict):
                         state = canonical_state
                 if isinstance(state, dict) and _as_bool(state.get('__completed')):
@@ -3794,7 +4368,9 @@ def compute_quick_step_progress(fields: dict) -> dict:
 
     cond_expected_labels = list(dict.fromkeys(cond_expected_labels))
     cond_done_labels = list(dict.fromkeys(cond_done_labels))
-    remaining_cond = [label for label in cond_expected_labels if label not in cond_done_labels]
+    remaining_cond = [
+        label for label in cond_expected_labels if label not in cond_done_labels
+    ]
 
     return {
         'main': {
@@ -3817,7 +4393,9 @@ def fetch_all_records(config: dict, headers: dict):
     url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}/records"
     resp = requests.get(url, params={'limit': 5000}, headers=headers)
     if resp.status_code != 200:
-        raise RuntimeError(f'Failed to read records: HTTP {resp.status_code} - {resp.text}')
+        raise RuntimeError(
+            f'Failed to read records: HTTP {resp.status_code} - {resp.text}'
+        )
     payload = resp.json()
     return payload.get('records', [])
 
@@ -3835,7 +4413,9 @@ def _parse_response_json_safe(resp):
 def fetch_record_by_field(base_url: str, field_name: str, value: str, headers: dict):
     """Fetch a single record by a unique field from Grist."""
     filter_param = json.dumps({field_name: [value]})
-    resp = requests.get(f"{base_url}/records", params={'filter': filter_param}, headers=headers)
+    resp = requests.get(
+        f"{base_url}/records", params={'filter': filter_param}, headers=headers
+    )
     if resp.status_code != 200:
         return None, resp
 
@@ -3863,7 +4443,9 @@ def _grist_write_redirect_response(resp):
     return _client_error('', 502)
 
 
-def write_grist_records(method: str, url: str, payload: dict, headers: dict, max_redirects: int = 3):
+def write_grist_records(
+    method: str, url: str, payload: dict, headers: dict, max_redirects: int = 3
+):
     """Follow Grist write redirects while preserving the HTTP method and cookies."""
     current_url = url
     with requests.Session() as session:
@@ -3902,6 +4484,7 @@ def reuse_admin_grist_reads(builder):
             return builder(*args, **kwargs)
         finally:
             _ADMIN_GRIST_READS.reset(token)
+
     return wrapped
 
 
@@ -3915,7 +4498,9 @@ def fetch_table_records(doc_id: str, table_id: str, headers: dict, limit: int = 
     options = {'timeout': _ADMIN_GRIST_TIMEOUT} if cache is not None else {}
     resp = requests.get(url, params={'limit': limit}, headers=headers, **options)
     if resp.status_code != 200:
-        raise RuntimeError(f'Failed to read {table_id}: HTTP {resp.status_code} - {resp.text}')
+        raise RuntimeError(
+            f'Failed to read {table_id}: HTTP {resp.status_code} - {resp.text}'
+        )
     payload = _parse_response_json_safe(resp)
     records = payload.get('records', []) if isinstance(payload, dict) else []
     if cache is not None:
@@ -3975,7 +4560,10 @@ def _days_since(value, now: datetime | None = None) -> int | None:
 def _eures_invitation_needs_reminder(fields: dict, now: datetime | None = None) -> bool:
     if not isinstance(fields, dict):
         return False
-    if str(fields.get('invitation_status') or '').strip().lower() != 'invitation_envoyee':
+    if (
+        str(fields.get('invitation_status') or '').strip().lower()
+        != 'invitation_envoyee'
+    ):
         return False
     if _is_manual_ft_invitation(fields):
         return False
@@ -3993,7 +4581,10 @@ def _is_manual_ft_invitation(fields: dict) -> bool:
         return False
     source = str(fields.get('source') or '').strip().lower()
     sent_by = str(fields.get('sent_by') or '').strip().lower()
-    return source in EURES_MANUAL_FT_INVITATION_SOURCES or sent_by in EURES_MANUAL_FT_INVITATION_SENDERS
+    return (
+        source in EURES_MANUAL_FT_INVITATION_SOURCES
+        or sent_by in EURES_MANUAL_FT_INVITATION_SENDERS
+    )
 
 
 def _duration_hours(start_value, end_value) -> float | None:
@@ -4010,10 +4601,18 @@ def _duration_hours(start_value, end_value) -> float | None:
 def _duration_summary(values: list[float]) -> dict:
     ordered = sorted(v for v in values if v is not None)
     if not ordered:
-        return {'count': 0, 'avg_hours': None, 'median_hours': None, 'min_hours': None, 'max_hours': None}
+        return {
+            'count': 0,
+            'avg_hours': None,
+            'median_hours': None,
+            'min_hours': None,
+            'max_hours': None,
+        }
     count = len(ordered)
     middle = count // 2
-    median = ordered[middle] if count % 2 else (ordered[middle - 1] + ordered[middle]) / 2.0
+    median = (
+        ordered[middle] if count % 2 else (ordered[middle - 1] + ordered[middle]) / 2.0
+    )
     return {
         'count': count,
         'avg_hours': round(sum(ordered) / count, 1),
@@ -4091,7 +4690,9 @@ def _counter_to_rows(counter: Counter) -> list[dict]:
     """Convert a counter to public rows without collapsing categories."""
     return [
         {'label': label, 'count': count}
-        for label, count in sorted(counter.items(), key=lambda item: (-item[1], str(item[0]).lower()))
+        for label, count in sorted(
+            counter.items(), key=lambda item: (-item[1], str(item[0]).lower())
+        )
     ]
 
 
@@ -4130,7 +4731,9 @@ def _eures_public_mobility_labels(value) -> list[str]:
                     seen.add(label)
                     labels.append(label)
         else:
-            for item in [chunk.strip() for chunk in str(part).split(',') if chunk.strip()]:
+            for item in [
+                chunk.strip() for chunk in str(part).split(',') if chunk.strip()
+            ]:
                 if item and item not in seen:
                     seen.add(item)
                     labels.append(item)
@@ -4169,7 +4772,9 @@ def build_eures_public_stats() -> dict:
     candidate_config = get_form_config('eures-beta', 'candidate')
     employer_config = get_form_config('eures-beta', 'employer')
     if not candidate_config or not employer_config:
-        raise RuntimeError('EURES beta candidate/employer Grist configuration is incomplete.')
+        raise RuntimeError(
+            'EURES beta candidate/employer Grist configuration is incomplete.'
+        )
 
     candidate_headers = {'Accept': 'application/json'}
     if candidate_config.get('api_key'):
@@ -4179,23 +4784,31 @@ def build_eures_public_stats() -> dict:
     if employer_config.get('api_key'):
         employer_headers['Authorization'] = f"Bearer {employer_config['api_key']}"
 
-    candidats = fetch_table_records(candidate_config['doc_id'], EURES_CANDIDATS_TABLE, candidate_headers)
-    besoins = fetch_table_records(employer_config['doc_id'], EURES_BESOINS_TABLE, employer_headers)
-    matchings = fetch_table_records(candidate_config['doc_id'], EURES_MATCHINGS_TABLE, candidate_headers)
+    candidats = fetch_table_records(
+        candidate_config['doc_id'], EURES_CANDIDATS_TABLE, candidate_headers
+    )
+    besoins = fetch_table_records(
+        employer_config['doc_id'], EURES_BESOINS_TABLE, employer_headers
+    )
+    matchings = fetch_table_records(
+        candidate_config['doc_id'], EURES_MATCHINGS_TABLE, candidate_headers
+    )
     invitations = list_eures_invitations()
 
-    monthly: dict[str, dict[str, int | str]] = defaultdict(lambda: {
-        'mois': '',
-        'candidats': 0,
-        'besoins_employeurs': 0,
-        'matchings': 0,
-        'candidats_contactes': 0,
-        'candidatures_transmises_employeur': 0,
-        'contacts_acceptes_employeur': 0,
-        'contacts_refuses_employeur': 0,
-        'contacts_sans_reponse_employeur': 0,
-        'embauches': 0,
-    })
+    monthly: dict[str, dict[str, int | str]] = defaultdict(
+        lambda: {
+            'mois': '',
+            'candidats': 0,
+            'besoins_employeurs': 0,
+            'matchings': 0,
+            'candidats_contactes': 0,
+            'candidatures_transmises_employeur': 0,
+            'contacts_acceptes_employeur': 0,
+            'contacts_refuses_employeur': 0,
+            'contacts_sans_reponse_employeur': 0,
+            'embauches': 0,
+        }
+    )
 
     besoins_par_pays = Counter()
     secteurs = Counter()
@@ -4211,12 +4824,24 @@ def build_eures_public_stats() -> dict:
         'relation_to_hire': [],
     }
     active_candidate_keys = {
-        str((rec.get('fields') or {}).get('id_tally') or (rec.get('fields') or {}).get('uuid') or '').strip()
-        for rec in candidats if isinstance(rec, dict) and _is_eures_response_active((rec.get('fields') or {}))
+        str(
+            (rec.get('fields') or {}).get('id_tally')
+            or (rec.get('fields') or {}).get('uuid')
+            or ''
+        ).strip()
+        for rec in candidats
+        if isinstance(rec, dict)
+        and _is_eures_response_active((rec.get('fields') or {}))
     }
     active_employer_keys = {
-        str((rec.get('fields') or {}).get('id_tally') or (rec.get('fields') or {}).get('uuid') or '').strip()
-        for rec in besoins if isinstance(rec, dict) and _is_eures_response_active((rec.get('fields') or {}))
+        str(
+            (rec.get('fields') or {}).get('id_tally')
+            or (rec.get('fields') or {}).get('uuid')
+            or ''
+        ).strip()
+        for rec in besoins
+        if isinstance(rec, dict)
+        and _is_eures_response_active((rec.get('fields') or {}))
     }
 
     for rec in candidats:
@@ -4230,7 +4855,11 @@ def build_eures_public_stats() -> dict:
         for label in _eures_public_mobility_labels(fields.get('mobilite')):
             _add_public_counter(mobilite_candidats, 'mobilite_candidats', label)
         for label in _eures_public_experience_labels(fields.get('mobilite')):
-            _add_public_counter(experience_internationale_candidats, 'experience_internationale_candidats', label)
+            _add_public_counter(
+                experience_internationale_candidats,
+                'experience_internationale_candidats',
+                label,
+            )
 
     for rec in besoins:
         fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
@@ -4246,7 +4875,10 @@ def build_eures_public_stats() -> dict:
     for row in invitations:
         if str(row.get('role') or '').strip().lower() != 'candidate':
             continue
-        if str(row.get('invitation_status') or '').strip().lower() != 'invitation_envoyee':
+        if (
+            str(row.get('invitation_status') or '').strip().lower()
+            != 'invitation_envoyee'
+        ):
             continue
         sent_month = _month_key(row.get('sent_at'))
         if sent_month:
@@ -4257,7 +4889,10 @@ def build_eures_public_stats() -> dict:
         fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
         candidat_id = str(fields.get('candidat_id') or '').strip()
         besoin_id = str(fields.get('besoin_id') or '').strip()
-        if candidat_id not in active_candidate_keys or besoin_id not in active_employer_keys:
+        if (
+            candidat_id not in active_candidate_keys
+            or besoin_id not in active_employer_keys
+        ):
             continue
         month = _month_key(fields.get('date_calcul'))
         if month:
@@ -4265,7 +4900,9 @@ def build_eures_public_stats() -> dict:
             monthly[month]['matchings'] += 1
         workflow_status = _matching_workflow_status(fields)
         if workflow_status:
-            _add_public_counter(matchings_par_statut, 'matchings_par_statut', workflow_status)
+            _add_public_counter(
+                matchings_par_statut, 'matchings_par_statut', workflow_status
+            )
 
         sent_month = _month_key(fields.get('sent_to_employer_at'))
         if sent_month:
@@ -4284,9 +4921,17 @@ def build_eures_public_stats() -> dict:
 
         response_bucket = None
         response_month = None
-        if workflow_status in {'accepte_employeur', 'mise_en_relation_faite', 'embauche_confirmee'}:
+        if workflow_status in {
+            'accepte_employeur',
+            'mise_en_relation_faite',
+            'embauche_confirmee',
+        }:
             response_bucket = 'contact'
-            response_month = _month_key(fields.get('employer_response_at') or fields.get('mise_en_relation_at') or fields.get('embauche_confirmee_at'))
+            response_month = _month_key(
+                fields.get('employer_response_at')
+                or fields.get('mise_en_relation_at')
+                or fields.get('embauche_confirmee_at')
+            )
         elif workflow_status == 'refuse_employeur':
             response_bucket = 'not_contact'
             response_month = _month_key(fields.get('employer_response_at'))
@@ -4295,7 +4940,9 @@ def build_eures_public_stats() -> dict:
             response_month = sent_month
 
         if response_bucket:
-            _add_public_counter(retours_employeurs, 'retours_employeurs', response_bucket)
+            _add_public_counter(
+                retours_employeurs, 'retours_employeurs', response_bucket
+            )
             if response_month:
                 monthly[response_month]['mois'] = response_month
                 if response_bucket == 'contact':
@@ -4305,19 +4952,29 @@ def build_eures_public_stats() -> dict:
                 else:
                     monthly[response_month]['contacts_sans_reponse_employeur'] += 1
 
-        duration = _duration_hours(fields.get('date_calcul'), fields.get('admin_decision_at'))
+        duration = _duration_hours(
+            fields.get('date_calcul'), fields.get('admin_decision_at')
+        )
         if duration is not None:
             delays['calcul_to_admin'].append(duration)
-        duration = _duration_hours(fields.get('admin_decision_at'), fields.get('sent_to_employer_at'))
+        duration = _duration_hours(
+            fields.get('admin_decision_at'), fields.get('sent_to_employer_at')
+        )
         if duration is not None:
             delays['admin_to_send'].append(duration)
-        duration = _duration_hours(fields.get('sent_to_employer_at'), fields.get('employer_response_at'))
+        duration = _duration_hours(
+            fields.get('sent_to_employer_at'), fields.get('employer_response_at')
+        )
         if duration is not None:
             delays['send_to_employer_response'].append(duration)
-        duration = _duration_hours(fields.get('employer_response_at'), fields.get('mise_en_relation_at'))
+        duration = _duration_hours(
+            fields.get('employer_response_at'), fields.get('mise_en_relation_at')
+        )
         if duration is not None:
             delays['response_to_relation'].append(duration)
-        duration = _duration_hours(fields.get('mise_en_relation_at'), fields.get('embauche_confirmee_at'))
+        duration = _duration_hours(
+            fields.get('mise_en_relation_at'), fields.get('embauche_confirmee_at')
+        )
         if duration is not None:
             delays['relation_to_hire'].append(duration)
 
@@ -4328,7 +4985,9 @@ def build_eures_public_stats() -> dict:
         if stats_config.get('api_key'):
             stats_headers['Authorization'] = f"Bearer {stats_config['api_key']}"
         try:
-            manual_rows = fetch_table_records(stats_config['doc_id'], stats_config['table_id'], stats_headers)
+            manual_rows = fetch_table_records(
+                stats_config['doc_id'], stats_config['table_id'], stats_headers
+            )
             manual_stats_available = True
         except Exception:
             manual_rows = []
@@ -4338,11 +4997,21 @@ def build_eures_public_stats() -> dict:
             if not month:
                 continue
             monthly[month]['mois'] = month
-            monthly[month]['candidats_contactes'] += _safe_int(fields.get('candidats_contactes'))
-            monthly[month]['candidatures_transmises_employeur'] += _safe_int(fields.get('candidatures_transmises_employeur'))
-            monthly[month]['contacts_acceptes_employeur'] += _safe_int(fields.get('contacts_acceptes_employeur'))
-            monthly[month]['contacts_refuses_employeur'] += _safe_int(fields.get('contacts_refuses_employeur'))
-            monthly[month]['contacts_sans_reponse_employeur'] += _safe_int(fields.get('contacts_sans_reponse_employeur'))
+            monthly[month]['candidats_contactes'] += _safe_int(
+                fields.get('candidats_contactes')
+            )
+            monthly[month]['candidatures_transmises_employeur'] += _safe_int(
+                fields.get('candidatures_transmises_employeur')
+            )
+            monthly[month]['contacts_acceptes_employeur'] += _safe_int(
+                fields.get('contacts_acceptes_employeur')
+            )
+            monthly[month]['contacts_refuses_employeur'] += _safe_int(
+                fields.get('contacts_refuses_employeur')
+            )
+            monthly[month]['contacts_sans_reponse_employeur'] += _safe_int(
+                fields.get('contacts_sans_reponse_employeur')
+            )
             monthly[month]['embauches'] += _safe_int(fields.get('embauches'))
 
     monthly_rows = [row for _, row in sorted(monthly.items()) if row.get('mois')]
@@ -4351,11 +5020,21 @@ def build_eures_public_stats() -> dict:
         'candidats': len(candidats),
         'besoins_employeurs': len(besoins),
         'matchings': len(matchings),
-        'candidats_contactes': sum(int(row['candidats_contactes']) for row in monthly_rows),
-        'candidatures_transmises_employeur': sum(int(row['candidatures_transmises_employeur']) for row in monthly_rows),
-        'contacts_acceptes_employeur': sum(int(row['contacts_acceptes_employeur']) for row in monthly_rows),
-        'contacts_refuses_employeur': sum(int(row['contacts_refuses_employeur']) for row in monthly_rows),
-        'contacts_sans_reponse_employeur': sum(int(row['contacts_sans_reponse_employeur']) for row in monthly_rows),
+        'candidats_contactes': sum(
+            int(row['candidats_contactes']) for row in monthly_rows
+        ),
+        'candidatures_transmises_employeur': sum(
+            int(row['candidatures_transmises_employeur']) for row in monthly_rows
+        ),
+        'contacts_acceptes_employeur': sum(
+            int(row['contacts_acceptes_employeur']) for row in monthly_rows
+        ),
+        'contacts_refuses_employeur': sum(
+            int(row['contacts_refuses_employeur']) for row in monthly_rows
+        ),
+        'contacts_sans_reponse_employeur': sum(
+            int(row['contacts_sans_reponse_employeur']) for row in monthly_rows
+        ),
         'embauches': sum(int(row['embauches']) for row in monthly_rows),
     }
 
@@ -4370,7 +5049,9 @@ def build_eures_public_stats() -> dict:
         'durations': {
             'calcul_to_admin': _duration_summary(delays['calcul_to_admin']),
             'admin_to_send': _duration_summary(delays['admin_to_send']),
-            'send_to_employer_response': _duration_summary(delays['send_to_employer_response']),
+            'send_to_employer_response': _duration_summary(
+                delays['send_to_employer_response']
+            ),
             'response_to_relation': _duration_summary(delays['response_to_relation']),
             'relation_to_hire': _duration_summary(delays['relation_to_hire']),
         },
@@ -4379,7 +5060,9 @@ def build_eures_public_stats() -> dict:
             'besoins_par_pays': _counter_to_rows(besoins_par_pays),
             'secteurs': _counter_to_rows(secteurs),
             'mobilite_candidats': _counter_to_rows(mobilite_candidats),
-            'experience_internationale_candidats': _counter_to_rows(experience_internationale_candidats),
+            'experience_internationale_candidats': _counter_to_rows(
+                experience_internationale_candidats
+            ),
             'matchings_par_statut': _counter_to_rows(matchings_par_statut),
             'retours_employeurs': _counter_to_rows(retours_employeurs),
         },
@@ -4392,7 +5075,9 @@ def fetch_matching_record(doc_id: str, besoin_id: str, candidat_id: str, headers
     filter_param = json.dumps({'besoin_id': [besoin_id], 'candidat_id': [candidat_id]})
     resp = requests.get(url, params={'filter': filter_param}, headers=headers)
     if resp.status_code != 200:
-        raise RuntimeError(f'Failed to read Matchings: HTTP {resp.status_code} - {resp.text}')
+        raise RuntimeError(
+            f'Failed to read Matchings: HTTP {resp.status_code} - {resp.text}'
+        )
     payload = _parse_response_json_safe(resp)
     records = payload.get('records', []) if isinstance(payload, dict) else []
     return records[0] if records else None
@@ -4406,23 +5091,43 @@ def upsert_matching_record(doc_id: str, fields: dict, headers: dict):
         raise RuntimeError('Missing besoin_id or candidat_id for matching upsert.')
 
     table_config = {'doc_id': doc_id, 'table_id': EURES_MATCHINGS_TABLE}
-    ensure_table_columns(table_config, set(fields.keys()) & (EURES_MATCHING_FIELDS | EURES_MATCHING_ADMIN_FIELDS), headers)
+    ensure_table_columns(
+        table_config,
+        set(fields.keys()) & (EURES_MATCHING_FIELDS | EURES_MATCHING_ADMIN_FIELDS),
+        headers,
+    )
     existing = fetch_matching_record(doc_id, besoin_id, candidat_id, headers)
     merged_fields = dict(fields)
     if existing and isinstance(existing, dict):
-        existing_fields = existing.get('fields', {}) if isinstance(existing.get('fields'), dict) else {}
+        existing_fields = (
+            existing.get('fields', {})
+            if isinstance(existing.get('fields'), dict)
+            else {}
+        )
         for key in EURES_MATCHING_ADMIN_FIELDS:
             if key not in merged_fields and key in existing_fields:
                 merged_fields[key] = existing_fields.get(key)
         if not merged_fields.get('workflow_status'):
-            merged_fields['workflow_status'] = _matching_workflow_status(existing_fields)
+            merged_fields['workflow_status'] = _matching_workflow_status(
+                existing_fields
+            )
     else:
-        merged_fields.setdefault('workflow_status', _initial_matching_workflow_status(fields.get('statut', '')))
+        merged_fields.setdefault(
+            'workflow_status',
+            _initial_matching_workflow_status(fields.get('statut', '')),
+        )
 
-    ensure_table_columns(table_config, set(merged_fields.keys()) & (EURES_MATCHING_FIELDS | EURES_MATCHING_ADMIN_FIELDS), headers)
+    ensure_table_columns(
+        table_config,
+        set(merged_fields.keys())
+        & (EURES_MATCHING_FIELDS | EURES_MATCHING_ADMIN_FIELDS),
+        headers,
+    )
     allowed_columns = get_table_columns(table_config, headers)
     filtered_fields = {k: v for k, v in merged_fields.items() if k in allowed_columns}
-    base_url = f"{GRIST_BASE_URL}/api/docs/{doc_id}/tables/{EURES_MATCHINGS_TABLE}/records"
+    base_url = (
+        f"{GRIST_BASE_URL}/api/docs/{doc_id}/tables/{EURES_MATCHINGS_TABLE}/records"
+    )
 
     if existing:
         payload = {'records': [{'id': existing['id'], 'fields': filtered_fields}]}
@@ -4432,27 +5137,49 @@ def upsert_matching_record(doc_id: str, fields: dict, headers: dict):
         resp = write_grist_records('POST', base_url, payload, headers)
 
     if resp.status_code != 200:
-        raise RuntimeError(f'Failed to write Matchings: HTTP {resp.status_code} - {resp.text}')
+        raise RuntimeError(
+            f'Failed to write Matchings: HTTP {resp.status_code} - {resp.text}'
+        )
     return resp
 
 
-def update_matching_record_by_id(doc_id: str, record_id: int, fields: dict, headers: dict):
+def update_matching_record_by_id(
+    doc_id: str, record_id: int, fields: dict, headers: dict
+):
     """Patch a matching record by Grist record id."""
     table_config = {'doc_id': doc_id, 'table_id': EURES_MATCHINGS_TABLE}
-    ensure_table_columns(table_config, set(fields.keys()) & (EURES_MATCHING_FIELDS | EURES_MATCHING_ADMIN_FIELDS), headers)
+    ensure_table_columns(
+        table_config,
+        set(fields.keys()) & (EURES_MATCHING_FIELDS | EURES_MATCHING_ADMIN_FIELDS),
+        headers,
+    )
     allowed_columns = get_table_columns(table_config, headers)
     filtered_fields = {k: v for k, v in fields.items() if k in allowed_columns}
-    base_url = f"{GRIST_BASE_URL}/api/docs/{doc_id}/tables/{EURES_MATCHINGS_TABLE}/records"
+    base_url = (
+        f"{GRIST_BASE_URL}/api/docs/{doc_id}/tables/{EURES_MATCHINGS_TABLE}/records"
+    )
     payload = {'records': [{'id': record_id, 'fields': filtered_fields}]}
     resp = write_grist_records('PATCH', base_url, payload, headers)
     if resp.status_code != 200:
-        raise RuntimeError(f'Failed to update Matchings: HTTP {resp.status_code} - {resp.text}')
+        raise RuntimeError(
+            f'Failed to update Matchings: HTTP {resp.status_code} - {resp.text}'
+        )
     return resp
 
 
-def update_table_record_by_id(config: dict, record_id: int, fields: dict, headers: dict, allowed_fields: set[str] | None = None):
+def update_table_record_by_id(
+    config: dict,
+    record_id: int,
+    fields: dict,
+    headers: dict,
+    allowed_fields: set[str] | None = None,
+):
     """Patch one Grist record by id on any configured table."""
-    field_names = set(fields.keys()) if allowed_fields is None else (set(fields.keys()) & allowed_fields)
+    field_names = (
+        set(fields.keys())
+        if allowed_fields is None
+        else (set(fields.keys()) & allowed_fields)
+    )
     ensure_table_columns(config, field_names, headers)
     allowed_columns = get_table_columns(config, headers)
     filtered_fields = {k: v for k, v in fields.items() if k in allowed_columns}
@@ -4460,16 +5187,22 @@ def update_table_record_by_id(config: dict, record_id: int, fields: dict, header
     payload = {'records': [{'id': record_id, 'fields': filtered_fields}]}
     resp = write_grist_records('PATCH', base_url, payload, headers)
     if resp.status_code != 200:
-        raise RuntimeError(f'Failed to update {config["table_id"]}: HTTP {resp.status_code} - {resp.text}')
+        raise RuntimeError(
+            f'Failed to update {config["table_id"]}: HTTP {resp.status_code} - {resp.text}'
+        )
     return resp
 
 
 def fetch_record_by_id(doc_id: str, table_id: str, record_id: int, headers: dict):
     """Read one Grist record by numeric id."""
     url = f"{GRIST_BASE_URL}/api/docs/{doc_id}/tables/{table_id}/records"
-    resp = requests.get(url, params={'filter': json.dumps({'id': [record_id]})}, headers=headers)
+    resp = requests.get(
+        url, params={'filter': json.dumps({'id': [record_id]})}, headers=headers
+    )
     if resp.status_code != 200:
-        raise RuntimeError(f'Failed to read {table_id}: HTTP {resp.status_code} - {resp.text}')
+        raise RuntimeError(
+            f'Failed to read {table_id}: HTTP {resp.status_code} - {resp.text}'
+        )
     payload = _parse_response_json_safe(resp)
     records = payload.get('records', []) if isinstance(payload, dict) else []
     return records[0] if records else None
@@ -4484,18 +5217,41 @@ def eures_fold_text(value) -> str:
     if not text:
         return ''
     return ''.join(
-        char for char in unicodedata.normalize('NFKD', text)
+        char
+        for char in unicodedata.normalize('NFKD', text)
         if not unicodedata.combining(char)
     )
 
 
 def eures_tokenize_text(value) -> list[str]:
     stopwords = {
-        'de', 'du', 'des', 'la', 'le', 'les', 'un', 'une', 'et', 'en', 'au', 'aux',
-        'pour', 'avec', 'dans', 'sur', 'the', 'and', 'for', 'mit', 'und', 'fur', 'fuer',
+        'de',
+        'du',
+        'des',
+        'la',
+        'le',
+        'les',
+        'un',
+        'une',
+        'et',
+        'en',
+        'au',
+        'aux',
+        'pour',
+        'avec',
+        'dans',
+        'sur',
+        'the',
+        'and',
+        'for',
+        'mit',
+        'und',
+        'fur',
+        'fuer',
     }
     return [
-        token for token in re.split(r'[^a-z0-9]+', eures_fold_text(value))
+        token
+        for token in re.split(r'[^a-z0-9]+', eures_fold_text(value))
         if len(token) >= 2 and token not in stopwords
     ]
 
@@ -4510,7 +5266,11 @@ def eures_canonical_sector(value: str) -> str:
 
 def eures_candidate_sectors(value: str) -> set[str]:
     value_l = eures_normalize_text(value)
-    return {sector for token, sector in EURES_SECTOR_CANONICAL_MAP.items() if token in value_l}
+    return {
+        sector
+        for token, sector in EURES_SECTOR_CANONICAL_MAP.items()
+        if token in value_l
+    }
 
 
 def eures_parse_language_requirements(value: str) -> dict[str, int]:
@@ -4593,7 +5353,9 @@ def eures_to_float(value):
         return None
 
 
-def eures_score_sector_fit(expected: str, actual: str, free_job: str = '') -> tuple[int, str]:
+def eures_score_sector_fit(
+    expected: str, actual: str, free_job: str = ''
+) -> tuple[int, str]:
     expected_sector = eures_canonical_sector(expected)
     candidate_sectors = eures_candidate_sectors(actual)
     free_job_l = str(free_job or '').strip()
@@ -4636,15 +5398,29 @@ def eures_score_languages(expected: str, actual: str) -> tuple[int, str]:
     return 0, 'langues: aucune correspondance'
 
 
-def eures_score_location(besoin_pays: str, candidat_pays: str, mobilite: str) -> tuple[int, str]:
+def eures_score_location(
+    besoin_pays: str, candidat_pays: str, mobilite: str
+) -> tuple[int, str]:
     besoin_pays_l = eures_normalize_text(besoin_pays)
     candidat_pays_l = eures_normalize_text(candidat_pays)
     mobilite_l = eures_normalize_text(mobilite)
-    if besoin_pays_l and candidat_pays_l and (besoin_pays_l == candidat_pays_l or besoin_pays_l in candidat_pays_l):
+    if (
+        besoin_pays_l
+        and candidat_pays_l
+        and (besoin_pays_l == candidat_pays_l or besoin_pays_l in candidat_pays_l)
+    ):
         return 15, 'pays/mobilite: meme pays'
     if besoin_pays_l and mobilite_l and besoin_pays_l in mobilite_l:
         return 15, 'pays/mobilite: pays souhaite explicite'
-    if mobilite_l and any(token in mobilite_l for token in ('transfrontali', 'expatriation', 'pays souhaités', 'pays souhaites')):
+    if mobilite_l and any(
+        token in mobilite_l
+        for token in (
+            'transfrontali',
+            'expatriation',
+            'pays souhaités',
+            'pays souhaites',
+        )
+    ):
         return 10, 'pays/mobilite: mobilite declaree'
     return 0, 'pays/mobilite: contrainte geographique'
 
@@ -4661,7 +5437,9 @@ def eures_score_availability(date_debut: str, disponibilite: str) -> tuple[int, 
         if candidat_rank == besoin_rank + 1:
             return 9, 'disponibilite: leger decalage'
         return 0, 'disponibilite: delai trop long'
-    if eures_normalize_text(date_debut) and eures_normalize_text(date_debut) in eures_normalize_text(disponibilite):
+    if eures_normalize_text(date_debut) and eures_normalize_text(
+        date_debut
+    ) in eures_normalize_text(disponibilite):
         return 15, 'disponibilite: date compatible'
     return 7, 'disponibilite: verification manuelle recommandee'
 
@@ -4677,8 +5455,12 @@ def eures_parse_canonical_multi_values(value: str, mapping: dict[str, str]) -> s
 
 
 def eures_score_work_conditions(expected: str, actual: str) -> tuple[int, str]:
-    expected_set = eures_parse_canonical_multi_values(expected, EURES_WORK_CONDITION_CANONICAL_MAP)
-    actual_set = eures_parse_canonical_multi_values(actual, EURES_WORK_CONDITION_CANONICAL_MAP)
+    expected_set = eures_parse_canonical_multi_values(
+        expected, EURES_WORK_CONDITION_CANONICAL_MAP
+    )
+    actual_set = eures_parse_canonical_multi_values(
+        actual, EURES_WORK_CONDITION_CANONICAL_MAP
+    )
     expected_set.discard('inconnu')
     actual_set.discard('inconnu')
     if not expected_set or expected_set == {'aucune_condition'}:
@@ -4693,7 +5475,8 @@ def eures_score_work_conditions(expected: str, actual: str) -> tuple[int, str]:
     partial_overlap = {
         expected_condition
         for expected_condition in expected_set
-        if EURES_WORK_CONDITION_PARTIAL_COMPATIBILITY.get(expected_condition, set()) & actual_set
+        if EURES_WORK_CONDITION_PARTIAL_COMPATIBILITY.get(expected_condition, set())
+        & actual_set
     }
     if partial_overlap:
         return 1, 'conditions: compatibilite partielle'
@@ -4701,7 +5484,9 @@ def eures_score_work_conditions(expected: str, actual: str) -> tuple[int, str]:
 
 
 def eures_score_permits(expected: str, actual: str) -> tuple[int, str]:
-    expected_set = eures_parse_canonical_multi_values(expected, EURES_PERMIT_CANONICAL_MAP)
+    expected_set = eures_parse_canonical_multi_values(
+        expected, EURES_PERMIT_CANONICAL_MAP
+    )
     actual_set = eures_parse_canonical_multi_values(actual, EURES_PERMIT_CANONICAL_MAP)
     if not expected_set:
         return 3, 'permis: aucun requis'
@@ -4739,7 +5524,9 @@ def eures_candidate_salary_expectation(secteur: str, fields: dict):
         return None
     type_field, amount_type_field, min_field = salary_fields
     salary_type = eures_normalize_salary_period(fields.get(type_field))
-    salary_amount_type = eures_normalize_salary_amount_type(fields.get(amount_type_field))
+    salary_amount_type = eures_normalize_salary_amount_type(
+        fields.get(amount_type_field)
+    )
     salary_min = eures_to_float(fields.get(min_field))
     if salary_min is None:
         return None
@@ -4757,7 +5544,9 @@ def eures_employer_salary_offer(secteur: str, fields: dict):
         return None
     type_field, amount_type_field, min_field, max_field = salary_fields
     salary_type = eures_normalize_salary_period(fields.get(type_field))
-    salary_amount_type = eures_normalize_salary_amount_type(fields.get(amount_type_field))
+    salary_amount_type = eures_normalize_salary_amount_type(
+        fields.get(amount_type_field)
+    )
     salary_min = eures_to_float(fields.get(min_field))
     salary_max = eures_to_float(fields.get(max_field))
     if salary_min is None and salary_max is None:
@@ -4841,10 +5630,15 @@ def eures_score_competences(expected: str, actual: str) -> tuple[int, str]:
         return max(points, 12), 'competences: proches (' + ', '.join(overlap) + ')'
     if ratio >= 0.3:
         return max(points, 7), 'competences: partielles (' + ', '.join(overlap) + ')'
-    return max(points, 3), 'competences: faible recoupement (' + ', '.join(overlap) + ')'
+    return (
+        max(points, 3),
+        'competences: faible recoupement (' + ', '.join(overlap) + ')',
+    )
 
 
-def eures_score_salary(secteur: str, candidat_fields: dict, besoin_fields: dict) -> tuple[int, str]:
+def eures_score_salary(
+    secteur: str, candidat_fields: dict, besoin_fields: dict
+) -> tuple[int, str]:
     if not secteur:
         return 0, 'salaire: secteur indetermine'
     candidat_salary = eures_candidate_salary_expectation(secteur, candidat_fields)
@@ -4852,10 +5646,20 @@ def eures_score_salary(secteur: str, candidat_fields: dict, besoin_fields: dict)
     if candidat_salary is None or employeur_salary is None:
         return 6, 'salaire: donnees absentes, verification manuelle'
     candidat_period, candidat_amount_type, candidat_min = candidat_salary
-    employeur_period, employeur_amount_type, employeur_min, employeur_max = employeur_salary
-    if not candidat_period or not employeur_period or candidat_period != employeur_period:
+    employeur_period, employeur_amount_type, employeur_min, employeur_max = (
+        employeur_salary
+    )
+    if (
+        not candidat_period
+        or not employeur_period
+        or candidat_period != employeur_period
+    ):
         return 6, 'salaire: periodicites absentes ou differentes, verification manuelle'
-    if not candidat_amount_type or not employeur_amount_type or candidat_amount_type != employeur_amount_type:
+    if (
+        not candidat_amount_type
+        or not employeur_amount_type
+        or candidat_amount_type != employeur_amount_type
+    ):
         return 6, 'salaire: brut/net absent ou different, verification manuelle'
     if employeur_max and candidat_min <= employeur_max:
         if employeur_min and candidat_min < employeur_min:
@@ -4876,12 +5680,20 @@ def eures_matching_status(score: int) -> str:
 
 def compute_eures_matching(besoin_fields: dict, candidat_fields: dict) -> dict:
     """Compute a matching payload for one candidate/employer pair."""
-    besoin_country = besoin_fields.get('pays_normalise') or besoin_fields.get('pays') or ''
-    candidat_country = candidat_fields.get('pays_normalise') or candidat_fields.get('pays') or ''
+    besoin_country = (
+        besoin_fields.get('pays_normalise') or besoin_fields.get('pays') or ''
+    )
+    candidat_country = (
+        candidat_fields.get('pays_normalise') or candidat_fields.get('pays') or ''
+    )
     secteur = eures_canonical_sector(str(besoin_fields.get('poste') or ''))
     employeur_job_title = eures_employer_job_title(secteur, besoin_fields)
     candidat_job_title = eures_candidate_job_title(secteur, candidat_fields)
-    candidat_free_job = str(candidat_fields.get('metier_libre') or candidat_fields.get('tally_q19_other_job') or '').strip()
+    candidat_free_job = str(
+        candidat_fields.get('metier_libre')
+        or candidat_fields.get('tally_q19_other_job')
+        or ''
+    ).strip()
     if not candidat_job_title and candidat_free_job:
         candidat_job_title = candidat_free_job
 
@@ -4922,8 +5734,12 @@ def compute_eures_matching(besoin_fields: dict, candidat_fields: dict) -> dict:
         str(besoin_fields.get('permis_autorisations') or ''),
         str(candidat_fields.get('permis_autorisations') or ''),
     )
-    score_disponibilite = min(10, round(score_disponibilite_base * 0.35) + score_conditions + score_permis)
-    score_salaire_raw, raison_salaire = eures_score_salary(secteur, candidat_fields, besoin_fields)
+    score_disponibilite = min(
+        10, round(score_disponibilite_base * 0.35) + score_conditions + score_permis
+    )
+    score_salaire_raw, raison_salaire = eures_score_salary(
+        secteur, candidat_fields, besoin_fields
+    )
     score_salaire = round(10 * score_salaire_raw / 15)
 
     reasons = []
@@ -4941,7 +5757,14 @@ def compute_eures_matching(besoin_fields: dict, candidat_fields: dict) -> dict:
     ]:
         (reasons if points else weaknesses).append(text)
 
-    score = score_metier + score_competences + score_langues + score_mobilite + score_disponibilite + score_salaire
+    score = (
+        score_metier
+        + score_competences
+        + score_langues
+        + score_mobilite
+        + score_disponibilite
+        + score_salaire
+    )
     return {
         'score': score,
         'score_metier': score_metier,
@@ -4957,16 +5780,24 @@ def compute_eures_matching(besoin_fields: dict, candidat_fields: dict) -> dict:
     }
 
 
-def run_eures_matching_for_saved_record(form_id: str, role: str, saved_record: dict, config: dict, headers: dict):
+def run_eures_matching_for_saved_record(
+    form_id: str, role: str, saved_record: dict, config: dict, headers: dict
+):
     """Compute matchings for one newly saved EURES beta record and write them to Matchings."""
     if form_id != 'eures-beta':
         return {'processed': False, 'reason': 'unsupported_form'}
     if role not in {'candidate', 'employer'}:
         return {'processed': False, 'reason': 'unsupported_role'}
 
-    all_candidats = fetch_table_records(config['doc_id'], EURES_CANDIDATS_TABLE, headers)
+    all_candidats = fetch_table_records(
+        config['doc_id'], EURES_CANDIDATS_TABLE, headers
+    )
     all_besoins = fetch_table_records(config['doc_id'], EURES_BESOINS_TABLE, headers)
-    saved_fields = saved_record.get('fields', {}) if isinstance(saved_record.get('fields'), dict) else {}
+    saved_fields = (
+        saved_record.get('fields', {})
+        if isinstance(saved_record.get('fields'), dict)
+        else {}
+    )
     if not _is_eures_response_active(saved_fields):
         return {'processed': False, 'reason': 'disabled_saved_record', 'role': role}
 
@@ -4974,30 +5805,52 @@ def run_eures_matching_for_saved_record(form_id: str, role: str, saved_record: d
     qualifying_matches = 0
     if role == 'candidate':
         for besoin in all_besoins:
-            besoin_fields = besoin.get('fields', {}) if isinstance(besoin.get('fields'), dict) else {}
+            besoin_fields = (
+                besoin.get('fields', {})
+                if isinstance(besoin.get('fields'), dict)
+                else {}
+            )
             if not _is_eures_response_active(besoin_fields):
                 continue
-            candidat_id = str(saved_fields.get('id_tally') or saved_fields.get('uuid') or '')
-            besoin_id = str(besoin_fields.get('id_tally') or besoin_fields.get('uuid') or '')
+            candidat_id = str(
+                saved_fields.get('id_tally') or saved_fields.get('uuid') or ''
+            )
+            besoin_id = str(
+                besoin_fields.get('id_tally') or besoin_fields.get('uuid') or ''
+            )
             if not candidat_id or not besoin_id:
                 continue
             matching = compute_eures_matching(besoin_fields, saved_fields)
-            if str(matching.get('statut') or '').strip().lower() in {'a_valider', 'auto_envoyable'}:
+            if str(matching.get('statut') or '').strip().lower() in {
+                'a_valider',
+                'auto_envoyable',
+            }:
                 qualifying_matches += 1
             payload = {'besoin_id': besoin_id, 'candidat_id': candidat_id, **matching}
             upsert_matching_record(config['doc_id'], payload, headers)
             writes += 1
     else:
         for candidat in all_candidats:
-            candidat_fields = candidat.get('fields', {}) if isinstance(candidat.get('fields'), dict) else {}
+            candidat_fields = (
+                candidat.get('fields', {})
+                if isinstance(candidat.get('fields'), dict)
+                else {}
+            )
             if not _is_eures_response_active(candidat_fields):
                 continue
-            candidat_id = str(candidat_fields.get('id_tally') or candidat_fields.get('uuid') or '')
-            besoin_id = str(saved_fields.get('id_tally') or saved_fields.get('uuid') or '')
+            candidat_id = str(
+                candidat_fields.get('id_tally') or candidat_fields.get('uuid') or ''
+            )
+            besoin_id = str(
+                saved_fields.get('id_tally') or saved_fields.get('uuid') or ''
+            )
             if not candidat_id or not besoin_id:
                 continue
             matching = compute_eures_matching(saved_fields, candidat_fields)
-            if str(matching.get('statut') or '').strip().lower() in {'a_valider', 'auto_envoyable'}:
+            if str(matching.get('statut') or '').strip().lower() in {
+                'a_valider',
+                'auto_envoyable',
+            }:
                 qualifying_matches += 1
             payload = {'besoin_id': besoin_id, 'candidat_id': candidat_id, **matching}
             upsert_matching_record(config['doc_id'], payload, headers)
@@ -5031,8 +5884,16 @@ def _eures_workflow_transition_allowed(current_status: str, target_status: str) 
         'calcule': {'a_valider_admin', 'refuse_admin'},
         'a_valider_admin': {'valide_admin', 'refuse_admin'},
         'valide_admin': {'envoye_employeur', 'refuse_admin'},
-        'envoye_employeur': {'accepte_employeur', 'refuse_employeur', 'mise_en_relation_faite'},
-        'accepte_employeur': {'mise_en_relation_faite', 'embauche_confirmee', 'relation_terminee'},
+        'envoye_employeur': {
+            'accepte_employeur',
+            'refuse_employeur',
+            'mise_en_relation_faite',
+        },
+        'accepte_employeur': {
+            'mise_en_relation_faite',
+            'embauche_confirmee',
+            'relation_terminee',
+        },
         'mise_en_relation_faite': {'embauche_confirmee', 'relation_terminee'},
         'refuse_employeur': set(),
         'refuse_admin': set(),
@@ -5063,7 +5924,9 @@ def _extract_first_email(value) -> str:
     raw = str(value or '').strip()
     if not raw or '@' not in raw:
         return ''
-    match = re.search(r'([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})', raw, flags=re.IGNORECASE)
+    match = re.search(
+        r'([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})', raw, flags=re.IGNORECASE
+    )
     return normalize_email(match.group(1)) if match else ''
 
 
@@ -5095,7 +5958,9 @@ def _format_email_multiline(value: str) -> str:
     text = str(value or '').strip()
     if not text:
         return 'Non renseigné'
-    return '<br>'.join(escape(part.strip()) for part in text.split('|') if part.strip()) or escape(text)
+    return '<br>'.join(
+        escape(part.strip()) for part in text.split('|') if part.strip()
+    ) or escape(text)
 
 
 def _normalize_eures_no_match_status(value: str) -> str:
@@ -5132,7 +5997,11 @@ def _get_eures_role_table_config(role: str) -> dict | None:
         return None
     return {
         'doc_id': base['doc_id'],
-        'table_id': EURES_CANDIDATS_TABLE if normalized_role == 'candidate' else EURES_BESOINS_TABLE,
+        'table_id': (
+            EURES_CANDIDATS_TABLE
+            if normalized_role == 'candidate'
+            else EURES_BESOINS_TABLE
+        ),
         'api_key': base.get('api_key'),
     }
 
@@ -5172,28 +6041,49 @@ def queue_eures_no_match_notification(role: str, record_id: int):
     )
 
 
-def _build_eures_no_match_row(role: str, rec: dict, borderline_by_candidate: dict[str, list[dict]] | None = None) -> dict | None:
+def _build_eures_no_match_row(
+    role: str, rec: dict, borderline_by_candidate: dict[str, list[dict]] | None = None
+) -> dict | None:
     fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
     if not isinstance(fields, dict):
         return None
-    status = _normalize_eures_no_match_status(fields.get('no_match_notification_status', ''))
+    status = _normalize_eures_no_match_status(
+        fields.get('no_match_notification_status', '')
+    )
     if not status:
         return None
 
     normalized_role = _normalize_eures_invitation_role(role)
     is_candidate = normalized_role == 'candidate'
-    recipient = normalize_email(fields.get('email', '')) if is_candidate else _resolve_employer_recipient(fields)
+    recipient = (
+        normalize_email(fields.get('email', ''))
+        if is_candidate
+        else _resolve_employer_recipient(fields)
+    )
     title = (
         str(fields.get('nom') or fields.get('email') or 'Candidat')
-        if is_candidate else
-        str(fields.get('employeur') or fields.get('poste') or recipient or 'Employeur')
+        if is_candidate
+        else str(
+            fields.get('employeur') or fields.get('poste') or recipient or 'Employeur'
+        )
     )
-    subtitle = str(fields.get('metier') or '') if is_candidate else str(fields.get('poste') or '')
-    candidate_key = str(fields.get('id_tally') or fields.get('uuid') or '').strip() if is_candidate else ''
+    subtitle = (
+        str(fields.get('metier') or '')
+        if is_candidate
+        else str(fields.get('poste') or '')
+    )
+    candidate_key = (
+        str(fields.get('id_tally') or fields.get('uuid') or '').strip()
+        if is_candidate
+        else ''
+    )
     return {
         'role': normalized_role,
         'record_id': rec.get('id'),
-        'record_key': candidate_key or fields.get('id_tally') or fields.get('uuid') or '',
+        'record_key': candidate_key
+        or fields.get('id_tally')
+        or fields.get('uuid')
+        or '',
         'notification_status': status,
         'reason': fields.get('no_match_notification_reason', ''),
         'created_at': fields.get('no_match_notification_created_at', ''),
@@ -5222,7 +6112,11 @@ def _build_eures_no_match_row(role: str, rec: dict, borderline_by_candidate: dic
             'langues_requises': fields.get('langues_requises', ''),
             'date_debut': fields.get('date_debut', ''),
         },
-        'borderline_matchings': list((borderline_by_candidate or {}).get(candidate_key, [])) if is_candidate else [],
+        'borderline_matchings': (
+            list((borderline_by_candidate or {}).get(candidate_key, []))
+            if is_candidate
+            else []
+        ),
     }
 
 
@@ -5238,12 +6132,21 @@ def list_eures_admin_no_match_notifications(status: str = 'all') -> list[dict]:
         matching_headers = _eures_admin_headers(matching_config)
         employer_headers = _eures_admin_headers(employer_config)
         besoins_by_id = {
-            str((rec.get('fields') or {}).get('id_tally') or (rec.get('fields') or {}).get('uuid') or '').strip(): rec.get('fields', {})
-            for rec in fetch_table_records(employer_config['doc_id'], EURES_BESOINS_TABLE, employer_headers)
-            if isinstance(rec, dict) and _is_eures_response_active((rec.get('fields') or {}))
+            str(
+                (rec.get('fields') or {}).get('id_tally')
+                or (rec.get('fields') or {}).get('uuid')
+                or ''
+            ).strip(): rec.get('fields', {})
+            for rec in fetch_table_records(
+                employer_config['doc_id'], EURES_BESOINS_TABLE, employer_headers
+            )
+            if isinstance(rec, dict)
+            and _is_eures_response_active((rec.get('fields') or {}))
         }
 
-        for rec in fetch_table_records(matching_config['doc_id'], EURES_MATCHINGS_TABLE, matching_headers):
+        for rec in fetch_table_records(
+            matching_config['doc_id'], EURES_MATCHINGS_TABLE, matching_headers
+        ):
             fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
             score = _safe_int(fields.get('score'))
             if score < 50 or score >= 55:
@@ -5260,20 +6163,29 @@ def list_eures_admin_no_match_notifications(status: str = 'all') -> list[dict]:
                 for field_name in EURES_EMPLOYEUR_SECTOR_JOB_TITLE_FIELDS.values()
                 if str(besoin.get(field_name) or '').strip()
             )
-            borderline_by_candidate[candidat_id].append({
-                'record_id': rec.get('id'),
-                'score': score,
-                'scoring_status': fields.get('statut', ''),
-                'workflow_status': _matching_workflow_status(fields),
-                'employeur': besoin.get('employeur', ''),
-                'poste': employeur_job_titles or besoin.get('poste', ''),
-                'secteur': besoin.get('poste', ''),
-                'pays': besoin.get('pays', ''),
-                'raisons': _split_matching_text(fields.get('raisons'))[:3],
-                'points_faibles': _split_matching_text(fields.get('points_faibles'))[:3],
-            })
+            borderline_by_candidate[candidat_id].append(
+                {
+                    'record_id': rec.get('id'),
+                    'score': score,
+                    'scoring_status': fields.get('statut', ''),
+                    'workflow_status': _matching_workflow_status(fields),
+                    'employeur': besoin.get('employeur', ''),
+                    'poste': employeur_job_titles or besoin.get('poste', ''),
+                    'secteur': besoin.get('poste', ''),
+                    'pays': besoin.get('pays', ''),
+                    'raisons': _split_matching_text(fields.get('raisons'))[:3],
+                    'points_faibles': _split_matching_text(
+                        fields.get('points_faibles')
+                    )[:3],
+                }
+            )
         for candidate_rows in borderline_by_candidate.values():
-            candidate_rows.sort(key=lambda item: (-_safe_int(item.get('score')), -int(item.get('record_id') or 0)))
+            candidate_rows.sort(
+                key=lambda item: (
+                    -_safe_int(item.get('score')),
+                    -int(item.get('record_id') or 0),
+                )
+            )
             del candidate_rows[3:]
     except Exception as exc:
         logger.warning('Unable to enrich EURES no-match rows with borderline matchings')
@@ -5290,10 +6202,19 @@ def list_eures_admin_no_match_notifications(status: str = 'all') -> list[dict]:
             row = _build_eures_no_match_row(role, rec, borderline_by_candidate)
             if not row:
                 continue
-            if status in EURES_NO_MATCH_ALLOWED_STATUSES and row['notification_status'] != status:
+            if (
+                status in EURES_NO_MATCH_ALLOWED_STATUSES
+                and row['notification_status'] != status
+            ):
                 continue
             rows.append(row)
-    rows.sort(key=lambda row: (str(row.get('created_at') or ''), int(row.get('record_id') or 0)), reverse=True)
+    rows.sort(
+        key=lambda row: (
+            str(row.get('created_at') or ''),
+            int(row.get('record_id') or 0),
+        ),
+        reverse=True,
+    )
     return rows
 
 
@@ -5462,12 +6383,20 @@ def _eures_questionnaire_field_label(key: str, role: str = '') -> str:
     }
     if key in labels:
         return labels[key]
-    tally_labels = EURES_CANDIDATE_TALLY_LABELS if role == 'candidate' else EURES_EMPLOYER_TALLY_LABELS if role == 'employer' else {}
+    tally_labels = (
+        EURES_CANDIDATE_TALLY_LABELS
+        if role == 'candidate'
+        else EURES_EMPLOYER_TALLY_LABELS if role == 'employer' else {}
+    )
     if key in tally_labels:
         return tally_labels[key]
-    salary_match = re.match(r'^(tally_q\d+)_salary_(type|amount_type|min|max|note)$', str(key or ''))
+    salary_match = re.match(
+        r'^(tally_q\d+)_salary_(type|amount_type|min|max|note)$', str(key or '')
+    )
     if salary_match:
-        sector_label = EURES_TALLY_SECTOR_LABELS.get(salary_match.group(1), salary_match.group(1))
+        sector_label = EURES_TALLY_SECTOR_LABELS.get(
+            salary_match.group(1), salary_match.group(1)
+        )
         suffix_label = {
             'type': 'Type de salaire',
             'amount_type': 'Montant brut ou net',
@@ -5478,7 +6407,9 @@ def _eures_questionnaire_field_label(key: str, role: str = '') -> str:
         return f"Salaire · {sector_label} · {suffix_label}"
     job_title_match = re.match(r'^(tally_q\d+)_job_title$', str(key or ''))
     if job_title_match:
-        sector_label = EURES_TALLY_SECTOR_LABELS.get(job_title_match.group(1), job_title_match.group(1))
+        sector_label = EURES_TALLY_SECTOR_LABELS.get(
+            job_title_match.group(1), job_title_match.group(1)
+        )
         prefix = 'Intitulé du poste'
         if role == 'candidate':
             prefix = 'Intitulé du poste visé'
@@ -5547,12 +6478,16 @@ def normalize_eures_candidate_cv_fields(fields: dict) -> dict:
         raise RuntimeError('Le CV transmis est invalide.') from exc
 
     if len(decoded) != cv_size:
-        raise RuntimeError('La taille du CV transmis ne correspond pas au contenu reçu.')
+        raise RuntimeError(
+            'La taille du CV transmis ne correspond pas au contenu reçu.'
+        )
 
     fields['cv_file_name'] = cv_name
     fields['cv_file_mime'] = cv_mime
     fields['cv_file_size'] = len(decoded)
-    fields['cv_uploaded_at'] = str((fields or {}).get('cv_uploaded_at') or _now_iso_utc()).strip()
+    fields['cv_uploaded_at'] = str(
+        (fields or {}).get('cv_uploaded_at') or _now_iso_utc()
+    ).strip()
     fields['tally_q36'] = cv_name
     return fields
 
@@ -5572,17 +6507,50 @@ def get_candidate_cv_attachment(fields: dict) -> dict | None:
 def _eures_questionnaire_field_order(role: str) -> list[str]:
     if role == 'candidate':
         return [
-            'nom', 'email', 'telephone', 'ville', 'pays', 'metier', 'metier_libre', 'competences',
-            'langues', 'mobilite', 'disponibilite', 'contraintes_travail', 'permis_autorisations', 'permis_autorisations_autre',
-            'cv_file_name', 'cv_uploaded_at',
-            'response_received_at', 'response_status', 'id_tally', 'uuid',
-            'tally_submitted_at', 'created_at', 'updated_at',
+            'nom',
+            'email',
+            'telephone',
+            'ville',
+            'pays',
+            'metier',
+            'metier_libre',
+            'competences',
+            'langues',
+            'mobilite',
+            'disponibilite',
+            'contraintes_travail',
+            'permis_autorisations',
+            'permis_autorisations_autre',
+            'cv_file_name',
+            'cv_uploaded_at',
+            'response_received_at',
+            'response_status',
+            'id_tally',
+            'uuid',
+            'tally_submitted_at',
+            'created_at',
+            'updated_at',
         ]
     return [
-        'employeur', 'contact', 'email', 'telephone', 'pays', 'poste',
-        'competences_clefs', 'langues_requises', 'date_debut', 'contraintes_travail', 'permis_autorisations', 'permis_autorisations_autre',
-        'response_received_at', 'response_status',
-        'id_tally', 'uuid', 'tally_submitted_at', 'created_at', 'updated_at',
+        'employeur',
+        'contact',
+        'email',
+        'telephone',
+        'pays',
+        'poste',
+        'competences_clefs',
+        'langues_requises',
+        'date_debut',
+        'contraintes_travail',
+        'permis_autorisations',
+        'permis_autorisations_autre',
+        'response_received_at',
+        'response_status',
+        'id_tally',
+        'uuid',
+        'tally_submitted_at',
+        'created_at',
+        'updated_at',
     ]
 
 
@@ -5628,7 +6596,12 @@ def _build_eures_questionnaire_response_row(role: str, rec: dict) -> dict | None
             continue
         if key_str.startswith('employer_response'):
             continue
-        if key_str not in {'tally_submitted_at', 'created_at', 'updated_at', 'response_status'} and any(key_str.endswith(suffix) for suffix in hidden_suffixes):
+        if key_str not in {
+            'tally_submitted_at',
+            'created_at',
+            'updated_at',
+            'response_status',
+        } and any(key_str.endswith(suffix) for suffix in hidden_suffixes):
             continue
         if key_str in seen:
             continue
@@ -5643,44 +6616,72 @@ def _build_eures_questionnaire_response_row(role: str, rec: dict) -> dict | None
         value = _eures_questionnaire_field_value(fields.get(key))
         if not value:
             continue
-        field_items.append({
-            'key': key,
-            'label': _eures_questionnaire_field_label(key, normalized_role),
-            'value': value,
-        })
+        field_items.append(
+            {
+                'key': key,
+                'label': _eures_questionnaire_field_label(key, normalized_role),
+                'value': value,
+            }
+        )
 
     if normalized_role == 'candidate':
         title = str(fields.get('nom') or fields.get('email') or 'Candidat').strip()
         subtitle_parts = [fields.get('metier', ''), fields.get('pays', '')]
-        summary_parts = [fields.get('langues', ''), fields.get('mobilite', ''), fields.get('disponibilite', '')]
+        summary_parts = [
+            fields.get('langues', ''),
+            fields.get('mobilite', ''),
+            fields.get('disponibilite', ''),
+        ]
     else:
-        title = str(fields.get('employeur') or fields.get('poste') or _resolve_employer_recipient(fields) or 'Employeur').strip()
+        title = str(
+            fields.get('employeur')
+            or fields.get('poste')
+            or _resolve_employer_recipient(fields)
+            or 'Employeur'
+        ).strip()
         subtitle_parts = [fields.get('poste', ''), fields.get('pays', '')]
-        summary_parts = [fields.get('langues_requises', ''), fields.get('date_debut', ''), fields.get('competences_clefs', '')]
+        summary_parts = [
+            fields.get('langues_requises', ''),
+            fields.get('date_debut', ''),
+            fields.get('competences_clefs', ''),
+        ]
 
     submitted_at = _eures_response_received_at(fields)
-    response_status = _normalize_eures_response_status(fields.get('response_status', '')) or 'active'
+    response_status = (
+        _normalize_eures_response_status(fields.get('response_status', '')) or 'active'
+    )
     cv_file_name = str(fields.get('cv_file_name') or '').strip()
-    cv_available = normalized_role == 'candidate' and bool(cv_file_name and str(fields.get('cv_file_base64') or '').strip())
+    cv_available = normalized_role == 'candidate' and bool(
+        cv_file_name and str(fields.get('cv_file_base64') or '').strip()
+    )
 
     row = {
         'role': normalized_role,
         'record_id': rec.get('id'),
         'record_key': fields.get('id_tally') or fields.get('uuid') or '',
-        'title': title or ('Candidat' if normalized_role == 'candidate' else 'Employeur'),
-        'subtitle': ' · '.join(str(part).strip() for part in subtitle_parts if str(part).strip()),
-        'summary': ' · '.join(str(part).strip() for part in summary_parts if str(part).strip()),
+        'title': title
+        or ('Candidat' if normalized_role == 'candidate' else 'Employeur'),
+        'subtitle': ' · '.join(
+            str(part).strip() for part in subtitle_parts if str(part).strip()
+        ),
+        'summary': ' · '.join(
+            str(part).strip() for part in summary_parts if str(part).strip()
+        ),
         'submitted_at': submitted_at,
         'response_received_at': submitted_at,
         'response_status': response_status,
         'is_active': response_status == 'active',
         'response_disabled_at': str(fields.get('response_disabled_at') or '').strip(),
-        'response_disabled_reason': str(fields.get('response_disabled_reason') or '').strip(),
+        'response_disabled_reason': str(
+            fields.get('response_disabled_reason') or ''
+        ).strip(),
         'updated_at': str(fields.get('updated_at') or '').strip(),
         'fields': field_items,
     }
     if cv_available:
-        row['cv_download_url'] = f"/api/forms/eures-beta/admin/questionnaires/candidate/{rec.get('id')}/cv"
+        row['cv_download_url'] = (
+            f"/api/forms/eures-beta/admin/questionnaires/candidate/{rec.get('id')}/cv"
+        )
         row['cv_file_name'] = cv_file_name
     return row
 
@@ -5705,36 +6706,54 @@ def list_eures_admin_questionnaire_responses(role: str) -> list[dict]:
         candidate_key = str(matching.get('candidat_id') or '').strip()
         employer_key = str(matching.get('besoin_id') or '').strip()
         if normalized_role == 'candidate' and candidate_key:
-            matching_map.setdefault(candidate_key, []).append({
-                'matching_record_id': matching.get('record_id'),
-                'score': _safe_int(matching.get('score')),
-                'scoring_status': matching.get('scoring_status', ''),
-                'admin_status': matching.get('admin_status', ''),
-                'workflow_status': matching.get('workflow_status', ''),
-                'counterpart_name': str((matching.get('employeur') or {}).get('employeur') or '').strip(),
-                'counterpart_subtitle': str((matching.get('employeur') or {}).get('poste') or '').strip(),
-            })
+            matching_map.setdefault(candidate_key, []).append(
+                {
+                    'matching_record_id': matching.get('record_id'),
+                    'score': _safe_int(matching.get('score')),
+                    'scoring_status': matching.get('scoring_status', ''),
+                    'admin_status': matching.get('admin_status', ''),
+                    'workflow_status': matching.get('workflow_status', ''),
+                    'counterpart_name': str(
+                        (matching.get('employeur') or {}).get('employeur') or ''
+                    ).strip(),
+                    'counterpart_subtitle': str(
+                        (matching.get('employeur') or {}).get('poste') or ''
+                    ).strip(),
+                }
+            )
         if normalized_role == 'employer' and employer_key:
-            matching_map.setdefault(employer_key, []).append({
-                'matching_record_id': matching.get('record_id'),
-                'score': _safe_int(matching.get('score')),
-                'scoring_status': matching.get('scoring_status', ''),
-                'admin_status': matching.get('admin_status', ''),
-                'workflow_status': matching.get('workflow_status', ''),
-                'counterpart_name': str((matching.get('candidat') or {}).get('nom') or '').strip(),
-                'counterpart_subtitle': str((matching.get('candidat') or {}).get('metier') or '').strip(),
-            })
+            matching_map.setdefault(employer_key, []).append(
+                {
+                    'matching_record_id': matching.get('record_id'),
+                    'score': _safe_int(matching.get('score')),
+                    'scoring_status': matching.get('scoring_status', ''),
+                    'admin_status': matching.get('admin_status', ''),
+                    'workflow_status': matching.get('workflow_status', ''),
+                    'counterpart_name': str(
+                        (matching.get('candidat') or {}).get('nom') or ''
+                    ).strip(),
+                    'counterpart_subtitle': str(
+                        (matching.get('candidat') or {}).get('metier') or ''
+                    ).strip(),
+                }
+            )
 
     for row in rows:
         key = str(row.get('record_key') or '').strip()
         related = matching_map.get(key, [])
-        related.sort(key=lambda item: (-int(item.get('score') or 0), -int(item.get('matching_record_id') or 0)))
+        related.sort(
+            key=lambda item: (
+                -int(item.get('score') or 0),
+                -int(item.get('matching_record_id') or 0),
+            )
+        )
         row['matchings'] = related
         row['matching_count'] = len(related)
 
     rows.sort(
         key=lambda row: (
-            _parse_iso_datetime(row.get('submitted_at')) or datetime.min.replace(tzinfo=timezone.utc),
+            _parse_iso_datetime(row.get('submitted_at'))
+            or datetime.min.replace(tzinfo=timezone.utc),
             int(row.get('record_id') or 0),
         ),
         reverse=True,
@@ -5747,7 +6766,9 @@ def delete_table_record_by_id(config: dict, record_id: int, headers: dict):
     delete_url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}/records/delete"
     resp = write_grist_records('POST', delete_url, [int(record_id)], headers)
     if resp.status_code not in {200, 202, 204}:
-        raise RuntimeError(f'Failed to delete {config["table_id"]}: HTTP {resp.status_code} - {resp.text}')
+        raise RuntimeError(
+            f'Failed to delete {config["table_id"]}: HTTP {resp.status_code} - {resp.text}'
+        )
     return resp
 
 
@@ -5774,7 +6795,9 @@ def delete_matching_records_for_response(role: str, response_key: str):
     delete_url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{EURES_MATCHINGS_TABLE}/records/delete"
     resp = write_grist_records('POST', delete_url, to_delete, headers)
     if resp.status_code not in {200, 202, 204}:
-        raise RuntimeError(f'Failed to delete related Matchings: HTTP {resp.status_code} - {resp.text}')
+        raise RuntimeError(
+            f'Failed to delete related Matchings: HTTP {resp.status_code} - {resp.text}'
+        )
     return len(to_delete)
 
 
@@ -5802,7 +6825,9 @@ def _build_eures_new_job_request_row(rec: dict) -> dict | None:
     fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
     if not isinstance(fields, dict):
         return None
-    status = _normalize_eures_new_job_request_status(fields.get('new_job_request_status', ''))
+    status = _normalize_eures_new_job_request_status(
+        fields.get('new_job_request_status', '')
+    )
     requested_jobs = str(fields.get('autres_metiers_souhaites') or '').strip()
     if not status or not requested_jobs:
         return None
@@ -5839,20 +6864,33 @@ def list_eures_admin_new_job_requests(status: str = 'all') -> list[dict]:
         row = _build_eures_new_job_request_row(rec)
         if not row:
             continue
-        if status in EURES_NEW_JOB_REQUEST_ALLOWED_STATUSES and row['request_status'] != status:
+        if (
+            status in EURES_NEW_JOB_REQUEST_ALLOWED_STATUSES
+            and row['request_status'] != status
+        ):
             continue
         rows.append(row)
-    rows.sort(key=lambda row: (str(row.get('created_at') or ''), int(row.get('record_id') or 0)), reverse=True)
+    rows.sort(
+        key=lambda row: (
+            str(row.get('created_at') or ''),
+            int(row.get('record_id') or 0),
+        ),
+        reverse=True,
+    )
     return rows
 
 
-def queue_eures_new_employer_alert(record_id: int, invitation_linking: dict | None = None):
+def queue_eures_new_employer_alert(
+    record_id: int, invitation_linking: dict | None = None
+):
     """Mark an employer need submitted from a referred new company for admin vigilance."""
     config = _get_eures_role_table_config('employer')
     if not config:
         raise RuntimeError('EURES employer table configuration is incomplete.')
     headers = _eures_admin_headers(config)
-    invitation_linking = invitation_linking if isinstance(invitation_linking, dict) else {}
+    invitation_linking = (
+        invitation_linking if isinstance(invitation_linking, dict) else {}
+    )
     update_table_record_by_id(
         config,
         record_id,
@@ -5861,12 +6899,20 @@ def queue_eures_new_employer_alert(record_id: int, invitation_linking: dict | No
             'new_employer_alert_created_at': _now_iso_utc(),
             'new_employer_alert_created_by': 'system_questionnaire_submission',
             'new_employer_alert_note': '',
-            'source_invitation_record_id': str(invitation_linking.get('invitation_record_id') or ''),
+            'source_invitation_record_id': str(
+                invitation_linking.get('invitation_record_id') or ''
+            ),
             'source_invitation_email': str(invitation_linking.get('email') or ''),
-            'source_invitation_company': str(invitation_linking.get('company_name') or ''),
-            'source_invitation_scope': str(invitation_linking.get('invite_scope') or ''),
+            'source_invitation_company': str(
+                invitation_linking.get('company_name') or ''
+            ),
+            'source_invitation_scope': str(
+                invitation_linking.get('invite_scope') or ''
+            ),
             'sponsor_email': str(invitation_linking.get('sponsor_email') or ''),
-            'sponsor_company_name': str(invitation_linking.get('sponsor_company_name') or ''),
+            'sponsor_company_name': str(
+                invitation_linking.get('sponsor_company_name') or ''
+            ),
         },
         headers,
         EURES_NEW_EMPLOYER_ALERT_FIELDS,
@@ -5877,7 +6923,9 @@ def _build_eures_new_employer_alert_row(rec: dict) -> dict | None:
     fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
     if not isinstance(fields, dict):
         return None
-    status = _normalize_eures_new_employer_alert_status(fields.get('new_employer_alert_status', ''))
+    status = _normalize_eures_new_employer_alert_status(
+        fields.get('new_employer_alert_status', '')
+    )
     if not status:
         return None
     return {
@@ -5916,18 +6964,29 @@ def list_eures_admin_new_employer_alerts(status: str = 'all') -> list[dict]:
         row = _build_eures_new_employer_alert_row(rec)
         if not row:
             continue
-        if status in EURES_NEW_EMPLOYER_ALERT_ALLOWED_STATUSES and row['alert_status'] != status:
+        if (
+            status in EURES_NEW_EMPLOYER_ALERT_ALLOWED_STATUSES
+            and row['alert_status'] != status
+        ):
             continue
         rows.append(row)
-    rows.sort(key=lambda row: (str(row.get('created_at') or ''), int(row.get('record_id') or 0)), reverse=True)
+    rows.sort(
+        key=lambda row: (
+            str(row.get('created_at') or ''),
+            int(row.get('record_id') or 0),
+        ),
+        reverse=True,
+    )
     return rows
 
 
 def _build_eures_feedback_url(record_id: int, response: str) -> str:
-    token = get_eures_email_action_serializer().dumps({
-        'record_id': int(record_id),
-        'response': response,
-    })
+    token = get_eures_email_action_serializer().dumps(
+        {
+            'record_id': int(record_id),
+            'response': response,
+        }
+    )
     return f"{get_public_app_base_url()}/eures-beta/matching-feedback?token={token}"
 
 
@@ -5940,7 +6999,11 @@ def _matching_outgoing_comment(row: dict, recipient: str) -> str:
     """Return the optional admin comment to inject into outgoing matching emails."""
     if not isinstance(row, dict):
         return ''
-    recipient_key = 'employer_email_comment' if recipient == 'employer' else 'candidate_email_comment'
+    recipient_key = (
+        'employer_email_comment'
+        if recipient == 'employer'
+        else 'candidate_email_comment'
+    )
     if recipient_key in row:
         return str(row.get(recipient_key) or '').strip()
     # Backward compatibility only for legacy row payloads that do not expose
@@ -5956,14 +7019,18 @@ def _format_email_comment_text(comment: str) -> str:
 
 
 def _format_email_comment_html(comment: str) -> str:
-    lines = [escape(line.strip()) for line in str(comment or '').splitlines() if line.strip()]
+    lines = [
+        escape(line.strip()) for line in str(comment or '').splitlines() if line.strip()
+    ]
     return '<br>'.join(lines)
 
 
 def build_brevo_matching_email(row: dict) -> tuple[str, str, str, str]:
     """Build recipient, subject, text body and HTML body for one accepted matching."""
     candidat = row.get('candidat', {}) if isinstance(row.get('candidat'), dict) else {}
-    employeur = row.get('employeur', {}) if isinstance(row.get('employeur'), dict) else {}
+    employeur = (
+        row.get('employeur', {}) if isinstance(row.get('employeur'), dict) else {}
+    )
     recipient = _resolve_employer_recipient(employeur)
     if not recipient:
         raise RuntimeError('Employer contact email is missing for accepted matching.')
@@ -5976,10 +7043,17 @@ def build_brevo_matching_email(row: dict) -> tuple[str, str, str, str]:
     if not isinstance(reasons, list):
         reasons = _split_matching_text(reasons)
 
-    reasons_text = '\n'.join(f"- {item}" for item in reasons) if reasons else "- Profil cohérent avec votre besoin"
-    reasons_html = ''.join(
-        f"<li style=\"margin:0 0 8px;\">{escape(item)}</li>" for item in reasons
-    ) or "<li style=\"margin:0 0 8px;\">Profil cohérent avec votre besoin</li>"
+    reasons_text = (
+        '\n'.join(f"- {item}" for item in reasons)
+        if reasons
+        else "- Profil cohérent avec votre besoin"
+    )
+    reasons_html = (
+        ''.join(
+            f"<li style=\"margin:0 0 8px;\">{escape(item)}</li>" for item in reasons
+        )
+        or "<li style=\"margin:0 0 8px;\">Profil cohérent avec votre besoin</li>"
+    )
 
     candidate_name = str(candidat.get('nom') or 'Profil candidat')
     candidate_phone = str(candidat.get('telephone') or 'Non renseigné')
@@ -5988,29 +7062,34 @@ def build_brevo_matching_email(row: dict) -> tuple[str, str, str, str]:
     cv_line = f"- CV joint : {cv_file_name}\n" if cv_file_name else ""
     cv_html = (
         f"<p style=\"margin:10px 0 0;font-size:14px;line-height:1.7;color:#e6efe9;\">CV joint : {escape(cv_file_name)}</p>"
-        if cv_file_name else ""
+        if cv_file_name
+        else ""
     )
     outgoing_comment = _matching_outgoing_comment(row, 'employer')
     outgoing_comment_text = _format_email_comment_text(outgoing_comment)
     outgoing_comment_html = _format_email_comment_html(outgoing_comment)
     comment_block_text = (
         f"Commentaire du conseiller EURES\n{outgoing_comment_text}\n\n"
-        if outgoing_comment_text else ""
+        if outgoing_comment_text
+        else ""
     )
-    comment_block_html = (
-        f"""
+    comment_block_html = f"""
                 <div style="background:#f3f7fc;border:1px solid #d7e2f0;border-radius:12px;padding:18px 20px;margin:18px 0 0;">
                   <div style="font-size:12px;letter-spacing:1.3px;text-transform:uppercase;color:#35557a;margin-bottom:10px;">Commentaire du conseiller EURES</div>
                   <p style="margin:0;font-size:15px;line-height:1.7;color:#22374f;">{outgoing_comment_html}</p>
                 </div>
-        """.strip()
-        if outgoing_comment_html else ""
-    )
+        """.strip() if outgoing_comment_html else ""
     signature_name = get_eures_mail_signature_name()
     privacy_url = get_eures_privacy_url('fr')
-    contact_whatsapp_url = _build_eures_feedback_url(int(row.get('record_id') or 0), 'contact_whatsapp')
-    contact_no_whatsapp_url = _build_eures_feedback_url(int(row.get('record_id') or 0), 'contact_no_whatsapp')
-    contact_no_url = _build_eures_feedback_url(int(row.get('record_id') or 0), 'not_contact')
+    contact_whatsapp_url = _build_eures_feedback_url(
+        int(row.get('record_id') or 0), 'contact_whatsapp'
+    )
+    contact_no_whatsapp_url = _build_eures_feedback_url(
+        int(row.get('record_id') or 0), 'contact_no_whatsapp'
+    )
+    contact_no_url = _build_eures_feedback_url(
+        int(row.get('record_id') or 0), 'not_contact'
+    )
     body_text = (
         f"Bonjour,\n\n"
         f"Nous vous proposons un profil susceptible de correspondre à votre besoin de recrutement pour le poste : {poste}.\n\n"
@@ -6168,15 +7247,24 @@ def build_brevo_matching_email(row: dict) -> tuple[str, str, str, str]:
     return recipient, subject, body_text, body_html
 
 
-def build_brevo_candidate_matching_notification_email(row: dict) -> tuple[str, str, str, str]:
+def build_brevo_candidate_matching_notification_email(
+    row: dict,
+) -> tuple[str, str, str, str]:
     """Build the candidate notification email once the profile is sent to the employer."""
     candidat = row.get('candidat', {}) if isinstance(row.get('candidat'), dict) else {}
-    employeur = row.get('employeur', {}) if isinstance(row.get('employeur'), dict) else {}
+    employeur = (
+        row.get('employeur', {}) if isinstance(row.get('employeur'), dict) else {}
+    )
     recipient = normalize_email(candidat.get('email', ''))
     if not recipient:
-        raise RuntimeError('Candidate email is missing for accepted matching notification.')
+        raise RuntimeError(
+            'Candidate email is missing for accepted matching notification.'
+        )
 
-    employeur_name = str(employeur.get('employeur') or 'un employeur partenaire').strip() or 'un employeur partenaire'
+    employeur_name = (
+        str(employeur.get('employeur') or 'un employeur partenaire').strip()
+        or 'un employeur partenaire'
+    )
     candidate_name = str(candidat.get('nom') or '').strip()
     hello = "Bonjour,"
     if candidate_name:
@@ -6186,17 +7274,15 @@ def build_brevo_candidate_matching_notification_email(row: dict) -> tuple[str, s
     outgoing_comment_html = _format_email_comment_html(outgoing_comment)
     comment_block_text = (
         f"Commentaire de votre conseiller EURES\n{outgoing_comment_text}\n\n"
-        if outgoing_comment_text else ""
+        if outgoing_comment_text
+        else ""
     )
-    comment_block_html = (
-        f"""
+    comment_block_html = f"""
                 <div style="border:1px solid #d7e2f0;border-radius:14px;background:#f3f7fc;padding:18px 20px;margin:0 0 18px;">
                   <p style="margin:0 0 10px;font-size:15px;line-height:1.6;"><strong>Commentaire de votre conseiller EURES</strong></p>
                   <p style="margin:0;font-size:15px;line-height:1.7;color:#22374f;">{outgoing_comment_html}</p>
                 </div>
-        """.strip()
-        if outgoing_comment_html else ""
-    )
+        """.strip() if outgoing_comment_html else ""
     privacy_url = get_eures_privacy_url('fr')
 
     subject = f"[EURES beta] Votre candidature a ete transmise a {employeur_name}"
@@ -6268,15 +7354,22 @@ def build_brevo_candidate_matching_notification_email(row: dict) -> tuple[str, s
 
 
 def _build_eures_spontaneous_feedback_url(record_id: int, response_code: str) -> str:
-    token = get_eures_email_action_serializer().dumps({
-        'kind': 'spontaneous_candidate',
-        'record_id': int(record_id),
-        'response': str(response_code or '').strip().lower(),
-    })
+    token = get_eures_email_action_serializer().dumps(
+        {
+            'kind': 'spontaneous_candidate',
+            'record_id': int(record_id),
+            'response': str(response_code or '').strip().lower(),
+        }
+    )
     return f"{get_public_app_base_url()}/eures-beta/spontaneous-feedback?token={token}"
 
 
-def build_brevo_spontaneous_candidate_email(candidate: dict, employer: dict, comment: str = '', feedback_urls: dict | None = None) -> tuple[str, str, str, str]:
+def build_brevo_spontaneous_candidate_email(
+    candidate: dict,
+    employer: dict,
+    comment: str = '',
+    feedback_urls: dict | None = None,
+) -> tuple[str, str, str, str]:
     """Build the first-contact email sent to an employer who does not use Match Europe yet."""
     recipient = normalize_email(employer.get('email', ''))
     if not recipient:
@@ -6287,19 +7380,24 @@ def build_brevo_spontaneous_candidate_email(candidate: dict, employer: dict, com
     candidate_name = str(candidate.get('nom') or 'un candidat').strip()
     candidate_city = str(candidate.get('ville') or 'Non renseignée').strip()
     candidate_job = str(candidate.get('metier') or 'Non renseigné').strip()
-    candidate_availability = str(candidate.get('disponibilite') or 'Non renseignée').strip()
+    candidate_availability = str(
+        candidate.get('disponibilite') or 'Non renseignée'
+    ).strip()
     comment_text = _format_email_comment_text(comment)
     hello = f"Bonjour {contact}," if contact else "Bonjour,"
     subject = f"Candidature spontanée – {candidate_name}"
     need_text = f" pour votre activité de {need}" if need else ''
-    comment_block = f"\nMessage complémentaire\n{comment_text}\n" if comment_text else ''
+    comment_block = (
+        f"\nMessage complémentaire\n{comment_text}\n" if comment_text else ''
+    )
     privacy_url = get_eures_privacy_url('fr')
     feedback_urls = feedback_urls or {}
     interested_url = str(feedback_urls.get('interested') or '').strip()
     not_interested_url = str(feedback_urls.get('not_interested') or '').strip()
     actions_text = (
         f"\nRéponse rapide\n- Je suis intéressé : {interested_url}\n- Ce profil ne correspond pas : {not_interested_url}\n"
-        if interested_url and not_interested_url else ''
+        if interested_url and not_interested_url
+        else ''
     )
     body_text = (
         f"{hello}\n\n"
@@ -6321,12 +7419,14 @@ def build_brevo_spontaneous_candidate_email(candidate: dict, employer: dict, com
     comment_html = (
         f'<div style="margin:18px 0;padding:16px 18px;border-left:4px solid #004494;background:#f3f7fc;">'
         f'<strong>Message complémentaire</strong><br>{_format_email_comment_html(comment_text)}</div>'
-        if comment_text else ''
+        if comment_text
+        else ''
     )
     actions_html = (
         f'<div style="margin:20px 0;"><a href="{escape(interested_url)}" style="display:inline-block;margin:0 10px 10px 0;padding:12px 18px;border-radius:999px;background:#1f6f4a;color:#fff;text-decoration:none;font-weight:700;">Je suis intéressé</a>'
         f'<a href="{escape(not_interested_url)}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#f3ece2;color:#70352f;text-decoration:none;font-weight:700;">Ce profil ne correspond pas</a></div>'
-        if interested_url and not_interested_url else ''
+        if interested_url and not_interested_url
+        else ''
     )
     body_html = f"""<!doctype html><html lang="fr"><body style="margin:0;background:#f4efe6;font-family:Arial,sans-serif;color:#1f1f1f;">
 <div style="max-width:680px;margin:24px auto;background:#fff;border:1px solid #e3dacb;border-radius:16px;overflow:hidden;">
@@ -6344,17 +7444,25 @@ def build_brevo_spontaneous_candidate_email(candidate: dict, employer: dict, com
     return recipient, subject, body_text, body_html
 
 
-def build_brevo_spontaneous_candidate_notice(candidate: dict, employer: dict, comment: str = '') -> tuple[str, str, str, str]:
+def build_brevo_spontaneous_candidate_notice(
+    candidate: dict, employer: dict, comment: str = ''
+) -> tuple[str, str, str, str]:
     """Inform the candidate that their CV was sent without implying employer interest."""
     row = {
         'candidat': candidate,
-        'employeur': {'employeur': str(employer.get('company') or 'un employeur').strip()},
+        'employeur': {
+            'employeur': str(employer.get('company') or 'un employeur').strip()
+        },
         'candidate_email_comment': comment,
     }
-    recipient, _, body_text, body_html = build_brevo_candidate_matching_notification_email(row)
+    recipient, _, body_text, body_html = (
+        build_brevo_candidate_matching_notification_email(row)
+    )
     company = str(employer.get('company') or 'un employeur').strip()
     subject = f"[Match Europe] Votre candidature spontanée a été transmise à {company}"
-    clarification = "Cette transmission ne signifie pas encore que l’employeur est intéressé."
+    clarification = (
+        "Cette transmission ne signifie pas encore que l’employeur est intéressé."
+    )
     body_text = body_text.replace(
         "Si cet employeur souhaite echanger avec vous, il pourra vous contacter directement.",
         f"{clarification}\n\nSi cet employeur souhaite échanger avec vous, il pourra vous contacter directement.",
@@ -6380,9 +7488,13 @@ def create_eures_spontaneous_record(fields: dict) -> int:
     allowed = get_table_columns(config, headers)
     filtered = {key: value for key, value in fields.items() if key in allowed}
     url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}/records"
-    resp = write_grist_records('POST', url, {'records': [{'fields': filtered}]}, headers)
+    resp = write_grist_records(
+        'POST', url, {'records': [{'fields': filtered}]}, headers
+    )
     if resp.status_code != 200:
-        raise RuntimeError(f'Failed to create spontaneous application: HTTP {resp.status_code} - {resp.text}')
+        raise RuntimeError(
+            f'Failed to create spontaneous application: HTTP {resp.status_code} - {resp.text}'
+        )
     payload = _parse_response_json_safe(resp)
     records = payload.get('records', []) if isinstance(payload, dict) else []
     return int((records[0] if records else {}).get('id') or 0)
@@ -6393,9 +7505,13 @@ def update_eures_spontaneous_record(record_id: int, fields: dict):
     allowed = get_table_columns(config, headers)
     filtered = {key: value for key, value in fields.items() if key in allowed}
     url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}/records"
-    resp = write_grist_records('PATCH', url, {'records': [{'id': int(record_id), 'fields': filtered}]}, headers)
+    resp = write_grist_records(
+        'PATCH', url, {'records': [{'id': int(record_id), 'fields': filtered}]}, headers
+    )
     if resp.status_code != 200:
-        raise RuntimeError(f'Failed to update spontaneous application: HTTP {resp.status_code} - {resp.text}')
+        raise RuntimeError(
+            f'Failed to update spontaneous application: HTTP {resp.status_code} - {resp.text}'
+        )
 
 
 def list_eures_spontaneous_records() -> list[dict]:
@@ -6405,7 +7521,10 @@ def list_eures_spontaneous_records() -> list[dict]:
         fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
         if isinstance(fields, dict):
             rows.append({'record_id': rec.get('id'), **fields})
-    rows.sort(key=lambda row: (str(row.get('sent_at') or ''), int(row.get('record_id') or 0)), reverse=True)
+    rows.sort(
+        key=lambda row: (str(row.get('sent_at') or ''), int(row.get('record_id') or 0)),
+        reverse=True,
+    )
     return rows
 
 
@@ -6459,8 +7578,12 @@ def send_eures_matching_test_emails() -> dict:
     ensure_brevo_ready(check_api=True)
     row = build_eures_matching_test_row()
 
-    employer_to, employer_subject, employer_text, employer_html = build_brevo_matching_email(row)
-    candidate_to, candidate_subject, candidate_text, candidate_html = build_brevo_candidate_matching_notification_email(row)
+    employer_to, employer_subject, employer_text, employer_html = (
+        build_brevo_matching_email(row)
+    )
+    candidate_to, candidate_subject, candidate_text, candidate_html = (
+        build_brevo_candidate_matching_notification_email(row)
+    )
 
     employer_result = send_brevo_transactional_email(
         employer_to,
@@ -6495,7 +7618,9 @@ EURES_ADMIN_EMAIL_TEST_TYPES = {
 }
 
 
-def build_eures_admin_email_test_message(test_type: str, recipient_email: str) -> tuple[str, str, str, str]:
+def build_eures_admin_email_test_message(
+    test_type: str, recipient_email: str
+) -> tuple[str, str, str, str]:
     """Build one safe transactional email test without mutating business data."""
     normalized_type = str(test_type or '').strip().lower()
     recipient = normalize_email(recipient_email)
@@ -6509,38 +7634,44 @@ def build_eures_admin_email_test_message(test_type: str, recipient_email: str) -
         '?lang=fr&invite_token=test-email-only'
     )
     if normalized_type == 'candidate_invitation_generic':
-        _, subject, text_body, html_body, _, _ = build_brevo_invitation_email({
-            'role': 'candidate',
-            'email': recipient,
-            'language': 'fr',
-            'invite_token': 'test-email-only',
-            'invite_link': invite_link,
-        })
+        _, subject, text_body, html_body, _, _ = build_brevo_invitation_email(
+            {
+                'role': 'candidate',
+                'email': recipient,
+                'language': 'fr',
+                'invite_token': 'test-email-only',
+                'invite_link': invite_link,
+            }
+        )
         return recipient, subject, text_body, html_body
 
     if normalized_type == 'candidate_invitation_eures_cv':
-        _, subject, text_body, html_body, _, _ = build_brevo_invitation_email({
-            'role': 'candidate',
-            'email': recipient,
-            'language': 'fr',
-            'campaign_type': 'eures_cv_deposit',
-            'invite_token': 'test-email-only',
-            'invite_link': invite_link,
-        })
+        _, subject, text_body, html_body, _, _ = build_brevo_invitation_email(
+            {
+                'role': 'candidate',
+                'email': recipient,
+                'language': 'fr',
+                'campaign_type': 'eures_cv_deposit',
+                'invite_token': 'test-email-only',
+                'invite_link': invite_link,
+            }
+        )
         return recipient, subject, text_body, html_body
 
     if normalized_type == 'employer_invitation':
-        _, subject, text_body, html_body, _, _ = build_brevo_invitation_email({
-            'role': 'employer',
-            'email': recipient,
-            'language': 'fr',
-            'company_name': 'Entreprise test Match Europe',
-            'invite_token': 'test-email-only',
-            'invite_link': (
-                f'{get_public_app_base_url()}/forms/eures-beta/questionnaire-employer'
-                '?lang=fr&invite_token=test-email-only'
-            ),
-        })
+        _, subject, text_body, html_body, _, _ = build_brevo_invitation_email(
+            {
+                'role': 'employer',
+                'email': recipient,
+                'language': 'fr',
+                'company_name': 'Entreprise test Match Europe',
+                'invite_token': 'test-email-only',
+                'invite_link': (
+                    f'{get_public_app_base_url()}/forms/eures-beta/questionnaire-employer'
+                    '?lang=fr&invite_token=test-email-only'
+                ),
+            }
+        )
         return recipient, subject, text_body, html_body
 
     matching_row = build_eures_matching_test_row()
@@ -6579,22 +7710,26 @@ def build_eures_admin_email_test_message(test_type: str, recipient_email: str) -
         )
 
     if normalized_type == 'candidate_no_match':
-        return build_brevo_candidate_no_match_email({
-            'payload': {
-                'email': recipient,
-                'nom': 'Candidat test Match Europe',
+        return build_brevo_candidate_no_match_email(
+            {
+                'payload': {
+                    'email': recipient,
+                    'nom': 'Candidat test Match Europe',
+                }
             }
-        })
+        )
 
     if normalized_type == 'employer_no_match':
-        return build_brevo_employer_no_match_email({
-            'payload': {
-                'email': recipient,
-                'contact': recipient,
-                'employeur': 'Entreprise test Match Europe',
-                'poste': 'Poste test Match Europe',
+        return build_brevo_employer_no_match_email(
+            {
+                'payload': {
+                    'email': recipient,
+                    'contact': recipient,
+                    'employeur': 'Entreprise test Match Europe',
+                    'poste': 'Poste test Match Europe',
+                }
             }
-        })
+        )
 
     raise RuntimeError('Unknown email test type.')
 
@@ -6602,7 +7737,9 @@ def build_eures_admin_email_test_message(test_type: str, recipient_email: str) -
 def send_eures_admin_email_test(test_type: str, recipient_email: str) -> dict:
     """Send one selected email test to the requested recipient."""
     ensure_brevo_ready(check_api=True)
-    to_email, subject, text_body, html_body = build_eures_admin_email_test_message(test_type, recipient_email)
+    to_email, subject, text_body, html_body = build_eures_admin_email_test_message(
+        test_type, recipient_email
+    )
     result = send_brevo_transactional_email(
         to_email,
         f'[TEST] {subject}',
@@ -6673,13 +7810,19 @@ def build_brevo_candidate_no_match_email(row: dict) -> tuple[str, str, str, str]
         raise RuntimeError('Candidate email is missing for no-match notification.')
     privacy_url = get_eures_privacy_url('fr')
     admin_note = str(row.get('note') or '').strip()
-    admin_note_text = f"Message complémentaire :\n{admin_note}\n\n" if admin_note else ""
+    admin_note_text = (
+        f"Message complémentaire :\n{admin_note}\n\n" if admin_note else ""
+    )
     admin_note_html = (
-        "<div style=\"margin:0 0 18px;padding:14px 16px;background:#f8f4ec;border-left:4px solid #004494;border-radius:10px;\">"
-        f"<p style=\"margin:0 0 6px;font-size:14px;line-height:1.5;color:#0f2742;\"><strong>Message complémentaire</strong></p>"
-        f"<p style=\"margin:0;font-size:15px;line-height:1.7;\">{_format_email_multiline(admin_note)}</p>"
-        "</div>"
-    ) if admin_note else ""
+        (
+            "<div style=\"margin:0 0 18px;padding:14px 16px;background:#f8f4ec;border-left:4px solid #004494;border-radius:10px;\">"
+            f"<p style=\"margin:0 0 6px;font-size:14px;line-height:1.5;color:#0f2742;\"><strong>Message complémentaire</strong></p>"
+            f"<p style=\"margin:0;font-size:15px;line-height:1.7;\">{_format_email_multiline(admin_note)}</p>"
+            "</div>"
+        )
+        if admin_note
+        else ""
+    )
     subject = "[EURES beta] Aucune mise en relation immédiate pour le moment"
     body_text = (
         "Bonjour,\n\n"
@@ -6741,13 +7884,19 @@ def build_brevo_employer_no_match_email(row: dict) -> tuple[str, str, str, str]:
     privacy_url = get_eures_privacy_url('fr')
     poste = str(payload.get('poste') or 'votre besoin').strip()
     admin_note = str(row.get('note') or '').strip()
-    admin_note_text = f"Message complémentaire :\n{admin_note}\n\n" if admin_note else ""
+    admin_note_text = (
+        f"Message complémentaire :\n{admin_note}\n\n" if admin_note else ""
+    )
     admin_note_html = (
-        "<div style=\"margin:0 0 18px;padding:14px 16px;background:#f8f4ec;border-left:4px solid #103a2b;border-radius:10px;\">"
-        f"<p style=\"margin:0 0 6px;font-size:14px;line-height:1.5;color:#103a2b;\"><strong>Message complémentaire</strong></p>"
-        f"<p style=\"margin:0;font-size:15px;line-height:1.7;\">{_format_email_multiline(admin_note)}</p>"
-        "</div>"
-    ) if admin_note else ""
+        (
+            "<div style=\"margin:0 0 18px;padding:14px 16px;background:#f8f4ec;border-left:4px solid #103a2b;border-radius:10px;\">"
+            f"<p style=\"margin:0 0 6px;font-size:14px;line-height:1.5;color:#103a2b;\"><strong>Message complémentaire</strong></p>"
+            f"<p style=\"margin:0;font-size:15px;line-height:1.7;\">{_format_email_multiline(admin_note)}</p>"
+            "</div>"
+        )
+        if admin_note
+        else ""
+    )
     subject = f"[EURES beta] Suivi de votre besoin de recrutement - {poste}"
     body_text = (
         "Bonjour,\n\n"
@@ -6801,7 +7950,9 @@ def build_brevo_employer_no_match_email(row: dict) -> tuple[str, str, str, str]:
     return recipient, subject, body_text, body_html
 
 
-def list_eures_admin_matchings(status: str = 'all', include_candidate_cv: bool = False) -> list[dict]:
+def list_eures_admin_matchings(
+    status: str = 'all', include_candidate_cv: bool = False
+) -> list[dict]:
     """Return matchings joined with candidate/employer info for the admin UI."""
     config = get_eures_matching_config()
     candidate_config = get_form_config('eures-beta', 'candidate')
@@ -6814,18 +7965,32 @@ def list_eures_admin_matchings(status: str = 'all', include_candidate_cv: bool =
     employer_headers = _eures_admin_headers(employer_config)
 
     matchings = fetch_table_records(config['doc_id'], EURES_MATCHINGS_TABLE, headers)
-    candidats = fetch_table_records(candidate_config['doc_id'], EURES_CANDIDATS_TABLE, candidate_headers)
-    besoins = fetch_table_records(employer_config['doc_id'], EURES_BESOINS_TABLE, employer_headers)
+    candidats = fetch_table_records(
+        candidate_config['doc_id'], EURES_CANDIDATS_TABLE, candidate_headers
+    )
+    besoins = fetch_table_records(
+        employer_config['doc_id'], EURES_BESOINS_TABLE, employer_headers
+    )
 
     candidats_by_id = {
-        str((rec.get('fields') or {}).get('id_tally') or (rec.get('fields') or {}).get('uuid') or ''): rec.get('fields', {})
+        str(
+            (rec.get('fields') or {}).get('id_tally')
+            or (rec.get('fields') or {}).get('uuid')
+            or ''
+        ): rec.get('fields', {})
         for rec in candidats
-        if isinstance(rec, dict) and _is_eures_response_active((rec.get('fields') or {}))
+        if isinstance(rec, dict)
+        and _is_eures_response_active((rec.get('fields') or {}))
     }
     besoins_by_id = {
-        str((rec.get('fields') or {}).get('id_tally') or (rec.get('fields') or {}).get('uuid') or ''): rec.get('fields', {})
+        str(
+            (rec.get('fields') or {}).get('id_tally')
+            or (rec.get('fields') or {}).get('uuid')
+            or ''
+        ): rec.get('fields', {})
         for rec in besoins
-        if isinstance(rec, dict) and _is_eures_response_active((rec.get('fields') or {}))
+        if isinstance(rec, dict)
+        and _is_eures_response_active((rec.get('fields') or {}))
     }
 
     rows = []
@@ -6835,7 +8000,10 @@ def list_eures_admin_matchings(status: str = 'all', include_candidate_cv: bool =
             continue
         scoring_status = str(fields.get('statut') or '').strip().lower()
         admin_status = _eures_admin_status(fields)
-        is_manual_matching = str(fields.get('manual_matching_source') or '').strip().lower() == 'admin_manual'
+        is_manual_matching = (
+            str(fields.get('manual_matching_source') or '').strip().lower()
+            == 'admin_manual'
+        )
         if (
             not is_manual_matching
             and scoring_status not in {'a_valider', 'auto_envoyable'}
@@ -6862,83 +8030,111 @@ def list_eures_admin_matchings(status: str = 'all', include_candidate_cv: bool =
             if str(besoin.get(field_name) or '').strip()
         )
 
-        rows.append({
-            'record_id': rec.get('id'),
-            'besoin_id': besoin_id,
-            'candidat_id': candidat_id,
-            'score': _safe_int(fields.get('score')),
-            'scoring_status': scoring_status,
-            'admin_status': admin_status,
-            'workflow_status': _matching_workflow_status(fields),
-            'score_metier': _safe_int(fields.get('score_metier')),
-            'score_competences': _safe_int(fields.get('score_competences')),
-            'score_langues': _safe_int(fields.get('score_langues')),
-            'score_mobilite': _safe_int(fields.get('score_mobilite')),
-            'score_disponibilite': _safe_int(fields.get('score_disponibilite')),
-            'score_salaire': _safe_int(fields.get('score_salaire')),
-            'raisons': _split_matching_text(fields.get('raisons')),
-            'points_faibles': _split_matching_text(fields.get('points_faibles')),
-            'date_calcul': fields.get('date_calcul', ''),
-            'admin_decision_at': fields.get('admin_decision_at', ''),
-            'admin_decision_by': fields.get('admin_decision_by', ''),
-            'admin_decision_note': fields.get('admin_decision_note', ''),
-            'employer_email_comment': fields.get('employer_email_comment', ''),
-            'candidate_email_comment': fields.get('candidate_email_comment', ''),
-            'manual_matching_source': fields.get('manual_matching_source', ''),
-            'manual_matching_created_at': fields.get('manual_matching_created_at', ''),
-            'manual_matching_created_by': fields.get('manual_matching_created_by', ''),
-            'manual_matching_note': fields.get('manual_matching_note', ''),
-            'workflow_status_updated_at': fields.get('workflow_status_updated_at', ''),
-            'workflow_status_updated_by': fields.get('workflow_status_updated_by', ''),
-            'sent_to_employer_at': fields.get('sent_to_employer_at', ''),
-            'sent_to_employer_by': fields.get('sent_to_employer_by', ''),
-            'employer_response': fields.get('employer_response', ''),
-            'employer_response_at': fields.get('employer_response_at', ''),
-            'employer_whatsapp_consent': fields.get('employer_whatsapp_consent', ''),
-            'employer_whatsapp_phone': fields.get('employer_whatsapp_phone', ''),
-            'employer_whatsapp_confirmed_at': fields.get('employer_whatsapp_confirmed_at', ''),
-            'mise_en_relation_at': fields.get('mise_en_relation_at', ''),
-            'mise_en_relation_by': fields.get('mise_en_relation_by', ''),
-            'relation_channel': fields.get('relation_channel', ''),
-            'relation_channel_updated_at': fields.get('relation_channel_updated_at', ''),
-            'relation_channel_updated_by': fields.get('relation_channel_updated_by', ''),
-            'relation_result': fields.get('relation_result', ''),
-            'relation_result_at': fields.get('relation_result_at', ''),
-            'relation_result_by': fields.get('relation_result_by', ''),
-            'relation_result_note': fields.get('relation_result_note', ''),
-            'embauche_confirmee_at': fields.get('embauche_confirmee_at', ''),
-            'embauche_confirmee_by': fields.get('embauche_confirmee_by', ''),
-            'candidat': {
-                'nom': candidat.get('nom', ''),
-                'email': candidat.get('email', ''),
-                'telephone': candidat.get('telephone', ''),
-                'ville': candidat.get('ville', ''),
-                'pays': candidat.get('pays', ''),
-                'metier': candidat.get('metier', ''),
-                'intitules_poste': candidat_job_titles,
-                'langues': candidat.get('langues', ''),
-                'mobilite': candidat.get('mobilite', ''),
-                'disponibilite': candidat.get('disponibilite', ''),
-                'competences': candidat.get('competences', ''),
-                'cv_file_name': candidat.get('cv_file_name', ''),
-                'cv_file_base64': candidat.get('cv_file_base64', '') if include_candidate_cv else '',
-            },
-            'employeur': {
-                'employeur': besoin.get('employeur', ''),
-                'contact': besoin.get('contact', ''),
-                'email': _resolve_employer_recipient(besoin),
-                'telephone': besoin.get('telephone', ''),
-                'pays': besoin.get('pays', ''),
-                'poste': besoin.get('poste', ''),
-                'intitules_poste': employeur_job_titles,
-                'langues_requises': besoin.get('langues_requises', ''),
-                'date_debut': besoin.get('date_debut', ''),
-                'competences_clefs': besoin.get('competences_clefs', ''),
-                'contraintes_travail': besoin.get('contraintes_travail', ''),
-            },
-        })
+        rows.append(
+            {
+                'record_id': rec.get('id'),
+                'besoin_id': besoin_id,
+                'candidat_id': candidat_id,
+                'score': _safe_int(fields.get('score')),
+                'scoring_status': scoring_status,
+                'admin_status': admin_status,
+                'workflow_status': _matching_workflow_status(fields),
+                'score_metier': _safe_int(fields.get('score_metier')),
+                'score_competences': _safe_int(fields.get('score_competences')),
+                'score_langues': _safe_int(fields.get('score_langues')),
+                'score_mobilite': _safe_int(fields.get('score_mobilite')),
+                'score_disponibilite': _safe_int(fields.get('score_disponibilite')),
+                'score_salaire': _safe_int(fields.get('score_salaire')),
+                'raisons': _split_matching_text(fields.get('raisons')),
+                'points_faibles': _split_matching_text(fields.get('points_faibles')),
+                'date_calcul': fields.get('date_calcul', ''),
+                'admin_decision_at': fields.get('admin_decision_at', ''),
+                'admin_decision_by': fields.get('admin_decision_by', ''),
+                'admin_decision_note': fields.get('admin_decision_note', ''),
+                'employer_email_comment': fields.get('employer_email_comment', ''),
+                'candidate_email_comment': fields.get('candidate_email_comment', ''),
+                'manual_matching_source': fields.get('manual_matching_source', ''),
+                'manual_matching_created_at': fields.get(
+                    'manual_matching_created_at', ''
+                ),
+                'manual_matching_created_by': fields.get(
+                    'manual_matching_created_by', ''
+                ),
+                'manual_matching_note': fields.get('manual_matching_note', ''),
+                'workflow_status_updated_at': fields.get(
+                    'workflow_status_updated_at', ''
+                ),
+                'workflow_status_updated_by': fields.get(
+                    'workflow_status_updated_by', ''
+                ),
+                'sent_to_employer_at': fields.get('sent_to_employer_at', ''),
+                'sent_to_employer_by': fields.get('sent_to_employer_by', ''),
+                'employer_response': fields.get('employer_response', ''),
+                'employer_response_at': fields.get('employer_response_at', ''),
+                'employer_whatsapp_consent': fields.get(
+                    'employer_whatsapp_consent', ''
+                ),
+                'employer_whatsapp_phone': fields.get('employer_whatsapp_phone', ''),
+                'employer_whatsapp_confirmed_at': fields.get(
+                    'employer_whatsapp_confirmed_at', ''
+                ),
+                'mise_en_relation_at': fields.get('mise_en_relation_at', ''),
+                'mise_en_relation_by': fields.get('mise_en_relation_by', ''),
+                'relation_channel': fields.get('relation_channel', ''),
+                'relation_channel_updated_at': fields.get(
+                    'relation_channel_updated_at', ''
+                ),
+                'relation_channel_updated_by': fields.get(
+                    'relation_channel_updated_by', ''
+                ),
+                'relation_result': fields.get('relation_result', ''),
+                'relation_result_at': fields.get('relation_result_at', ''),
+                'relation_result_by': fields.get('relation_result_by', ''),
+                'relation_result_note': fields.get('relation_result_note', ''),
+                'embauche_confirmee_at': fields.get('embauche_confirmee_at', ''),
+                'embauche_confirmee_by': fields.get('embauche_confirmee_by', ''),
+                'candidat': {
+                    'nom': candidat.get('nom', ''),
+                    'email': candidat.get('email', ''),
+                    'telephone': candidat.get('telephone', ''),
+                    'ville': candidat.get('ville', ''),
+                    'pays': candidat.get('pays', ''),
+                    'metier': candidat.get('metier', ''),
+                    'intitules_poste': candidat_job_titles,
+                    'langues': candidat.get('langues', ''),
+                    'mobilite': candidat.get('mobilite', ''),
+                    'disponibilite': candidat.get('disponibilite', ''),
+                    'competences': candidat.get('competences', ''),
+                    'cv_file_name': candidat.get('cv_file_name', ''),
+                    'cv_file_base64': (
+                        candidat.get('cv_file_base64', '')
+                        if include_candidate_cv
+                        else ''
+                    ),
+                },
+                'employeur': {
+                    'employeur': besoin.get('employeur', ''),
+                    'contact': besoin.get('contact', ''),
+                    'email': _resolve_employer_recipient(besoin),
+                    'telephone': besoin.get('telephone', ''),
+                    'pays': besoin.get('pays', ''),
+                    'poste': besoin.get('poste', ''),
+                    'intitules_poste': employeur_job_titles,
+                    'langues_requises': besoin.get('langues_requises', ''),
+                    'date_debut': besoin.get('date_debut', ''),
+                    'competences_clefs': besoin.get('competences_clefs', ''),
+                    'contraintes_travail': besoin.get('contraintes_travail', ''),
+                },
+            }
+        )
 
-    rows.sort(key=lambda row: (row['admin_status'] != 'pending', -row['score'], -(int(row['record_id'] or 0))))
+    rows.sort(
+        key=lambda row: (
+            row['admin_status'] != 'pending',
+            -row['score'],
+            -(int(row['record_id'] or 0)),
+        )
+    )
     return rows
 
 
@@ -6960,8 +8156,15 @@ def _grist_truthy(value) -> bool:
 def _stable_record_sort_key(record: dict):
     fields = record.get('fields', {}) if isinstance(record, dict) else {}
     return (
-        _clean_required_text(fields.get('nom_affiche') or fields.get('nom') or fields.get('prenom')).casefold(),
-        _clean_required_text(fields.get('entreprise_id') or fields.get('contact_id') or fields.get('id_tally') or fields.get('uuid')),
+        _clean_required_text(
+            fields.get('nom_affiche') or fields.get('nom') or fields.get('prenom')
+        ).casefold(),
+        _clean_required_text(
+            fields.get('entreprise_id')
+            or fields.get('contact_id')
+            or fields.get('id_tally')
+            or fields.get('uuid')
+        ),
         str(record.get('id') or ''),
     )
 
@@ -6999,7 +8202,9 @@ def _matching_presented_for_employer_api(fields: dict) -> bool:
 
 
 def _matching_employer_interested_for_employer_api(fields: dict) -> bool:
-    employer_response = str((fields or {}).get('employer_response') or '').strip().lower()
+    employer_response = (
+        str((fields or {}).get('employer_response') or '').strip().lower()
+    )
     workflow_status = _matching_workflow_status(fields or {})
     return employer_response == 'contact' or workflow_status in {
         'accepte_employeur',
@@ -7021,32 +8226,63 @@ def _matching_introduction_done_for_employer_api(fields: dict) -> bool:
 def _build_eures_need_indicators(matchings: list[dict]) -> dict:
     return {
         'identified': len(matchings),
-        'validated': sum(1 for fields in matchings if _matching_validated_for_employer_api(fields)),
-        'presented': sum(1 for fields in matchings if _matching_presented_for_employer_api(fields)),
-        'employer_interested': sum(1 for fields in matchings if _matching_employer_interested_for_employer_api(fields)),
-        'introduction_done': sum(1 for fields in matchings if _matching_introduction_done_for_employer_api(fields)),
+        'validated': sum(
+            1 for fields in matchings if _matching_validated_for_employer_api(fields)
+        ),
+        'presented': sum(
+            1 for fields in matchings if _matching_presented_for_employer_api(fields)
+        ),
+        'employer_interested': sum(
+            1
+            for fields in matchings
+            if _matching_employer_interested_for_employer_api(fields)
+        ),
+        'introduction_done': sum(
+            1
+            for fields in matchings
+            if _matching_introduction_done_for_employer_api(fields)
+        ),
     }
 
 
-def _append_eures_employer_history_event(events: list[dict], *, date, event_type: str, label: str, besoin_id=None, matching_record_id=None, candidat_id=None, poste=None):
+def _append_eures_employer_history_event(
+    events: list[dict],
+    *,
+    date,
+    event_type: str,
+    label: str,
+    besoin_id=None,
+    matching_record_id=None,
+    candidat_id=None,
+    poste=None,
+):
     event_date = _valid_eures_event_date(date)
     if not event_date:
         return
-    events.append({
-        'date': event_date,
-        'type': event_type,
-        'label': label,
-        'besoin_id': _clean_optional_text(besoin_id),
-        'matching_record_id': matching_record_id,
-        'candidat_id': _clean_optional_text(candidat_id),
-        'poste': _clean_optional_text(poste),
-    })
+    events.append(
+        {
+            'date': event_date,
+            'type': event_type,
+            'label': label,
+            'besoin_id': _clean_optional_text(besoin_id),
+            'matching_record_id': matching_record_id,
+            'candidat_id': _clean_optional_text(candidat_id),
+            'poste': _clean_optional_text(poste),
+        }
+    )
 
 
-def _build_eures_employer_history(besoin_fields: dict, matching_records: list[dict]) -> list[dict]:
+def _build_eures_employer_history(
+    besoin_fields: dict, matching_records: list[dict]
+) -> list[dict]:
     events: list[dict] = []
     besoin_id = besoin_fields.get('id_tally') or besoin_fields.get('uuid')
-    poste = besoin_fields.get('tally_q02') or besoin_fields.get('poste') or besoin_fields.get('metier') or besoin_fields.get('secteur')
+    poste = (
+        besoin_fields.get('tally_q02')
+        or besoin_fields.get('poste')
+        or besoin_fields.get('metier')
+        or besoin_fields.get('secteur')
+    )
     _append_eures_employer_history_event(
         events,
         date=besoin_fields.get('tally_submitted_at'),
@@ -7059,21 +8295,109 @@ def _build_eures_employer_history(besoin_fields: dict, matching_records: list[di
         fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
         matching_record_id = rec.get('id') if isinstance(rec, dict) else None
         candidat_id = fields.get('candidat_id')
-        _append_eures_employer_history_event(events, date=fields.get('date_calcul'), event_type='matching_calcule', label='Matching calculé', besoin_id=besoin_id, matching_record_id=matching_record_id, candidat_id=candidat_id, poste=poste)
+        _append_eures_employer_history_event(
+            events,
+            date=fields.get('date_calcul'),
+            event_type='matching_calcule',
+            label='Matching calculé',
+            besoin_id=besoin_id,
+            matching_record_id=matching_record_id,
+            candidat_id=candidat_id,
+            poste=poste,
+        )
         admin_status = str(fields.get('admin_status') or '').strip().lower()
         workflow_status = _matching_workflow_status(fields)
         if admin_status == 'accepted' or workflow_status == 'valide_admin':
-            _append_eures_employer_history_event(events, date=fields.get('admin_decision_at'), event_type='matching_valide', label='Matching validé', besoin_id=besoin_id, matching_record_id=matching_record_id, candidat_id=candidat_id, poste=poste)
+            _append_eures_employer_history_event(
+                events,
+                date=fields.get('admin_decision_at'),
+                event_type='matching_valide',
+                label='Matching validé',
+                besoin_id=besoin_id,
+                matching_record_id=matching_record_id,
+                candidat_id=candidat_id,
+                poste=poste,
+            )
         elif admin_status == 'refused' or workflow_status == 'refuse_admin':
-            _append_eures_employer_history_event(events, date=fields.get('admin_decision_at'), event_type='matching_refuse', label='Matching refusé', besoin_id=besoin_id, matching_record_id=matching_record_id, candidat_id=candidat_id, poste=poste)
-        _append_eures_employer_history_event(events, date=fields.get('sent_to_employer_at'), event_type='candidat_presente', label='Candidat présenté', besoin_id=besoin_id, matching_record_id=matching_record_id, candidat_id=candidat_id, poste=poste)
+            _append_eures_employer_history_event(
+                events,
+                date=fields.get('admin_decision_at'),
+                event_type='matching_refuse',
+                label='Matching refusé',
+                besoin_id=besoin_id,
+                matching_record_id=matching_record_id,
+                candidat_id=candidat_id,
+                poste=poste,
+            )
+        _append_eures_employer_history_event(
+            events,
+            date=fields.get('sent_to_employer_at'),
+            event_type='candidat_presente',
+            label='Candidat présenté',
+            besoin_id=besoin_id,
+            matching_record_id=matching_record_id,
+            candidat_id=candidat_id,
+            poste=poste,
+        )
         employer_response = str(fields.get('employer_response') or '').strip().lower()
-        employer_event_type = 'employeur_interesse' if employer_response == 'contact' else 'employeur_refuse' if employer_response == 'not_contact' else 'reponse_employeur'
-        employer_label = 'Employeur intéressé' if employer_response == 'contact' else 'Employeur non intéressé' if employer_response == 'not_contact' else 'Réponse employeur'
-        _append_eures_employer_history_event(events, date=fields.get('employer_response_at'), event_type=employer_event_type, label=employer_label, besoin_id=besoin_id, matching_record_id=matching_record_id, candidat_id=candidat_id, poste=poste)
-        _append_eures_employer_history_event(events, date=fields.get('mise_en_relation_at'), event_type='mise_en_relation', label='Mise en relation', besoin_id=besoin_id, matching_record_id=matching_record_id, candidat_id=candidat_id, poste=poste)
-        _append_eures_employer_history_event(events, date=fields.get('relation_result_at'), event_type='issue_relation', label='Issue de la relation renseignée', besoin_id=besoin_id, matching_record_id=matching_record_id, candidat_id=candidat_id, poste=poste)
-        _append_eures_employer_history_event(events, date=fields.get('embauche_confirmee_at'), event_type='embauche_confirmee', label='Embauche confirmée', besoin_id=besoin_id, matching_record_id=matching_record_id, candidat_id=candidat_id, poste=poste)
+        employer_event_type = (
+            'employeur_interesse'
+            if employer_response == 'contact'
+            else (
+                'employeur_refuse'
+                if employer_response == 'not_contact'
+                else 'reponse_employeur'
+            )
+        )
+        employer_label = (
+            'Employeur intéressé'
+            if employer_response == 'contact'
+            else (
+                'Employeur non intéressé'
+                if employer_response == 'not_contact'
+                else 'Réponse employeur'
+            )
+        )
+        _append_eures_employer_history_event(
+            events,
+            date=fields.get('employer_response_at'),
+            event_type=employer_event_type,
+            label=employer_label,
+            besoin_id=besoin_id,
+            matching_record_id=matching_record_id,
+            candidat_id=candidat_id,
+            poste=poste,
+        )
+        _append_eures_employer_history_event(
+            events,
+            date=fields.get('mise_en_relation_at'),
+            event_type='mise_en_relation',
+            label='Mise en relation',
+            besoin_id=besoin_id,
+            matching_record_id=matching_record_id,
+            candidat_id=candidat_id,
+            poste=poste,
+        )
+        _append_eures_employer_history_event(
+            events,
+            date=fields.get('relation_result_at'),
+            event_type='issue_relation',
+            label='Issue de la relation renseignée',
+            besoin_id=besoin_id,
+            matching_record_id=matching_record_id,
+            candidat_id=candidat_id,
+            poste=poste,
+        )
+        _append_eures_employer_history_event(
+            events,
+            date=fields.get('embauche_confirmee_at'),
+            event_type='embauche_confirmee',
+            label='Embauche confirmée',
+            besoin_id=besoin_id,
+            matching_record_id=matching_record_id,
+            candidat_id=candidat_id,
+            poste=poste,
+        )
     events.sort(key=_event_sort_key, reverse=True)
     return events
 
@@ -7092,18 +8416,33 @@ def _build_eures_employer_contact_payload(record: dict) -> dict:
     }
 
 
-def _build_eures_employer_need_payload(record: dict, matchings_by_need_id: dict[str, list[dict]]) -> dict:
+def _build_eures_employer_need_payload(
+    record: dict, matchings_by_need_id: dict[str, list[dict]]
+) -> dict:
     fields = record.get('fields', {}) if isinstance(record, dict) else {}
     besoin_id = _clean_required_text(fields.get('id_tally') or fields.get('uuid'))
     matching_records = matchings_by_need_id.get(besoin_id, [])
-    matching_fields = [rec.get('fields', {}) for rec in matching_records if isinstance(rec, dict) and isinstance(rec.get('fields'), dict)]
+    matching_fields = [
+        rec.get('fields', {})
+        for rec in matching_records
+        if isinstance(rec, dict) and isinstance(rec.get('fields'), dict)
+    ]
     return {
         'record_id': record.get('id'),
         'id_tally': _clean_optional_text(fields.get('id_tally')),
         'uuid': _clean_optional_text(fields.get('uuid')),
-        'poste': _clean_optional_text(fields.get('tally_q02') or fields.get('poste') or fields.get('metier') or fields.get('secteur')),
+        'poste': _clean_optional_text(
+            fields.get('tally_q02')
+            or fields.get('poste')
+            or fields.get('metier')
+            or fields.get('secteur')
+        ),
         'nombre_postes': _clean_optional_text(fields.get('tally_q03')),
-        'lieu_travail_normalise': _clean_optional_text(fields.get('lieu_travail_normalise') or fields.get('lieu') or fields.get('pays')),
+        'lieu_travail_normalise': _clean_optional_text(
+            fields.get('lieu_travail_normalise')
+            or fields.get('lieu')
+            or fields.get('pays')
+        ),
         'contact_id': _clean_optional_text(fields.get('contact_id')),
         'statut': None,
         'indicators': _build_eures_need_indicators(matching_fields),
@@ -7113,7 +8452,9 @@ def _build_eures_employer_need_payload(record: dict, matchings_by_need_id: dict[
 
 def build_eures_admin_employers() -> list[dict]:
     """Build the read-only EURES employer view from Grist tables."""
-    base_config = get_form_config('eures-beta', 'candidate') or get_form_config('eures-beta')
+    base_config = get_form_config('eures-beta', 'candidate') or get_form_config(
+        'eures-beta'
+    )
     employer_config = get_form_config('eures-beta', 'employer') or base_config
     matching_config = get_eures_matching_config()
     if not base_config or not employer_config or not matching_config:
@@ -7122,67 +8463,112 @@ def build_eures_admin_employers() -> list[dict]:
     base_headers = _eures_admin_headers(base_config)
     employer_headers = _eures_admin_headers(employer_config)
     matching_headers = _eures_admin_headers(matching_config)
-    entreprises = fetch_table_records(base_config['doc_id'], EURES_ENTREPRISES_TABLE, base_headers)
-    contacts = fetch_table_records(base_config['doc_id'], EURES_CONTACTS_ENTREPRISES_TABLE, base_headers)
-    besoins = fetch_table_records(employer_config['doc_id'], EURES_BESOINS_TABLE, employer_headers)
-    matchings = fetch_table_records(matching_config['doc_id'], EURES_MATCHINGS_TABLE, matching_headers)
+    entreprises = fetch_table_records(
+        base_config['doc_id'], EURES_ENTREPRISES_TABLE, base_headers
+    )
+    contacts = fetch_table_records(
+        base_config['doc_id'], EURES_CONTACTS_ENTREPRISES_TABLE, base_headers
+    )
+    besoins = fetch_table_records(
+        employer_config['doc_id'], EURES_BESOINS_TABLE, employer_headers
+    )
+    matchings = fetch_table_records(
+        matching_config['doc_id'], EURES_MATCHINGS_TABLE, matching_headers
+    )
 
     contacts_by_enterprise: dict[str, list[dict]] = defaultdict(list)
     for rec in contacts:
-        entreprise_id = _clean_required_text((rec.get('fields') or {}).get('entreprise_id') if isinstance(rec, dict) else '')
+        entreprise_id = _clean_required_text(
+            (rec.get('fields') or {}).get('entreprise_id')
+            if isinstance(rec, dict)
+            else ''
+        )
         if entreprise_id:
             contacts_by_enterprise[entreprise_id].append(rec)
 
     besoins_by_enterprise: dict[str, list[dict]] = defaultdict(list)
     for rec in besoins:
-        entreprise_id = _clean_required_text((rec.get('fields') or {}).get('entreprise_id') if isinstance(rec, dict) else '')
+        entreprise_id = _clean_required_text(
+            (rec.get('fields') or {}).get('entreprise_id')
+            if isinstance(rec, dict)
+            else ''
+        )
         if entreprise_id:
             besoins_by_enterprise[entreprise_id].append(rec)
 
     matchings_by_need_id: dict[str, list[dict]] = defaultdict(list)
     for rec in matchings:
-        besoin_id = _clean_required_text((rec.get('fields') or {}).get('besoin_id') if isinstance(rec, dict) else '')
+        besoin_id = _clean_required_text(
+            (rec.get('fields') or {}).get('besoin_id') if isinstance(rec, dict) else ''
+        )
         if besoin_id:
             matchings_by_need_id[besoin_id].append(rec)
 
     rows = []
     for enterprise_record in sorted(entreprises, key=_stable_record_sort_key):
-        fields = enterprise_record.get('fields', {}) if isinstance(enterprise_record, dict) else {}
+        fields = (
+            enterprise_record.get('fields', {})
+            if isinstance(enterprise_record, dict)
+            else {}
+        )
         entreprise_id = _clean_required_text(fields.get('entreprise_id'))
         if not entreprise_id:
             continue
         contact_records = sorted(
             contacts_by_enterprise.get(entreprise_id, []),
-            key=lambda rec: (not _grist_truthy((rec.get('fields') or {}).get('est_contact_principal')), _stable_record_sort_key(rec)),
+            key=lambda rec: (
+                not _grist_truthy(
+                    (rec.get('fields') or {}).get('est_contact_principal')
+                ),
+                _stable_record_sort_key(rec),
+            ),
         )
-        contacts_payload = [_build_eures_employer_contact_payload(rec) for rec in contact_records]
-        principal_contacts = [contact for contact in contacts_payload if contact.get('est_contact_principal')]
+        contacts_payload = [
+            _build_eures_employer_contact_payload(rec) for rec in contact_records
+        ]
+        principal_contacts = [
+            contact
+            for contact in contacts_payload
+            if contact.get('est_contact_principal')
+        ]
         need_records = sorted(
             besoins_by_enterprise.get(entreprise_id, []),
             key=lambda rec: (
-                _clean_required_text((rec.get('fields') or {}).get('tally_submitted_at')),
-                _clean_required_text((rec.get('fields') or {}).get('id_tally') or (rec.get('fields') or {}).get('uuid')),
+                _clean_required_text(
+                    (rec.get('fields') or {}).get('tally_submitted_at')
+                ),
+                _clean_required_text(
+                    (rec.get('fields') or {}).get('id_tally')
+                    or (rec.get('fields') or {}).get('uuid')
+                ),
                 str(rec.get('id') or ''),
             ),
         )
-        besoins_payload = [_build_eures_employer_need_payload(rec, matchings_by_need_id) for rec in need_records]
+        besoins_payload = [
+            _build_eures_employer_need_payload(rec, matchings_by_need_id)
+            for rec in need_records
+        ]
         history = []
         for besoin in besoins_payload:
             history.extend(besoin.get('history') or [])
         history.sort(key=_event_sort_key, reverse=True)
-        rows.append({
-            'entreprise_id': entreprise_id,
-            'nom': _clean_optional_text(fields.get('nom_affiche')),
-            'pays': _clean_optional_text(fields.get('pays')),
-            'ville_ou_lieu': _clean_optional_text(fields.get('ville_ou_lieu')),
-            'secteurs': _clean_optional_text(fields.get('secteurs')),
-            'statut': _clean_optional_text(fields.get('statut')),
-            'notes': _clean_optional_text(fields.get('notes')),
-            'contact_principal': principal_contacts[0] if len(principal_contacts) == 1 else None,
-            'contacts': contacts_payload,
-            'besoins': besoins_payload,
-            'history': history,
-        })
+        rows.append(
+            {
+                'entreprise_id': entreprise_id,
+                'nom': _clean_optional_text(fields.get('nom_affiche')),
+                'pays': _clean_optional_text(fields.get('pays')),
+                'ville_ou_lieu': _clean_optional_text(fields.get('ville_ou_lieu')),
+                'secteurs': _clean_optional_text(fields.get('secteurs')),
+                'statut': _clean_optional_text(fields.get('statut')),
+                'notes': _clean_optional_text(fields.get('notes')),
+                'contact_principal': (
+                    principal_contacts[0] if len(principal_contacts) == 1 else None
+                ),
+                'contacts': contacts_payload,
+                'besoins': besoins_payload,
+                'history': history,
+            }
+        )
     return rows
 
 
@@ -7240,18 +8626,26 @@ def build_eures_admin_tasks(status: str = 'pending') -> list[dict]:
             task_status = 'dismissed'
         if status != 'all' and task_status != status:
             continue
-        rows.append({
-            'task_type': 'matching_review',
-            'status': task_status,
-            'priority': 'high' if row.get('scoring_status') == 'auto_envoyable' else 'normal',
-            'created_at': row.get('date_calcul', ''),
-            'updated_at': row.get('admin_decision_at') or row.get('workflow_status_updated_at') or row.get('date_calcul', ''),
-            'record_id': row.get('record_id'),
-            'title': f"{row.get('employeur', {}).get('poste') or 'Poste non renseigné'} · {row.get('candidat', {}).get('nom') or 'Candidat'}",
-            'subtitle': f"{row.get('employeur', {}).get('employeur') or 'Entreprise non renseignée'} · score {row.get('score', 0)}",
-            'summary': 'Validation manuelle du matching proposée.',
-            'matching': row,
-        })
+        rows.append(
+            {
+                'task_type': 'matching_review',
+                'status': task_status,
+                'priority': (
+                    'high'
+                    if row.get('scoring_status') == 'auto_envoyable'
+                    else 'normal'
+                ),
+                'created_at': row.get('date_calcul', ''),
+                'updated_at': row.get('admin_decision_at')
+                or row.get('workflow_status_updated_at')
+                or row.get('date_calcul', ''),
+                'record_id': row.get('record_id'),
+                'title': f"{row.get('employeur', {}).get('poste') or 'Poste non renseigné'} · {row.get('candidat', {}).get('nom') or 'Candidat'}",
+                'subtitle': f"{row.get('employeur', {}).get('employeur') or 'Entreprise non renseignée'} · score {row.get('score', 0)}",
+                'summary': 'Validation manuelle du matching proposée.',
+                'matching': row,
+            }
+        )
 
     for row in list_eures_admin_no_match_notifications(status='all'):
         task_status = 'pending'
@@ -7261,19 +8655,24 @@ def build_eures_admin_tasks(status: str = 'pending') -> list[dict]:
             task_status = 'dismissed'
         if status != 'all' and task_status != status:
             continue
-        rows.append({
-            'task_type': 'no_match_followup',
-            'status': task_status,
-            'priority': 'normal',
-            'created_at': row.get('created_at', ''),
-            'updated_at': row.get('sent_at') or row.get('dismissed_at') or row.get('created_at', ''),
-            'record_id': row.get('record_id'),
-            'role': row.get('role'),
-            'title': row.get('title') or ('Candidat' if row.get('role') == 'candidate' else 'Employeur'),
-            'subtitle': row.get('subtitle') or row.get('recipient_email') or '',
-            'summary': 'Aucun matching immédiat: notification manuelle à valider.',
-            'no_match': row,
-        })
+        rows.append(
+            {
+                'task_type': 'no_match_followup',
+                'status': task_status,
+                'priority': 'normal',
+                'created_at': row.get('created_at', ''),
+                'updated_at': row.get('sent_at')
+                or row.get('dismissed_at')
+                or row.get('created_at', ''),
+                'record_id': row.get('record_id'),
+                'role': row.get('role'),
+                'title': row.get('title')
+                or ('Candidat' if row.get('role') == 'candidate' else 'Employeur'),
+                'subtitle': row.get('subtitle') or row.get('recipient_email') or '',
+                'summary': 'Aucun matching immédiat: notification manuelle à valider.',
+                'no_match': row,
+            }
+        )
 
     for row in list_eures_admin_new_job_requests(status='all'):
         task_status = 'pending'
@@ -7283,18 +8682,20 @@ def build_eures_admin_tasks(status: str = 'pending') -> list[dict]:
             task_status = 'dismissed'
         if status != 'all' and task_status != status:
             continue
-        rows.append({
-            'task_type': 'new_job_request',
-            'status': task_status,
-            'priority': 'normal',
-            'created_at': row.get('created_at', ''),
-            'updated_at': row.get('processed_at') or row.get('created_at', ''),
-            'record_id': row.get('record_id'),
-            'title': row.get('employeur') or 'Entreprise non renseignée',
-            'subtitle': row.get('poste') or 'Poste non renseigné',
-            'summary': row.get('requested_jobs') or 'Demande de nouveaux métiers',
-            'new_job': row,
-        })
+        rows.append(
+            {
+                'task_type': 'new_job_request',
+                'status': task_status,
+                'priority': 'normal',
+                'created_at': row.get('created_at', ''),
+                'updated_at': row.get('processed_at') or row.get('created_at', ''),
+                'record_id': row.get('record_id'),
+                'title': row.get('employeur') or 'Entreprise non renseignée',
+                'subtitle': row.get('poste') or 'Poste non renseigné',
+                'summary': row.get('requested_jobs') or 'Demande de nouveaux métiers',
+                'new_job': row,
+            }
+        )
 
     for row in list_eures_admin_new_employer_alerts(status='all'):
         task_status = 'pending'
@@ -7304,21 +8705,25 @@ def build_eures_admin_tasks(status: str = 'pending') -> list[dict]:
             task_status = 'dismissed'
         if status != 'all' and task_status != status:
             continue
-        rows.append({
-            'task_type': 'new_employer_alert',
-            'status': task_status,
-            'priority': 'high',
-            'created_at': row.get('created_at', ''),
-            'updated_at': row.get('processed_at') or row.get('created_at', ''),
-            'record_id': row.get('record_id'),
-            'title': row.get('employeur') or 'Nouvel employeur',
-            'subtitle': row.get('poste') or 'Besoin employeur',
-            'summary': 'Besoin déposé par un employeur recommandé: vigilance manuelle demandée.',
-            'new_employer': row,
-        })
+        rows.append(
+            {
+                'task_type': 'new_employer_alert',
+                'status': task_status,
+                'priority': 'high',
+                'created_at': row.get('created_at', ''),
+                'updated_at': row.get('processed_at') or row.get('created_at', ''),
+                'record_id': row.get('record_id'),
+                'title': row.get('employeur') or 'Nouvel employeur',
+                'subtitle': row.get('poste') or 'Besoin employeur',
+                'summary': 'Besoin déposé par un employeur recommandé: vigilance manuelle demandée.',
+                'new_employer': row,
+            }
+        )
 
     for row in invitations:
-        followup_status = _normalize_eures_duplicate_followup_status(row.get('duplicate_followup_status', ''))
+        followup_status = _normalize_eures_duplicate_followup_status(
+            row.get('duplicate_followup_status', '')
+        )
         if not followup_status:
             continue
         task_status = 'pending'
@@ -7329,29 +8734,45 @@ def build_eures_admin_tasks(status: str = 'pending') -> list[dict]:
         if status != 'all' and task_status != status:
             continue
         target_type = str(row.get('duplicate_followup_type') or '').strip().lower()
-        target_status = str(row.get('duplicate_followup_target_status') or '').strip().lower()
-        can_remind = target_type == 'existing_invitation' and target_status == 'invitation_envoyee'
+        target_status = (
+            str(row.get('duplicate_followup_target_status') or '').strip().lower()
+        )
+        can_remind = (
+            target_type == 'existing_invitation'
+            and target_status == 'invitation_envoyee'
+        )
         task_title = (
             row.get('company_name')
-            or ' '.join(part for part in [row.get('first_name'), row.get('last_name')] if str(part or '').strip())
+            or ' '.join(
+                part
+                for part in [row.get('first_name'), row.get('last_name')]
+                if str(part or '').strip()
+            )
             or row.get('email')
             or 'Invitation en doublon'
         )
-        rows.append({
-            'task_type': 'duplicate_invitation_followup',
-            'status': task_status,
-            'priority': 'normal',
-            'created_at': row.get('duplicate_followup_created_at') or row.get('invitation_status_updated_at') or '',
-            'updated_at': row.get('duplicate_followup_processed_at') or row.get('duplicate_followup_created_at') or '',
-            'record_id': row.get('record_id'),
-            'title': task_title,
-            'subtitle': row.get('email') or '',
-            'summary': row.get('duplicate_followup_message') or 'Adresse déjà connue: relance ou clôture à confirmer.',
-            'duplicate_followup': {
-                **row,
-                'can_remind': can_remind,
-            },
-        })
+        rows.append(
+            {
+                'task_type': 'duplicate_invitation_followup',
+                'status': task_status,
+                'priority': 'normal',
+                'created_at': row.get('duplicate_followup_created_at')
+                or row.get('invitation_status_updated_at')
+                or '',
+                'updated_at': row.get('duplicate_followup_processed_at')
+                or row.get('duplicate_followup_created_at')
+                or '',
+                'record_id': row.get('record_id'),
+                'title': task_title,
+                'subtitle': row.get('email') or '',
+                'summary': row.get('duplicate_followup_message')
+                or 'Adresse déjà connue: relance ou clôture à confirmer.',
+                'duplicate_followup': {
+                    **row,
+                    'can_remind': can_remind,
+                },
+            }
+        )
 
     priority_rank = {'high': 0, 'normal': 1, 'low': 2}
     status_rank = {'pending': 0, 'done': 1, 'dismissed': 2}
@@ -7379,10 +8800,24 @@ def build_eures_cockpit_summary() -> dict:
 
     candidate_config = _get_eures_role_table_config('candidate')
     employer_config = _get_eures_role_table_config('employer')
-    candidate_headers = _eures_admin_headers(candidate_config) if candidate_config else {}
+    candidate_headers = (
+        _eures_admin_headers(candidate_config) if candidate_config else {}
+    )
     employer_headers = _eures_admin_headers(employer_config) if employer_config else {}
-    candidats = fetch_table_records(candidate_config['doc_id'], candidate_config['table_id'], candidate_headers) if candidate_config else []
-    besoins = fetch_table_records(employer_config['doc_id'], employer_config['table_id'], employer_headers) if employer_config else []
+    candidats = (
+        fetch_table_records(
+            candidate_config['doc_id'], candidate_config['table_id'], candidate_headers
+        )
+        if candidate_config
+        else []
+    )
+    besoins = (
+        fetch_table_records(
+            employer_config['doc_id'], employer_config['table_id'], employer_headers
+        )
+        if employer_config
+        else []
+    )
 
     today = datetime.now(timezone.utc)
     delays_matching_to_validation = []
@@ -7392,94 +8827,174 @@ def build_eures_cockpit_summary() -> dict:
     recent_activity = []
 
     for row in matchings_all:
-        d1 = _compute_eures_delay_hours(row.get('date_calcul'), row.get('admin_decision_at'))
+        d1 = _compute_eures_delay_hours(
+            row.get('date_calcul'), row.get('admin_decision_at')
+        )
         if d1 is not None:
             delays_matching_to_validation.append(d1)
-        d2 = _compute_eures_delay_hours(row.get('admin_decision_at'), row.get('sent_to_employer_at'))
+        d2 = _compute_eures_delay_hours(
+            row.get('admin_decision_at'), row.get('sent_to_employer_at')
+        )
         if d2 is not None:
             delays_validation_to_send.append(d2)
-        d3 = _compute_eures_delay_hours(row.get('sent_to_employer_at'), row.get('employer_response_at'))
+        d3 = _compute_eures_delay_hours(
+            row.get('sent_to_employer_at'), row.get('employer_response_at')
+        )
         if d3 is not None:
             delays_send_to_response.append(d3)
-        d4 = _compute_eures_delay_hours(row.get('employer_response_at'), row.get('mise_en_relation_at'))
+        d4 = _compute_eures_delay_hours(
+            row.get('employer_response_at'), row.get('mise_en_relation_at')
+        )
         if d4 is not None:
             delays_response_to_relation.append(d4)
 
         if row.get('admin_decision_at'):
-            recent_activity.append({
-                'at': row.get('admin_decision_at'),
-                'type': 'matching_decision',
-                'label': f"Matching {('accepté' if row.get('admin_status') == 'accepted' else 'refusé')} · {row.get('employeur', {}).get('employeur') or 'Entreprise'}",
-            })
+            recent_activity.append(
+                {
+                    'at': row.get('admin_decision_at'),
+                    'type': 'matching_decision',
+                    'label': f"Matching {('accepté' if row.get('admin_status') == 'accepted' else 'refusé')} · {row.get('employeur', {}).get('employeur') or 'Entreprise'}",
+                }
+            )
         if row.get('employer_response_at'):
-            recent_activity.append({
-                'at': row.get('employer_response_at'),
-                'type': 'employer_response',
-                'label': f"Retour employeur · {row.get('employeur', {}).get('employeur') or 'Entreprise'}",
-            })
+            recent_activity.append(
+                {
+                    'at': row.get('employer_response_at'),
+                    'type': 'employer_response',
+                    'label': f"Retour employeur · {row.get('employeur', {}).get('employeur') or 'Entreprise'}",
+                }
+            )
 
     for row in no_match_all:
-        recent_activity.append({
-            'at': row.get('sent_at') or row.get('created_at'),
-            'type': 'no_match',
-            'label': f"Sans matching · {row.get('title') or 'Entrée'}",
-        })
+        recent_activity.append(
+            {
+                'at': row.get('sent_at') or row.get('created_at'),
+                'type': 'no_match',
+                'label': f"Sans matching · {row.get('title') or 'Entrée'}",
+            }
+        )
 
     for row in new_jobs_all:
-        recent_activity.append({
-            'at': row.get('processed_at') or row.get('created_at'),
-            'type': 'new_job_request',
-            'label': f"Nouveau métier demandé · {row.get('employeur') or 'Entreprise'}",
-        })
+        recent_activity.append(
+            {
+                'at': row.get('processed_at') or row.get('created_at'),
+                'type': 'new_job_request',
+                'label': f"Nouveau métier demandé · {row.get('employeur') or 'Entreprise'}",
+            }
+        )
 
     for row in new_employers_all:
-        recent_activity.append({
-            'at': row.get('processed_at') or row.get('created_at'),
-            'type': 'new_employer_alert',
-            'label': f"Nouvel employeur recommandé · {row.get('employeur') or 'Entreprise'}",
-        })
+        recent_activity.append(
+            {
+                'at': row.get('processed_at') or row.get('created_at'),
+                'type': 'new_employer_alert',
+                'label': f"Nouvel employeur recommandé · {row.get('employeur') or 'Entreprise'}",
+            }
+        )
 
-    accepted_count = sum(1 for row in matchings_all if row.get('admin_status') == 'accepted')
-    sent_count = sum(1 for row in matchings_all if row.get('workflow_status') in {'envoye_employeur', 'accepte_employeur', 'refuse_employeur', 'mise_en_relation_faite', 'embauche_confirmee'})
-    manual_sent_count = sum(
-        1 for row in matchings_all
-        if str(row.get('manual_matching_source') or '').strip().lower() == 'admin_manual'
-        and row.get('workflow_status') in {'envoye_employeur', 'accepte_employeur', 'refuse_employeur', 'mise_en_relation_faite', 'embauche_confirmee'}
+    accepted_count = sum(
+        1 for row in matchings_all if row.get('admin_status') == 'accepted'
     )
-    relation_count = sum(1 for row in matchings_all if row.get('workflow_status') in {'mise_en_relation_faite', 'embauche_confirmee'})
-    hire_count = sum(1 for row in matchings_all if row.get('workflow_status') == 'embauche_confirmee')
+    sent_count = sum(
+        1
+        for row in matchings_all
+        if row.get('workflow_status')
+        in {
+            'envoye_employeur',
+            'accepte_employeur',
+            'refuse_employeur',
+            'mise_en_relation_faite',
+            'embauche_confirmee',
+        }
+    )
+    manual_sent_count = sum(
+        1
+        for row in matchings_all
+        if str(row.get('manual_matching_source') or '').strip().lower()
+        == 'admin_manual'
+        and row.get('workflow_status')
+        in {
+            'envoye_employeur',
+            'accepte_employeur',
+            'refuse_employeur',
+            'mise_en_relation_faite',
+            'embauche_confirmee',
+        }
+    )
+    relation_count = sum(
+        1
+        for row in matchings_all
+        if row.get('workflow_status')
+        in {'mise_en_relation_faite', 'embauche_confirmee'}
+    )
+    hire_count = sum(
+        1 for row in matchings_all if row.get('workflow_status') == 'embauche_confirmee'
+    )
     employer_response_count = sum(
-        1 for row in matchings_all
+        1
+        for row in matchings_all
         if str(row.get('employer_response') or '').strip()
         and row.get('workflow_status') == 'accepte_employeur'
     )
-    matchings_today = sum(1 for row in matchings_all if _same_utc_day(row.get('date_calcul'), today))
+    matchings_today = sum(
+        1 for row in matchings_all if _same_utc_day(row.get('date_calcul'), today)
+    )
     manual_sent_today = sum(
-        1 for row in matchings_all
-        if str(row.get('manual_matching_source') or '').strip().lower() == 'admin_manual'
+        1
+        for row in matchings_all
+        if str(row.get('manual_matching_source') or '').strip().lower()
+        == 'admin_manual'
         and _same_utc_day(row.get('sent_to_employer_at'), today)
     )
-    invitation_emails_today = sum(1 for row in invitations if _same_utc_day(row.get('sent_at'), today))
-    candidate_invitations_sent = sum(
-        1 for row in invitations
-        if str(row.get('role') or '').strip().lower() == 'candidate'
-        and str(row.get('invitation_status') or '').strip().lower() == 'invitation_envoyee'
+    invitation_emails_today = sum(
+        1 for row in invitations if _same_utc_day(row.get('sent_at'), today)
     )
-    no_match_today = sum(1 for row in no_match_all if _same_utc_day(row.get('created_at'), today))
-    new_jobs_today = sum(1 for row in new_jobs_all if _same_utc_day(row.get('created_at'), today))
+    candidate_invitations_sent = sum(
+        1
+        for row in invitations
+        if str(row.get('role') or '').strip().lower() == 'candidate'
+        and str(row.get('invitation_status') or '').strip().lower()
+        == 'invitation_envoyee'
+    )
+    no_match_today = sum(
+        1 for row in no_match_all if _same_utc_day(row.get('created_at'), today)
+    )
+    new_jobs_today = sum(
+        1 for row in new_jobs_all if _same_utc_day(row.get('created_at'), today)
+    )
 
     recent_activity.sort(key=lambda row: str(row.get('at') or ''), reverse=True)
     recent_activity = [row for row in recent_activity if row.get('at')][:12]
 
     return {
         'priorities': {
-            'matching_review': sum(1 for row in tasks_pending if row.get('task_type') == 'matching_review'),
-            'no_match_followup': sum(1 for row in tasks_pending if row.get('task_type') == 'no_match_followup'),
-            'new_job_request': sum(1 for row in tasks_pending if row.get('task_type') == 'new_job_request'),
-            'new_employer_alert': sum(1 for row in tasks_pending if row.get('task_type') == 'new_employer_alert'),
-            'duplicate_invitation_followup': sum(1 for row in tasks_pending if row.get('task_type') == 'duplicate_invitation_followup'),
+            'matching_review': sum(
+                1 for row in tasks_pending if row.get('task_type') == 'matching_review'
+            ),
+            'no_match_followup': sum(
+                1
+                for row in tasks_pending
+                if row.get('task_type') == 'no_match_followup'
+            ),
+            'new_job_request': sum(
+                1 for row in tasks_pending if row.get('task_type') == 'new_job_request'
+            ),
+            'new_employer_alert': sum(
+                1
+                for row in tasks_pending
+                if row.get('task_type') == 'new_employer_alert'
+            ),
+            'duplicate_invitation_followup': sum(
+                1
+                for row in tasks_pending
+                if row.get('task_type') == 'duplicate_invitation_followup'
+            ),
             'employer_response': employer_response_count,
-            'invitation_errors': sum(1 for row in invitations if str(row.get('invitation_status') or '') == 'erreur_envoi'),
+            'invitation_errors': sum(
+                1
+                for row in invitations
+                if str(row.get('invitation_status') or '') == 'erreur_envoi'
+            ),
         },
         'today_flow': {
             'matchings_calcules': matchings_today,
@@ -7579,7 +9094,12 @@ def _tracking_text(value) -> str:
     return str(value or '').strip()
 
 
-def _tracking_images(value, language: str = 'fr', max_items: int = 4, max_data_url_length: int = 3_000_000) -> tuple[list[dict], list[str]]:
+def _tracking_images(
+    value,
+    language: str = 'fr',
+    max_items: int = 4,
+    max_data_url_length: int = 3_000_000,
+) -> tuple[list[dict], list[str]]:
     raw_items = _tracking_list(value)
     images = []
     warnings = []
@@ -7593,27 +9113,37 @@ def _tracking_images(value, language: str = 'fr', max_items: int = 4, max_data_u
         image_id = _tracking_text(item.get('id')) or secrets.token_urlsafe(8)
         created_at = _tracking_text(item.get('created_at')) or _tracking_now()
         if not data_url.startswith('data:image/'):
-            warnings.append(_tracking_message(language, 'invalid_image_format', name=name))
+            warnings.append(
+                _tracking_message(language, 'invalid_image_format', name=name)
+            )
             continue
         if mime not in allowed_mimes:
-            warnings.append(_tracking_message(language, 'invalid_image_type', name=name))
+            warnings.append(
+                _tracking_message(language, 'invalid_image_type', name=name)
+            )
             continue
         if len(data_url) > max_data_url_length:
-            warnings.append(_tracking_message(language, 'invalid_image_too_large', name=name))
+            warnings.append(
+                _tracking_message(language, 'invalid_image_too_large', name=name)
+            )
             continue
-        images.append({
-            'id': image_id,
-            'name': name[:160],
-            'mime': mime,
-            'size': max(0, int(item.get('size') or 0)),
-            'width': max(0, int(item.get('width') or 0)),
-            'height': max(0, int(item.get('height') or 0)),
-            'created_at': created_at,
-            'data_url': data_url,
-        })
+        images.append(
+            {
+                'id': image_id,
+                'name': name[:160],
+                'mime': mime,
+                'size': max(0, int(item.get('size') or 0)),
+                'width': max(0, int(item.get('width') or 0)),
+                'height': max(0, int(item.get('height') or 0)),
+                'created_at': created_at,
+                'data_url': data_url,
+            }
+        )
         if len(images) >= max_items:
             if len(raw_items) > max_items:
-                warnings.append(_tracking_message(language, 'only_max_images', count=max_items))
+                warnings.append(
+                    _tracking_message(language, 'only_max_images', count=max_items)
+                )
             break
     return images, warnings
 
@@ -7622,7 +9152,7 @@ def _tracking_summarize_title(value: str, max_length: int = 72) -> str:
     text = ' '.join(str(value or '').split())
     if not text:
         return ''
-    trimmed = text[:max_length + 1]
+    trimmed = text[: max_length + 1]
     if len(text) <= max_length:
         return trimmed.rstrip(' .:;,-')
     if ' ' in trimmed:
@@ -7634,7 +9164,9 @@ def _tracking_title_from_free_text(value: str) -> str:
     text = ' '.join(str(value or '').split())
     if not text:
         return ''
-    first_sentence = re.split(r'(?<=[\.\!\?\:])\s+|\n+', text, maxsplit=1)[0].strip(' -•\t')
+    first_sentence = re.split(r'(?<=[\.\!\?\:])\s+|\n+', text, maxsplit=1)[0].strip(
+        ' -•\t'
+    )
     first_sentence = re.sub(
         r'^(dans un premier temps|aujourd[’\' ]hui|actuellement|pour le moment|j[’\' ]aimerais|je voudrais|il faudrait|possible de|peut[- ]on|est[- ]ce que|en fait)\s+',
         '',
@@ -7681,7 +9213,9 @@ def _tracking_extract_links(value) -> tuple[list[str], list[str]]:
     return links, invalid
 
 
-def _tracking_history_event(actor: str, action: str, message: str, extra: dict | None = None) -> dict:
+def _tracking_history_event(
+    actor: str, action: str, message: str, extra: dict | None = None
+) -> dict:
     payload = {
         'at': _tracking_now(),
         'actor': _tracking_text(actor) or 'admin',
@@ -7755,7 +9289,9 @@ def tracking_metadata() -> dict:
             'draft_enabled': True,
             'validation_enabled': True,
             'translation_enabled': True,
-            'translation_model_configured': bool(os.environ.get('OPENAI_API_KEY', '').strip()),
+            'translation_model_configured': bool(
+                os.environ.get('OPENAI_API_KEY', '').strip()
+            ),
         },
     }
 
@@ -7774,26 +9310,34 @@ def _ensure_grist_table(config: dict, headers: dict, columns: dict[str, str]):
         ensure_table_columns(config, set(columns.keys()), headers)
         return
     if resp.status_code != 404:
-        raise RuntimeError(f'Failed to inspect {config["table_id"]}: HTTP {resp.status_code} - {resp.text}')
+        raise RuntimeError(
+            f'Failed to inspect {config["table_id"]}: HTTP {resp.status_code} - {resp.text}'
+        )
 
     create_url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables"
     payload = {
-        'tables': [{
-            'id': config['table_id'],
-            'columns': [
-                {
-                    'id': column_id,
-                    'fields': {'label': column_id},
-                    'type': column_type,
-                }
-                for column_id, column_type in columns.items()
-            ],
-        }],
+        'tables': [
+            {
+                'id': config['table_id'],
+                'columns': [
+                    {
+                        'id': column_id,
+                        'fields': {'label': column_id},
+                        'type': column_type,
+                    }
+                    for column_id, column_type in columns.items()
+                ],
+            }
+        ],
     }
     create_resp = requests.post(create_url, json=payload, headers=headers)
     if create_resp.status_code != 200:
-        raise RuntimeError(f'Failed to create {config["table_id"]}: HTTP {create_resp.status_code} - {create_resp.text}')
-    _TABLE_COLUMNS_CACHE.pop((str(config.get('doc_id') or ''), str(config.get('table_id') or '')), None)
+        raise RuntimeError(
+            f'Failed to create {config["table_id"]}: HTTP {create_resp.status_code} - {create_resp.text}'
+        )
+    _TABLE_COLUMNS_CACHE.pop(
+        (str(config.get('doc_id') or ''), str(config.get('table_id') or '')), None
+    )
 
 
 def _tracking_table_ready() -> tuple[dict, dict]:
@@ -7810,41 +9354,59 @@ def _tracking_card_from_record(rec: dict) -> dict | None:
     if not isinstance(fields, dict):
         return None
     card = _tracking_default_card()
-    card.update({
-        'record_id': rec.get('id'),
-        'card_id': _tracking_text(fields.get('card_id')) or card['card_id'],
-        'langue_source': _tracking_ui_language(fields.get('langue_source')),
-        'titre': _tracking_text(fields.get('titre')),
-        'type': _tracking_choice(fields.get('type'), EURES_TRACKING_TYPES, 'evolution'),
-        'description': _tracking_text(fields.get('description')),
-        'attendu': _tracking_text(fields.get('attendu')),
-        'observe': _tracking_text(fields.get('observe')),
-        'contexte': _tracking_text(fields.get('contexte')),
-        'indicateurs_suivi': _tracking_text(fields.get('indicateurs_suivi')),
-        'statut': _tracking_choice(fields.get('statut'), EURES_TRACKING_STATUSES, 'a_qualifier'),
-        'priorite': _tracking_choice(fields.get('priorite'), EURES_TRACKING_PRIORITIES, 'moyenne'),
-        'taille_dev': _tracking_choice(fields.get('taille_dev'), EURES_TRACKING_SIZES, 'chat'),
-        'segment': _tracking_text(fields.get('segment')),
-        'responsable': _tracking_text(fields.get('responsable')),
-        'source': _tracking_text(fields.get('source')) or 'admin_ui',
-        'archived': _tracking_bool(fields.get('archived')),
-        'archived_at': _tracking_text(fields.get('archived_at')),
-        'archived_by': _tracking_text(fields.get('archived_by')),
-        'images': _tracking_images(fields.get('images_json'), fields.get('langue_source') or 'fr')[0],
-        'liens': _tracking_list(fields.get('liens_json')),
-        'commentaires': _tracking_list(fields.get('commentaires_json')),
-        'historique': _tracking_list(fields.get('historique_json')),
-        'github_branch': _tracking_text(fields.get('github_branch')),
-        'github_pr_url': _tracking_text(fields.get('github_pr_url')),
-        'github_pr_number': _tracking_text(fields.get('github_pr_number')),
-        'github_pr_state': _tracking_text(fields.get('github_pr_state')),
-        'github_last_activity_at': _tracking_text(fields.get('github_last_activity_at')),
-        'production_url': _tracking_text(fields.get('production_url')),
-        'production_environment': _tracking_text(fields.get('production_environment')),
-        'production_deployed_at': _tracking_text(fields.get('production_deployed_at')),
-        'created_at': _tracking_text(fields.get('created_at')),
-        'updated_at': _tracking_text(fields.get('updated_at')),
-    })
+    card.update(
+        {
+            'record_id': rec.get('id'),
+            'card_id': _tracking_text(fields.get('card_id')) or card['card_id'],
+            'langue_source': _tracking_ui_language(fields.get('langue_source')),
+            'titre': _tracking_text(fields.get('titre')),
+            'type': _tracking_choice(
+                fields.get('type'), EURES_TRACKING_TYPES, 'evolution'
+            ),
+            'description': _tracking_text(fields.get('description')),
+            'attendu': _tracking_text(fields.get('attendu')),
+            'observe': _tracking_text(fields.get('observe')),
+            'contexte': _tracking_text(fields.get('contexte')),
+            'indicateurs_suivi': _tracking_text(fields.get('indicateurs_suivi')),
+            'statut': _tracking_choice(
+                fields.get('statut'), EURES_TRACKING_STATUSES, 'a_qualifier'
+            ),
+            'priorite': _tracking_choice(
+                fields.get('priorite'), EURES_TRACKING_PRIORITIES, 'moyenne'
+            ),
+            'taille_dev': _tracking_choice(
+                fields.get('taille_dev'), EURES_TRACKING_SIZES, 'chat'
+            ),
+            'segment': _tracking_text(fields.get('segment')),
+            'responsable': _tracking_text(fields.get('responsable')),
+            'source': _tracking_text(fields.get('source')) or 'admin_ui',
+            'archived': _tracking_bool(fields.get('archived')),
+            'archived_at': _tracking_text(fields.get('archived_at')),
+            'archived_by': _tracking_text(fields.get('archived_by')),
+            'images': _tracking_images(
+                fields.get('images_json'), fields.get('langue_source') or 'fr'
+            )[0],
+            'liens': _tracking_list(fields.get('liens_json')),
+            'commentaires': _tracking_list(fields.get('commentaires_json')),
+            'historique': _tracking_list(fields.get('historique_json')),
+            'github_branch': _tracking_text(fields.get('github_branch')),
+            'github_pr_url': _tracking_text(fields.get('github_pr_url')),
+            'github_pr_number': _tracking_text(fields.get('github_pr_number')),
+            'github_pr_state': _tracking_text(fields.get('github_pr_state')),
+            'github_last_activity_at': _tracking_text(
+                fields.get('github_last_activity_at')
+            ),
+            'production_url': _tracking_text(fields.get('production_url')),
+            'production_environment': _tracking_text(
+                fields.get('production_environment')
+            ),
+            'production_deployed_at': _tracking_text(
+                fields.get('production_deployed_at')
+            ),
+            'created_at': _tracking_text(fields.get('created_at')),
+            'updated_at': _tracking_text(fields.get('updated_at')),
+        }
+    )
     card['reference'] = _tracking_reference(rec.get('id'), card.get('card_id'))
     return card
 
@@ -7886,48 +9448,118 @@ def _tracking_record_fields(card: dict) -> dict:
     }
 
 
-def validate_tracking_card(payload: dict, existing: dict | None = None, actor: str = 'admin', language: str | None = None) -> dict:
+def validate_tracking_card(
+    payload: dict,
+    existing: dict | None = None,
+    actor: str = 'admin',
+    language: str | None = None,
+) -> dict:
     base = _tracking_default_card()
     if existing:
         base.update(existing)
-    message_language = _tracking_ui_language(language or payload.get('langue_source') or base.get('langue_source'))
+    message_language = _tracking_ui_language(
+        language or payload.get('langue_source') or base.get('langue_source')
+    )
     candidate = dict(base)
-    candidate.update({
-        'card_id': _tracking_text(payload.get('card_id')) or base['card_id'],
-        'langue_source': _tracking_ui_language(payload.get('langue_source') or base['langue_source']),
-        'titre': _tracking_summarize_title(payload.get('titre') or base['titre']),
-        'type': _tracking_choice(payload.get('type') or base['type'], EURES_TRACKING_TYPES, base['type']),
-        'description': _tracking_text(payload.get('description') or base['description']),
-        'attendu': _tracking_text(payload.get('attendu') or base['attendu']),
-        'observe': _tracking_text(payload.get('observe') or base['observe']),
-        'contexte': _tracking_text(payload.get('contexte') or base['contexte']),
-        'indicateurs_suivi': _tracking_text(payload.get('indicateurs_suivi') or base['indicateurs_suivi']),
-        'statut': _tracking_choice(payload.get('statut') or base['statut'], EURES_TRACKING_STATUSES, base['statut']),
-        'priorite': _tracking_choice(payload.get('priorite') or base['priorite'], EURES_TRACKING_PRIORITIES, base['priorite']),
-        'taille_dev': _tracking_choice(payload.get('taille_dev') or base['taille_dev'], EURES_TRACKING_SIZES, base['taille_dev']),
-        'segment': '',
-        'responsable': _tracking_text(payload.get('responsable') or base['responsable']),
-        'source': _tracking_text(payload.get('source') or base['source']) or 'admin_ui',
-        'archived': _tracking_bool(payload.get('archived') if 'archived' in payload else base['archived']),
-        'archived_at': _tracking_text(base.get('archived_at')),
-        'archived_by': _tracking_text(base.get('archived_by')),
-        'images': list(base.get('images') or []),
-        'commentaires': list(base.get('commentaires') or []),
-        'historique': list(base.get('historique') or []),
-        'github_branch': _tracking_text(payload.get('github_branch') if 'github_branch' in payload else base.get('github_branch')),
-        'github_pr_url': _tracking_text(payload.get('github_pr_url') if 'github_pr_url' in payload else base.get('github_pr_url')),
-        'github_pr_number': _tracking_text(payload.get('github_pr_number') if 'github_pr_number' in payload else base.get('github_pr_number')),
-        'github_pr_state': _tracking_text(payload.get('github_pr_state') if 'github_pr_state' in payload else base.get('github_pr_state')),
-        'github_last_activity_at': _tracking_text(payload.get('github_last_activity_at') if 'github_last_activity_at' in payload else base.get('github_last_activity_at')),
-        'production_url': _tracking_text(payload.get('production_url') if 'production_url' in payload else base.get('production_url')),
-        'production_environment': _tracking_text(payload.get('production_environment') if 'production_environment' in payload else base.get('production_environment')),
-        'production_deployed_at': _tracking_text(payload.get('production_deployed_at') if 'production_deployed_at' in payload else base.get('production_deployed_at')),
-        'created_at': _tracking_text(base.get('created_at')),
-        'updated_at': _tracking_now(),
-    })
-    images, image_warnings = _tracking_images(payload.get('images', base.get('images', [])), message_language)
+    candidate.update(
+        {
+            'card_id': _tracking_text(payload.get('card_id')) or base['card_id'],
+            'langue_source': _tracking_ui_language(
+                payload.get('langue_source') or base['langue_source']
+            ),
+            'titre': _tracking_summarize_title(payload.get('titre') or base['titre']),
+            'type': _tracking_choice(
+                payload.get('type') or base['type'], EURES_TRACKING_TYPES, base['type']
+            ),
+            'description': _tracking_text(
+                payload.get('description') or base['description']
+            ),
+            'attendu': _tracking_text(payload.get('attendu') or base['attendu']),
+            'observe': _tracking_text(payload.get('observe') or base['observe']),
+            'contexte': _tracking_text(payload.get('contexte') or base['contexte']),
+            'indicateurs_suivi': _tracking_text(
+                payload.get('indicateurs_suivi') or base['indicateurs_suivi']
+            ),
+            'statut': _tracking_choice(
+                payload.get('statut') or base['statut'],
+                EURES_TRACKING_STATUSES,
+                base['statut'],
+            ),
+            'priorite': _tracking_choice(
+                payload.get('priorite') or base['priorite'],
+                EURES_TRACKING_PRIORITIES,
+                base['priorite'],
+            ),
+            'taille_dev': _tracking_choice(
+                payload.get('taille_dev') or base['taille_dev'],
+                EURES_TRACKING_SIZES,
+                base['taille_dev'],
+            ),
+            'segment': '',
+            'responsable': _tracking_text(
+                payload.get('responsable') or base['responsable']
+            ),
+            'source': _tracking_text(payload.get('source') or base['source'])
+            or 'admin_ui',
+            'archived': _tracking_bool(
+                payload.get('archived') if 'archived' in payload else base['archived']
+            ),
+            'archived_at': _tracking_text(base.get('archived_at')),
+            'archived_by': _tracking_text(base.get('archived_by')),
+            'images': list(base.get('images') or []),
+            'commentaires': list(base.get('commentaires') or []),
+            'historique': list(base.get('historique') or []),
+            'github_branch': _tracking_text(
+                payload.get('github_branch')
+                if 'github_branch' in payload
+                else base.get('github_branch')
+            ),
+            'github_pr_url': _tracking_text(
+                payload.get('github_pr_url')
+                if 'github_pr_url' in payload
+                else base.get('github_pr_url')
+            ),
+            'github_pr_number': _tracking_text(
+                payload.get('github_pr_number')
+                if 'github_pr_number' in payload
+                else base.get('github_pr_number')
+            ),
+            'github_pr_state': _tracking_text(
+                payload.get('github_pr_state')
+                if 'github_pr_state' in payload
+                else base.get('github_pr_state')
+            ),
+            'github_last_activity_at': _tracking_text(
+                payload.get('github_last_activity_at')
+                if 'github_last_activity_at' in payload
+                else base.get('github_last_activity_at')
+            ),
+            'production_url': _tracking_text(
+                payload.get('production_url')
+                if 'production_url' in payload
+                else base.get('production_url')
+            ),
+            'production_environment': _tracking_text(
+                payload.get('production_environment')
+                if 'production_environment' in payload
+                else base.get('production_environment')
+            ),
+            'production_deployed_at': _tracking_text(
+                payload.get('production_deployed_at')
+                if 'production_deployed_at' in payload
+                else base.get('production_deployed_at')
+            ),
+            'created_at': _tracking_text(base.get('created_at')),
+            'updated_at': _tracking_now(),
+        }
+    )
+    images, image_warnings = _tracking_images(
+        payload.get('images', base.get('images', [])), message_language
+    )
     candidate['images'] = images
-    links, invalid_links = _tracking_extract_links(payload.get('liens', base.get('liens', [])))
+    links, invalid_links = _tracking_extract_links(
+        payload.get('liens', base.get('liens', []))
+    )
     candidate['liens'] = links
 
     errors = []
@@ -7937,7 +9569,13 @@ def validate_tracking_card(payload: dict, existing: dict | None = None, actor: s
         warnings.append(_tracking_message(message_language, 'title_derived'))
     if not candidate['titre']:
         errors.append(_tracking_message(message_language, 'title_required'))
-    if not candidate['description'] and not candidate['observe'] and not candidate['attendu'] and not candidate['contexte'] and not candidate['indicateurs_suivi']:
+    if (
+        not candidate['description']
+        and not candidate['observe']
+        and not candidate['attendu']
+        and not candidate['contexte']
+        and not candidate['indicateurs_suivi']
+    ):
         errors.append(_tracking_message(message_language, 'content_required'))
     if invalid_links:
         warnings.append(_tracking_message(message_language, 'links_ignored'))
@@ -7950,9 +9588,16 @@ def validate_tracking_card(payload: dict, existing: dict | None = None, actor: s
 
     if not candidate['created_at']:
         candidate['created_at'] = candidate['updated_at']
-        candidate['historique'].append(_tracking_history_event(actor, 'created', _tracking_message(message_language, 'history_created')))
+        candidate['historique'].append(
+            _tracking_history_event(
+                actor, 'created', _tracking_message(message_language, 'history_created')
+            )
+        )
     else:
-        if existing and _tracking_bool(existing.get('archived')) != candidate['archived']:
+        if (
+            existing
+            and _tracking_bool(existing.get('archived')) != candidate['archived']
+        ):
             if candidate['archived']:
                 candidate['archived_at'] = candidate['updated_at']
                 candidate['archived_by'] = actor
@@ -7978,19 +9623,67 @@ def validate_tracking_card(payload: dict, existing: dict | None = None, actor: s
                 _tracking_history_event(
                     actor,
                     'status_changed',
-                    _tracking_message(message_language, 'history_status_changed', status=candidate['statut']),
+                    _tracking_message(
+                        message_language,
+                        'history_status_changed',
+                        status=candidate['statut'],
+                    ),
                     {'from': existing.get('statut'), 'to': candidate['statut']},
                 )
             )
-        existing_image_ids = {str(item.get('id') or '') for item in (existing.get('images') or []) if isinstance(item, dict)} if existing else set()
-        next_image_ids = {str(item.get('id') or '') for item in candidate['images'] if isinstance(item, dict)}
-        added_images = len([image_id for image_id in next_image_ids if image_id and image_id not in existing_image_ids])
-        removed_images = len([image_id for image_id in existing_image_ids if image_id and image_id not in next_image_ids])
+        existing_image_ids = (
+            {
+                str(item.get('id') or '')
+                for item in (existing.get('images') or [])
+                if isinstance(item, dict)
+            }
+            if existing
+            else set()
+        )
+        next_image_ids = {
+            str(item.get('id') or '')
+            for item in candidate['images']
+            if isinstance(item, dict)
+        }
+        added_images = len(
+            [
+                image_id
+                for image_id in next_image_ids
+                if image_id and image_id not in existing_image_ids
+            ]
+        )
+        removed_images = len(
+            [
+                image_id
+                for image_id in existing_image_ids
+                if image_id and image_id not in next_image_ids
+            ]
+        )
         if added_images:
-            candidate['historique'].append(_tracking_history_event(actor, 'images_added', _tracking_message(message_language, 'history_images_added', count=added_images)))
+            candidate['historique'].append(
+                _tracking_history_event(
+                    actor,
+                    'images_added',
+                    _tracking_message(
+                        message_language, 'history_images_added', count=added_images
+                    ),
+                )
+            )
         if removed_images:
-            candidate['historique'].append(_tracking_history_event(actor, 'images_removed', _tracking_message(message_language, 'history_images_removed', count=removed_images)))
-        candidate['historique'].append(_tracking_history_event(actor, 'updated', _tracking_message(message_language, 'history_updated')))
+            candidate['historique'].append(
+                _tracking_history_event(
+                    actor,
+                    'images_removed',
+                    _tracking_message(
+                        message_language, 'history_images_removed', count=removed_images
+                    ),
+                )
+            )
+        candidate['historique'].append(
+            _tracking_history_event(
+                actor, 'updated', _tracking_message(message_language, 'history_updated')
+            )
+        )
     return {
         'card': candidate,
         'errors': errors,
@@ -7998,14 +9691,23 @@ def validate_tracking_card(payload: dict, existing: dict | None = None, actor: s
     }
 
 
-def draft_tracking_card_from_text(text: str, source_language: str = 'fr', actor: str = 'assistant', source: str = 'free_text', language: str | None = None) -> dict:
+def draft_tracking_card_from_text(
+    text: str,
+    source_language: str = 'fr',
+    actor: str = 'assistant',
+    source: str = 'free_text',
+    language: str | None = None,
+) -> dict:
     normalized = _tracking_text(text)
     folded = eures_fold_text(normalized)
     lines = [line.strip(' -•\t') for line in normalized.splitlines() if line.strip()]
     title = _tracking_title_from_free_text(lines[0] if lines else normalized)
 
     detected_type = 'evolution'
-    if any(token in folded for token in ('bug', 'erreur', 'anomal', 'incident', 'defect', 'fehler')):
+    if any(
+        token in folded
+        for token in ('bug', 'erreur', 'anomal', 'incident', 'defect', 'fehler')
+    ):
         detected_type = 'bug'
     elif any(token in folded for token in ('question', 'clarif', 'frage')):
         detected_type = 'question'
@@ -8015,7 +9717,17 @@ def draft_tracking_card_from_text(text: str, source_language: str = 'fr', actor:
         detected_type = 'idee'
 
     priority = 'moyenne'
-    if any(token in folded for token in ('critique', 'critical', 'urgent', 'urgence', 'blocker', 'bloquant')):
+    if any(
+        token in folded
+        for token in (
+            'critique',
+            'critical',
+            'urgent',
+            'urgence',
+            'blocker',
+            'bloquant',
+        )
+    ):
         priority = 'critique'
     elif any(token in folded for token in ('important', 'major', 'haut', 'high')):
         priority = 'haute'
@@ -8032,29 +9744,39 @@ def draft_tracking_card_from_text(text: str, source_language: str = 'fr', actor:
     elif any(token in folded for token in ('consequent', 'significant')):
         size = 'elephant'
 
-    validated = validate_tracking_card({
-        'langue_source': _tracking_ui_language(source_language),
-        'titre': title or 'Carte à qualifier',
-        'type': detected_type,
-        'description': normalized,
-        'observe': normalized if detected_type == 'bug' else '',
-        'statut': 'a_qualifier',
-        'priorite': priority,
-        'taille_dev': size,
-        'responsable': '',
-        'source': source,
-        'liens': re.findall(r'https?://\S+', normalized),
-    }, actor=actor, language=language or source_language)
+    validated = validate_tracking_card(
+        {
+            'langue_source': _tracking_ui_language(source_language),
+            'titre': title or 'Carte à qualifier',
+            'type': detected_type,
+            'description': normalized,
+            'observe': normalized if detected_type == 'bug' else '',
+            'statut': 'a_qualifier',
+            'priorite': priority,
+            'taille_dev': size,
+            'responsable': '',
+            'source': source,
+            'liens': re.findall(r'https?://\S+', normalized),
+        },
+        actor=actor,
+        language=language or source_language,
+    )
     if not validated['errors']:
-        validated['warnings'].append(_tracking_message(language or source_language, 'draft_structured'))
+        validated['warnings'].append(
+            _tracking_message(language or source_language, 'draft_structured')
+        )
     return validated
 
 
-def _tracking_openai_json(prompt: str, schema_hint: str) -> tuple[dict | None, str | None]:
+def _tracking_openai_json(
+    prompt: str, schema_hint: str
+) -> tuple[dict | None, str | None]:
     api_key = os.environ.get('OPENAI_API_KEY', '').strip()
     if not api_key:
         return None, 'missing_api_key'
-    model = os.environ.get('OPENAI_TEXT_MODEL', 'gpt-4.1-mini').strip() or 'gpt-4.1-mini'
+    model = (
+        os.environ.get('OPENAI_TEXT_MODEL', 'gpt-4.1-mini').strip() or 'gpt-4.1-mini'
+    )
     try:
         response = requests.post(
             'https://api.openai.com/v1/responses',
@@ -8067,7 +9789,12 @@ def _tracking_openai_json(prompt: str, schema_hint: str) -> tuple[dict | None, s
                 'input': [
                     {
                         'role': 'system',
-                        'content': [{'type': 'input_text', 'text': f'Réponds uniquement en JSON valide. Schéma attendu: {schema_hint}'}],
+                        'content': [
+                            {
+                                'type': 'input_text',
+                                'text': f'Réponds uniquement en JSON valide. Schéma attendu: {schema_hint}',
+                            }
+                        ],
                     },
                     {
                         'role': 'user',
@@ -8083,7 +9810,9 @@ def _tracking_openai_json(prompt: str, schema_hint: str) -> tuple[dict | None, s
         chunks = []
         for item in payload.get('output', []) if isinstance(payload, dict) else []:
             for content in item.get('content', []):
-                if content.get('type') in {'output_text', 'text'} and content.get('text'):
+                if content.get('type') in {'output_text', 'text'} and content.get(
+                    'text'
+                ):
                     chunks.append(content.get('text'))
         raw = ''.join(chunks).strip()
         if not raw:
@@ -8127,7 +9856,9 @@ def _tracking_translation_warning(target_language: str, error_code: str | None) 
     return lang_messages.get(error_code or '', lang_messages['default'])
 
 
-def translate_tracking_card_payload(card: dict, target_language: str) -> tuple[dict, list[str]]:
+def translate_tracking_card_payload(
+    card: dict, target_language: str
+) -> tuple[dict, list[str]]:
     target = _tracking_ui_language(target_language)
     source = _tracking_ui_language(card.get('langue_source'))
     translated = {
@@ -8154,7 +9885,9 @@ def translate_tracking_card_payload(card: dict, target_language: str) -> tuple[d
     )
     if isinstance(llm_payload, dict):
         for key in list(translated['fields'].keys()):
-            translated['fields'][key] = _tracking_text(llm_payload.get(key) or translated['fields'][key])
+            translated['fields'][key] = _tracking_text(
+                llm_payload.get(key) or translated['fields'][key]
+            )
         return translated, []
 
     return translated, [
@@ -8212,22 +9945,31 @@ def _documentation_document_from_record(record: dict) -> dict | None:
     if not isinstance(fields, dict):
         return None
     document = _documentation_default_document()
-    document.update({
-        'record_id': record.get('id'),
-        'document_id': _tracking_text(fields.get('document_id')) or document['document_id'],
-        'titre': _tracking_text(fields.get('titre')),
-        'resume': _tracking_text(fields.get('resume')),
-        'contenu_markdown': _tracking_text(fields.get('contenu_markdown')),
-        'categorie': _tracking_choice(fields.get('categorie'), EURES_DOCUMENTATION_CATEGORIES, 'produit_metier'),
-        'statut': _tracking_choice(fields.get('statut'), EURES_DOCUMENTATION_STATUSES, 'draft'),
-        'langue_source': _tracking_ui_language(fields.get('langue_source')),
-        'cartes_liees': _tracking_list(fields.get('cartes_liees_json')),
-        'liens': _tracking_list(fields.get('liens_json')),
-        'auteur': _tracking_text(fields.get('auteur')),
-        'created_at': _tracking_text(fields.get('created_at')),
-        'updated_at': _tracking_text(fields.get('updated_at')),
-        'historique': _tracking_list(fields.get('historique_json')),
-    })
+    document.update(
+        {
+            'record_id': record.get('id'),
+            'document_id': _tracking_text(fields.get('document_id'))
+            or document['document_id'],
+            'titre': _tracking_text(fields.get('titre')),
+            'resume': _tracking_text(fields.get('resume')),
+            'contenu_markdown': _tracking_text(fields.get('contenu_markdown')),
+            'categorie': _tracking_choice(
+                fields.get('categorie'),
+                EURES_DOCUMENTATION_CATEGORIES,
+                'produit_metier',
+            ),
+            'statut': _tracking_choice(
+                fields.get('statut'), EURES_DOCUMENTATION_STATUSES, 'draft'
+            ),
+            'langue_source': _tracking_ui_language(fields.get('langue_source')),
+            'cartes_liees': _tracking_list(fields.get('cartes_liees_json')),
+            'liens': _tracking_list(fields.get('liens_json')),
+            'auteur': _tracking_text(fields.get('auteur')),
+            'created_at': _tracking_text(fields.get('created_at')),
+            'updated_at': _tracking_text(fields.get('updated_at')),
+            'historique': _tracking_list(fields.get('historique_json')),
+        }
+    )
     return document
 
 
@@ -8250,7 +9992,11 @@ def _documentation_record_fields(document: dict) -> dict:
 
 
 def _documentation_linked_cards(value) -> list[str]:
-    raw_items = value if isinstance(value, list) else str(value or '').replace(',', '\n').splitlines()
+    raw_items = (
+        value
+        if isinstance(value, list)
+        else str(value or '').replace(',', '\n').splitlines()
+    )
     result = []
     for item in raw_items:
         reference = _tracking_text(item).upper()
@@ -8259,28 +10005,57 @@ def _documentation_linked_cards(value) -> list[str]:
     return result[:30]
 
 
-def validate_documentation_document(payload: dict, existing: dict | None = None, actor: str = 'admin') -> dict:
+def validate_documentation_document(
+    payload: dict, existing: dict | None = None, actor: str = 'admin'
+) -> dict:
     base = _documentation_default_document()
     if existing:
         base.update(existing)
-    links, invalid_links = _tracking_extract_links(payload.get('liens', base.get('liens', [])))
+    links, invalid_links = _tracking_extract_links(
+        payload.get('liens', base.get('liens', []))
+    )
     now = _tracking_now()
     document = dict(base)
-    document.update({
-        'document_id': _tracking_text(payload.get('document_id')) or base['document_id'],
-        'titre': _tracking_summarize_title(payload.get('titre') or base['titre'], max_length=140),
-        'resume': _tracking_text(payload.get('resume') if 'resume' in payload else base['resume'])[:600],
-        'contenu_markdown': _tracking_text(payload.get('contenu_markdown') if 'contenu_markdown' in payload else base['contenu_markdown']),
-        'categorie': _tracking_choice(payload.get('categorie') or base['categorie'], EURES_DOCUMENTATION_CATEGORIES, base['categorie']),
-        'statut': _tracking_choice(payload.get('statut') or base['statut'], EURES_DOCUMENTATION_STATUSES, base['statut']),
-        'langue_source': _tracking_ui_language(payload.get('langue_source') or base['langue_source']),
-        'cartes_liees': _documentation_linked_cards(payload.get('cartes_liees', base.get('cartes_liees', []))),
-        'liens': links,
-        'auteur': _tracking_text(actor) or _tracking_text(base.get('auteur')) or 'admin',
-        'created_at': _tracking_text(base.get('created_at')) or now,
-        'updated_at': now,
-        'historique': list(base.get('historique') or []),
-    })
+    document.update(
+        {
+            'document_id': _tracking_text(payload.get('document_id'))
+            or base['document_id'],
+            'titre': _tracking_summarize_title(
+                payload.get('titre') or base['titre'], max_length=140
+            ),
+            'resume': _tracking_text(
+                payload.get('resume') if 'resume' in payload else base['resume']
+            )[:600],
+            'contenu_markdown': _tracking_text(
+                payload.get('contenu_markdown')
+                if 'contenu_markdown' in payload
+                else base['contenu_markdown']
+            ),
+            'categorie': _tracking_choice(
+                payload.get('categorie') or base['categorie'],
+                EURES_DOCUMENTATION_CATEGORIES,
+                base['categorie'],
+            ),
+            'statut': _tracking_choice(
+                payload.get('statut') or base['statut'],
+                EURES_DOCUMENTATION_STATUSES,
+                base['statut'],
+            ),
+            'langue_source': _tracking_ui_language(
+                payload.get('langue_source') or base['langue_source']
+            ),
+            'cartes_liees': _documentation_linked_cards(
+                payload.get('cartes_liees', base.get('cartes_liees', []))
+            ),
+            'liens': links,
+            'auteur': _tracking_text(actor)
+            or _tracking_text(base.get('auteur'))
+            or 'admin',
+            'created_at': _tracking_text(base.get('created_at')) or now,
+            'updated_at': now,
+            'historique': list(base.get('historique') or []),
+        }
+    )
     errors = []
     warnings = []
     if not document['titre']:
@@ -8290,16 +10065,18 @@ def validate_documentation_document(payload: dict, existing: dict | None = None,
     if invalid_links:
         warnings.append('Certains liens invalides ont été ignorés.')
     if existing:
-        document['historique'].append({
-            'at': now,
-            'actor': document['auteur'],
-            'action': 'updated',
-            'titre': existing.get('titre', ''),
-            'resume': existing.get('resume', ''),
-            'contenu_markdown': existing.get('contenu_markdown', ''),
-            'categorie': existing.get('categorie', ''),
-            'statut': existing.get('statut', ''),
-        })
+        document['historique'].append(
+            {
+                'at': now,
+                'actor': document['auteur'],
+                'action': 'updated',
+                'titre': existing.get('titre', ''),
+                'resume': existing.get('resume', ''),
+                'contenu_markdown': existing.get('contenu_markdown', ''),
+                'categorie': existing.get('categorie', ''),
+                'statut': existing.get('statut', ''),
+            }
+        )
         document['historique'] = document['historique'][-30:]
     return {'document': document, 'errors': errors, 'warnings': warnings}
 
@@ -8311,7 +10088,13 @@ def list_documentation_documents() -> list[dict]:
         document = _documentation_document_from_record(record)
         if document:
             documents.append(document)
-    documents.sort(key=lambda item: (item.get('statut') == 'archived', item.get('categorie', ''), item.get('titre', '').lower()))
+    documents.sort(
+        key=lambda item: (
+            item.get('statut') == 'archived',
+            item.get('categorie', ''),
+            item.get('titre', '').lower(),
+        )
+    )
     return documents
 
 
@@ -8319,53 +10102,95 @@ def save_documentation_document(payload: dict, actor: str = 'admin') -> dict:
     with _EURES_DOCUMENTATION_SAVE_LOCK:
         config, headers = _documentation_table_ready()
         record_id = payload.get('record_id')
-        existing_record = fetch_record_by_id(config['doc_id'], config['table_id'], int(record_id), headers) if record_id else None
-        existing = _documentation_document_from_record(existing_record) if existing_record else None
+        existing_record = (
+            fetch_record_by_id(
+                config['doc_id'], config['table_id'], int(record_id), headers
+            )
+            if record_id
+            else None
+        )
+        existing = (
+            _documentation_document_from_record(existing_record)
+            if existing_record
+            else None
+        )
         expected_updated_at = _tracking_text(payload.get('expected_updated_at'))
-        if existing and expected_updated_at and expected_updated_at != _tracking_text(existing.get('updated_at')):
+        if (
+            existing
+            and expected_updated_at
+            and expected_updated_at != _tracking_text(existing.get('updated_at'))
+        ):
             return {
                 'ok': False,
                 'conflict': True,
                 'error': 'Cette page a été modifiée par une autre personne. Rechargez-la avant d’enregistrer.',
                 'document': existing,
             }
-        validated = validate_documentation_document(payload, existing=existing, actor=actor)
+        validated = validate_documentation_document(
+            payload, existing=existing, actor=actor
+        )
         if validated['errors']:
             return {'ok': False, **validated}
         document = validated['document']
         fields = _documentation_record_fields(document)
         base_url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}/records"
         if existing_record:
-            response = write_grist_records('PATCH', base_url, {'records': [{'id': existing_record['id'], 'fields': fields}]}, headers)
+            response = write_grist_records(
+                'PATCH',
+                base_url,
+                {'records': [{'id': existing_record['id'], 'fields': fields}]},
+                headers,
+            )
             document['record_id'] = existing_record['id']
         else:
-            response = write_grist_records('POST', base_url, {'records': [{'fields': fields}]}, headers)
+            response = write_grist_records(
+                'POST', base_url, {'records': [{'fields': fields}]}, headers
+            )
         if response.status_code != 200:
-            raise RuntimeError(f'Failed to save project documentation: HTTP {response.status_code} - {response.text}')
+            raise RuntimeError(
+                f'Failed to save project documentation: HTTP {response.status_code} - {response.text}'
+            )
         if not existing_record:
             response_payload = _parse_response_json_safe(response)
-            records = response_payload.get('records', []) if isinstance(response_payload, dict) else []
+            records = (
+                response_payload.get('records', [])
+                if isinstance(response_payload, dict)
+                else []
+            )
             if records:
                 document['record_id'] = records[0].get('id')
-        return {'ok': True, 'document': document, 'warnings': validated['warnings'], 'errors': []}
+        return {
+            'ok': True,
+            'document': document,
+            'warnings': validated['warnings'],
+            'errors': [],
+        }
 
 
 def _tracking_find_record_by_card_id(card_id: str) -> tuple[dict | None, dict, dict]:
     config, headers = _tracking_table_ready()
-    base_url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}"
+    base_url = (
+        f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}"
+    )
     record, resp = fetch_record_by_field(base_url, 'card_id', card_id, headers)
     if resp.status_code != 200:
-        raise RuntimeError(f'Failed to read tracking card: HTTP {resp.status_code} - {resp.text}')
+        raise RuntimeError(
+            f'Failed to read tracking card: HTTP {resp.status_code} - {resp.text}'
+        )
     return record, config, headers
 
 
-def _tracking_find_record_by_reference(reference: str) -> tuple[dict | None, dict, dict]:
+def _tracking_find_record_by_reference(
+    reference: str,
+) -> tuple[dict | None, dict, dict]:
     ref = _tracking_text(reference).upper()
     if ref.startswith('EURES-'):
         suffix = ''.join(ch for ch in ref[6:] if ch.isdigit())
         if suffix:
             config, headers = _tracking_table_ready()
-            record = fetch_record_by_id(config['doc_id'], config['table_id'], int(suffix), headers)
+            record = fetch_record_by_id(
+                config['doc_id'], config['table_id'], int(suffix), headers
+            )
             return record, config, headers
     return _tracking_find_record_by_card_id(reference)
 
@@ -8384,7 +10209,9 @@ def _tracking_get_deploy_webhook_secret() -> str:
     )
 
 
-def _tracking_verify_hmac_signature(secret: str, payload: bytes, signature_header: str, prefix: str = 'sha256=') -> bool:
+def _tracking_verify_hmac_signature(
+    secret: str, payload: bytes, signature_header: str, prefix: str = 'sha256='
+) -> bool:
     if not secret or not signature_header or not signature_header.startswith(prefix):
         return False
     digest = hmac.new(secret.encode('utf-8'), payload, hashlib.sha256).hexdigest()
@@ -8410,7 +10237,13 @@ def _tracking_extract_reference_from_texts(*values) -> str:
     return ''
 
 
-def _tracking_history_append_unique(history: list[dict], actor: str, action: str, message: str, extra: dict | None = None):
+def _tracking_history_append_unique(
+    history: list[dict],
+    actor: str,
+    action: str,
+    message: str,
+    extra: dict | None = None,
+):
     if history:
         last = history[-1]
         if (
@@ -8423,7 +10256,10 @@ def _tracking_history_append_unique(history: list[dict], actor: str, action: str
 
 
 def _tracking_update_card_record(record: dict, config: dict, headers: dict, card: dict):
-    card['reference'] = _tracking_reference(record.get('id') if isinstance(record, dict) else card.get('record_id'), card.get('card_id'))
+    card['reference'] = _tracking_reference(
+        record.get('id') if isinstance(record, dict) else card.get('record_id'),
+        card.get('card_id'),
+    )
     update_table_record_by_id(
         config,
         int(record['id']),
@@ -8456,7 +10292,12 @@ def apply_tracking_github_event(payload: dict, event_name: str) -> dict:
         return {'ok': True, 'updated': False, 'reason': 'reference_not_found'}
     record, config, headers = _tracking_find_record_by_reference(reference)
     if not record:
-        return {'ok': True, 'updated': False, 'reason': 'card_not_found', 'reference': reference}
+        return {
+            'ok': True,
+            'updated': False,
+            'reason': 'card_not_found',
+            'reference': reference,
+        }
     card = _tracking_card_from_record(record)
     if not card:
         return {'ok': False, 'error': 'Tracking card payload is invalid.'}
@@ -8507,7 +10348,13 @@ def apply_tracking_github_event(payload: dict, event_name: str) -> dict:
             history,
             actor,
             'github_pr_merged',
-            _tracking_message(language, 'github_pr_merged', number=pr_number or '?', branch=base.get('ref') or _tracking_message(language, 'unknown_target_branch')),
+            _tracking_message(
+                language,
+                'github_pr_merged',
+                number=pr_number or '?',
+                branch=base.get('ref')
+                or _tracking_message(language, 'unknown_target_branch'),
+            ),
             {'reference': reference, 'branch': branch, 'url': pr_url},
         )
     elif action == 'closed':
@@ -8520,7 +10367,12 @@ def apply_tracking_github_event(payload: dict, event_name: str) -> dict:
             {'reference': reference, 'branch': branch, 'url': pr_url},
         )
     else:
-        return {'ok': True, 'updated': False, 'reason': 'ignored_action', 'reference': reference}
+        return {
+            'ok': True,
+            'updated': False,
+            'reason': 'ignored_action',
+            'reference': reference,
+        }
 
     card['historique'] = history
     card['updated_at'] = _tracking_now()
@@ -8530,7 +10382,9 @@ def apply_tracking_github_event(payload: dict, event_name: str) -> dict:
     return {'ok': True, 'updated': True, 'reference': card['reference'], 'card': card}
 
 
-def apply_tracking_deployment_event(payload: dict, actor: str = 'deployment-bot') -> dict:
+def apply_tracking_deployment_event(
+    payload: dict, actor: str = 'deployment-bot'
+) -> dict:
     reference = _tracking_extract_reference_from_texts(
         payload.get('reference'),
         payload.get('card_reference'),
@@ -8543,10 +10397,20 @@ def apply_tracking_deployment_event(payload: dict, actor: str = 'deployment-bot'
     status = _tracking_text(payload.get('status') or payload.get('state'))
     environment = _tracking_text(payload.get('environment') or 'production')
     if status not in {'success', 'ok', 'completed'}:
-        return {'ok': True, 'updated': False, 'reason': 'ignored_status', 'reference': reference}
+        return {
+            'ok': True,
+            'updated': False,
+            'reason': 'ignored_status',
+            'reference': reference,
+        }
     record, config, headers = _tracking_find_record_by_reference(reference)
     if not record:
-        return {'ok': True, 'updated': False, 'reason': 'card_not_found', 'reference': reference}
+        return {
+            'ok': True,
+            'updated': False,
+            'reason': 'card_not_found',
+            'reference': reference,
+        }
     card = _tracking_card_from_record(record)
     if not card:
         return {'ok': False, 'error': 'Tracking card payload is invalid.'}
@@ -8565,7 +10429,9 @@ def apply_tracking_deployment_event(payload: dict, actor: str = 'deployment-bot'
         history,
         actor,
         'deployment_succeeded',
-        _tracking_message(language, 'deployment_succeeded', environment=card['production_environment']),
+        _tracking_message(
+            language, 'deployment_succeeded', environment=card['production_environment']
+        ),
         {'reference': reference, 'url': production_url},
     )
     card['historique'] = history
@@ -8574,7 +10440,9 @@ def apply_tracking_deployment_event(payload: dict, actor: str = 'deployment-bot'
     return {'ok': True, 'updated': True, 'reference': card['reference'], 'card': card}
 
 
-def save_tracking_card(payload: dict, actor: str = 'admin', language: str | None = None) -> dict:
+def save_tracking_card(
+    payload: dict, actor: str = 'admin', language: str | None = None
+) -> dict:
     with _EURES_TRACKING_SAVE_LOCK:
         existing_record = None
         existing_card = None
@@ -8583,13 +10451,19 @@ def save_tracking_card(payload: dict, actor: str = 'admin', language: str | None
         record_id = payload.get('record_id')
         if record_id:
             config, headers = _tracking_table_ready()
-            existing_record = fetch_record_by_id(config['doc_id'], config['table_id'], int(record_id), headers)
+            existing_record = fetch_record_by_id(
+                config['doc_id'], config['table_id'], int(record_id), headers
+            )
         else:
-            existing_record, config, headers = _tracking_find_record_by_card_id(_tracking_text(payload.get('card_id')))
+            existing_record, config, headers = _tracking_find_record_by_card_id(
+                _tracking_text(payload.get('card_id'))
+            )
         if existing_record:
             existing_card = _tracking_card_from_record(existing_record)
 
-        validated = validate_tracking_card(payload, existing=existing_card, actor=actor, language=language)
+        validated = validate_tracking_card(
+            payload, existing=existing_card, actor=actor, language=language
+        )
         if validated['errors']:
             return {'ok': False, **validated}
 
@@ -8597,19 +10471,39 @@ def save_tracking_card(payload: dict, actor: str = 'admin', language: str | None
         fields = _tracking_record_fields(card)
         base_url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}/records"
         if existing_record:
-            resp = write_grist_records('PATCH', base_url, {'records': [{'id': existing_record['id'], 'fields': fields}]}, headers)
+            resp = write_grist_records(
+                'PATCH',
+                base_url,
+                {'records': [{'id': existing_record['id'], 'fields': fields}]},
+                headers,
+            )
             card['record_id'] = existing_record['id']
         else:
-            resp = write_grist_records('POST', base_url, {'records': [{'fields': fields}]}, headers)
+            resp = write_grist_records(
+                'POST', base_url, {'records': [{'fields': fields}]}, headers
+            )
         if resp.status_code != 200:
-            raise RuntimeError(f'Failed to save tracking card: HTTP {resp.status_code} - {resp.text}')
+            raise RuntimeError(
+                f'Failed to save tracking card: HTTP {resp.status_code} - {resp.text}'
+            )
         if not existing_record:
             payload_json = _parse_response_json_safe(resp)
-            records = payload_json.get('records', []) if isinstance(payload_json, dict) else []
+            records = (
+                payload_json.get('records', [])
+                if isinstance(payload_json, dict)
+                else []
+            )
             if records:
                 card['record_id'] = records[0].get('id')
-        card['reference'] = _tracking_reference(card.get('record_id'), card.get('card_id'))
-        return {'ok': True, 'card': card, 'warnings': validated['warnings'], 'errors': []}
+        card['reference'] = _tracking_reference(
+            card.get('record_id'), card.get('card_id')
+        )
+        return {
+            'ok': True,
+            'card': card,
+            'warnings': validated['warnings'],
+            'errors': [],
+        }
 
 
 def delete_tracking_card(record_id: int):
@@ -8617,12 +10511,18 @@ def delete_tracking_card(record_id: int):
     delete_url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}/records/delete"
     resp = write_grist_records('POST', delete_url, [int(record_id)], headers)
     if resp.status_code not in {200, 202, 204}:
-        raise RuntimeError(f'Failed to delete tracking card: HTTP {resp.status_code} - {resp.text}')
+        raise RuntimeError(
+            f'Failed to delete tracking card: HTTP {resp.status_code} - {resp.text}'
+        )
 
 
-def add_tracking_comment(record_id: int, body: str, actor: str, language: str = 'fr') -> dict:
+def add_tracking_comment(
+    record_id: int, body: str, actor: str, language: str = 'fr'
+) -> dict:
     config, headers = _tracking_table_ready()
-    record = fetch_record_by_id(config['doc_id'], config['table_id'], record_id, headers)
+    record = fetch_record_by_id(
+        config['doc_id'], config['table_id'], record_id, headers
+    )
     if not record:
         raise RuntimeError(_tracking_message(language, 'card_not_found'))
     card = _tracking_card_from_record(record)
@@ -8632,7 +10532,11 @@ def add_tracking_comment(record_id: int, body: str, actor: str, language: str = 
     comments = list(card.get('commentaires') or [])
     history = list(card.get('historique') or [])
     comments.append(comment)
-    history.append(_tracking_history_event(actor, 'commented', _tracking_message(language, 'history_comment_added')))
+    history.append(
+        _tracking_history_event(
+            actor, 'commented', _tracking_message(language, 'history_comment_added')
+        )
+    )
     updated_at = _tracking_now()
     update_table_record_by_id(
         config,
@@ -8658,6 +10562,7 @@ def normalize_finess(value) -> str:
     if digits and digits == raw:
         return digits.zfill(9) if len(digits) == 8 else digits
     return raw.upper()
+
 
 def normalize_email(value) -> str:
     """Normalize email value for lookup."""
@@ -8693,7 +10598,9 @@ def extract_finess_values(fields: dict) -> set:
     return values
 
 
-def find_duplicate_finess(config: dict, current_uuid: str, finess_values: set, headers: dict):
+def find_duplicate_finess(
+    config: dict, current_uuid: str, finess_values: set, headers: dict
+):
     """Find FINESS values already used by another record in the same table."""
     if not finess_values:
         return set()
@@ -8740,9 +10647,14 @@ def get_record(form_id: str):
     if proxied:
         return proxied
     if form_id == 'eures-beta':
-        return jsonify({
-            'error': 'Public record lookup is disabled for this form.',
-        }), 403
+        return (
+            jsonify(
+                {
+                    'error': 'Public record lookup is disabled for this form.',
+                }
+            ),
+            403,
+        )
     config = get_form_config(form_id, request.args.get('flow_role'))
     if not config:
         return jsonify({'error': f'Unknown form: {form_id}'}), 404
@@ -8762,7 +10674,14 @@ def get_record(form_id: str):
         allowed_columns = get_table_columns(config, headers)
         record_key = resolve_record_key(allowed_columns)
         if not record_key:
-            return jsonify({'error': 'Target table has no supported record key (uuid or id_tally).'}), 500
+            return (
+                jsonify(
+                    {
+                        'error': 'Target table has no supported record key (uuid or id_tally).'
+                    }
+                ),
+                500,
+            )
         resp = requests.get(
             url,
             params={'filter': json.dumps({record_key: [uuid]})},
@@ -8784,7 +10703,10 @@ def issue_public_write_token(form_id: str):
     if proxied:
         return proxied
     if form_id != 'eures-beta':
-        return jsonify({'error': 'Write token endpoint is not enabled for this form.'}), 404
+        return (
+            jsonify({'error': 'Write token endpoint is not enabled for this form.'}),
+            404,
+        )
     role = _normalize_eures_invitation_role(request.args.get('role') or '')
     if role not in {'candidate', 'employer'}:
         return jsonify({'error': 'Invalid role'}), 400
@@ -8792,12 +10714,17 @@ def issue_public_write_token(form_id: str):
         token = _issue_eures_public_write_token(role)
     except Exception as e:
         return _client_error('', 500)
-    return jsonify({
-        'ok': True,
-        'role': role,
-        'token': token,
-        'expires_in_seconds': get_eures_public_write_ttl_seconds(),
-    }), 200
+    return (
+        jsonify(
+            {
+                'ok': True,
+                'role': role,
+                'token': token,
+                'expires_in_seconds': get_eures_public_write_ttl_seconds(),
+            }
+        ),
+        200,
+    )
 
 
 @app.route('/api/forms/<form_id>/access', methods=['GET'])
@@ -8807,12 +10734,17 @@ def get_form_access(form_id: str):
     if proxied:
         return proxied
     settings = get_form_access_settings(form_id)
-    return jsonify({
-        'ok': True,
-        'form_id': form_id,
-        'read_only': settings['read_only'],
-        'message': settings['message'],
-    }), 200
+    return (
+        jsonify(
+            {
+                'ok': True,
+                'form_id': form_id,
+                'read_only': settings['read_only'],
+                'message': settings['message'],
+            }
+        ),
+        200,
+    )
 
 
 @app.route('/api/forms/<form_id>/employer-referrals', methods=['POST'])
@@ -8822,7 +10754,10 @@ def create_eures_employer_referral(form_id: str):
     if proxied:
         return proxied
     if form_id != 'eures-beta':
-        return jsonify({'error': 'Referral endpoint is not enabled for this form.'}), 404
+        return (
+            jsonify({'error': 'Referral endpoint is not enabled for this form.'}),
+            404,
+        )
 
     data = request.get_json() or {}
     invite_token = str(data.get('invite_token') or '').strip()
@@ -8832,19 +10767,35 @@ def create_eures_employer_referral(form_id: str):
         return jsonify({'error': message}), 403
     allowed, retry_after = _check_eures_public_write_rate_limit('employer')
     if not allowed:
-        return jsonify({'error': f'Trop de tentatives. Réessayez dans {retry_after} secondes.'}), 429
+        return (
+            jsonify(
+                {'error': f'Trop de tentatives. Réessayez dans {retry_after} secondes.'}
+            ),
+            429,
+        )
 
-    sponsor_invitation, sponsor_error = get_eures_active_employer_invitation(invite_token)
+    sponsor_invitation, sponsor_error = get_eures_active_employer_invitation(
+        invite_token
+    )
     if not sponsor_invitation:
         return jsonify({'error': sponsor_error}), 403
 
-    sponsor_fields = sponsor_invitation.get('fields', {}) if isinstance(sponsor_invitation.get('fields'), dict) else {}
+    sponsor_fields = (
+        sponsor_invitation.get('fields', {})
+        if isinstance(sponsor_invitation.get('fields'), dict)
+        else {}
+    )
     sponsor_company = str(sponsor_fields.get('company_name') or '').strip()
     sponsor_email = normalize_email(sponsor_fields.get('email', ''))
 
     invite_scope = str(data.get('invite_scope') or '').strip().lower()
     if invite_scope not in {'same_company', 'new_company'}:
-        return jsonify({'error': "invite_scope doit valoir 'same_company' ou 'new_company'."}), 400
+        return (
+            jsonify(
+                {'error': "invite_scope doit valoir 'same_company' ou 'new_company'."}
+            ),
+            400,
+        )
 
     recipient_email = normalize_email(data.get('email', ''))
     if not recipient_email:
@@ -8854,7 +10805,14 @@ def create_eures_employer_referral(form_id: str):
     if invite_scope == 'same_company' and not company_name:
         company_name = sponsor_company
     if invite_scope == 'new_company' and not company_name:
-        return jsonify({'error': "Le nom de l'entreprise est requis pour inviter une autre entreprise."}), 400
+        return (
+            jsonify(
+                {
+                    'error': "Le nom de l'entreprise est requis pour inviter une autre entreprise."
+                }
+            ),
+            400,
+        )
 
     row = {
         'role': 'employer',
@@ -8862,7 +10820,9 @@ def create_eures_employer_referral(form_id: str):
         'first_name': str(data.get('first_name') or '').strip(),
         'last_name': str(data.get('last_name') or '').strip(),
         'company_name': company_name,
-        'language': str(data.get('language') or sponsor_fields.get('language') or 'fr').strip().lower(),
+        'language': str(data.get('language') or sponsor_fields.get('language') or 'fr')
+        .strip()
+        .lower(),
         'source': 'employer_referral',
         'external_ref': str(data.get('external_ref') or '').strip(),
         'notes': str(data.get('notes') or '').strip(),
@@ -8878,13 +10838,25 @@ def create_eures_employer_referral(form_id: str):
         upsert_eures_invitation_rows([row], actor='public_employer_referral')
         config = get_eures_invitations_config()
         if not config:
-            return jsonify({'error': 'EURES invitations configuration is incomplete.'}), 500
+            return (
+                jsonify({'error': 'EURES invitations configuration is incomplete.'}),
+                500,
+            )
         headers = _eures_admin_headers(config)
-        invitation = find_eures_invitation_by_role_email('employer', recipient_email, headers=headers)
+        invitation = find_eures_invitation_by_role_email(
+            'employer', recipient_email, headers=headers
+        )
         if not invitation:
-            return jsonify({'error': "Invitation créée mais introuvable pour l'envoi."}), 500
+            return (
+                jsonify({'error': "Invitation créée mais introuvable pour l'envoi."}),
+                500,
+            )
         record_id = int(invitation.get('id') or 0)
-        fields = invitation.get('fields', {}) if isinstance(invitation.get('fields'), dict) else {}
+        fields = (
+            invitation.get('fields', {})
+            if isinstance(invitation.get('fields'), dict)
+            else {}
+        )
         current_status = str(fields.get('invitation_status') or '').strip().lower()
         if current_status == 'desactivee':
             return jsonify({'error': 'Cette invitation a été désactivée.'}), 400
@@ -8905,16 +10877,25 @@ def create_eures_employer_referral(form_id: str):
                 actor='public_employer_referral',
                 headers=headers,
             )
-            return jsonify({
-                'error': send_conflict['message'],
-                'conflict_type': send_conflict['type'],
-                'conflict_record_id': send_conflict['record_id'],
-                'conflict_status': send_conflict['status'],
-                'followup_created': True,
-            }), 409
+            return (
+                jsonify(
+                    {
+                        'error': send_conflict['message'],
+                        'conflict_type': send_conflict['type'],
+                        'conflict_record_id': send_conflict['record_id'],
+                        'conflict_status': send_conflict['status'],
+                        'followup_created': True,
+                    }
+                ),
+                409,
+            )
 
-        recipient, subject, text_body, html_body, new_invite_token, invite_link = build_brevo_invitation_email(fields)
-        brevo_result = send_brevo_transactional_email(recipient, subject, text_body, html_body)
+        recipient, subject, text_body, html_body, new_invite_token, invite_link = (
+            build_brevo_invitation_email(fields)
+        )
+        brevo_result = send_brevo_transactional_email(
+            recipient, subject, text_body, html_body
+        )
         update_fields = {
             'invite_token': new_invite_token,
             'invite_link': invite_link,
@@ -8933,14 +10914,19 @@ def create_eures_employer_referral(form_id: str):
         if not str(fields.get('answered_at') or '').strip():
             update_fields['invitation_status'] = 'invitation_envoyee'
         update_eures_invitation_record_by_id(record_id, update_fields, headers=headers)
-        return jsonify({
-            'ok': True,
-            'record_id': record_id,
-            'email': recipient_email,
-            'invite_scope': invite_scope,
-            'invite_link': invite_link,
-            'message_id': str((brevo_result or {}).get('messageId') or ''),
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'record_id': record_id,
+                    'email': recipient_email,
+                    'invite_scope': invite_scope,
+                    'invite_link': invite_link,
+                    'message_id': str((brevo_result or {}).get('messageId') or ''),
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES employer referral invite failed')
         return _client_error('', 500)
@@ -8954,10 +10940,15 @@ def save_record(form_id: str):
         return proxied
     access_settings = get_form_access_settings(form_id)
     if access_settings['read_only']:
-        return jsonify({
-            'error': access_settings['message'],
-            'read_only': True,
-        }), 403
+        return (
+            jsonify(
+                {
+                    'error': access_settings['message'],
+                    'read_only': True,
+                }
+            ),
+            403,
+        )
     data = request.get_json()
     if not data or 'fields' not in data:
         return jsonify({'error': 'Invalid request body'}), 400
@@ -8967,15 +10958,24 @@ def save_record(form_id: str):
         return jsonify({'error': 'Invalid fields payload'}), 400
     if form_id == 'eures-beta':
         role = str(fields.get('flow_role') or '')
-        write_token = str(fields.get('write_token') or request.headers.get('X-Eures-Write-Token') or '').strip()
+        write_token = str(
+            fields.get('write_token')
+            or request.headers.get('X-Eures-Write-Token')
+            or ''
+        ).strip()
         is_valid, message = _validate_eures_public_write_token(role, write_token)
         if not is_valid:
             return jsonify({'error': message}), 403
         allowed, retry_after = _check_eures_public_write_rate_limit(role)
         if not allowed:
-            return jsonify({
-                'error': f'Trop de tentatives pour ce formulaire. Réessayez dans {retry_after} secondes.',
-            }), 429
+            return (
+                jsonify(
+                    {
+                        'error': f'Trop de tentatives pour ce formulaire. Réessayez dans {retry_after} secondes.',
+                    }
+                ),
+                429,
+            )
         fields = {k: v for k, v in fields.items() if k != 'write_token'}
     config = get_form_config(form_id, fields.get('flow_role'))
     if not config:
@@ -8987,12 +10987,17 @@ def save_record(form_id: str):
     if not uuid:
         return jsonify({'error': 'UUID or id_tally required in fields'}), 400
     try:
-        if form_id == 'eures-beta' and str(fields.get('flow_role') or '').strip().lower() == 'candidate':
+        if (
+            form_id == 'eures-beta'
+            and str(fields.get('flow_role') or '').strip().lower() == 'candidate'
+        ):
             fields = normalize_eures_candidate_cv_fields(fields)
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
-    base_url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}"
+    base_url = (
+        f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}"
+    )
     headers = {
         'Authorization': f"Bearer {config['api_key']}",
         'Content-Type': 'application/json',
@@ -9002,7 +11007,11 @@ def save_record(form_id: str):
     # Keep only fields that exist in target table (prod/local may differ).
     try:
         if form_id == 'eures-beta':
-            ensure_table_columns(config, set(str(key) for key in fields.keys()) | EURES_RESPONSE_ADMIN_FIELDS, headers)
+            ensure_table_columns(
+                config,
+                set(str(key) for key in fields.keys()) | EURES_RESPONSE_ADMIN_FIELDS,
+                headers,
+            )
         allowed_columns = get_table_columns(config, headers)
         filtered_fields = {k: v for k, v in fields.items() if str(k) in allowed_columns}
         record_key = resolve_record_key(allowed_columns)
@@ -9011,18 +11020,32 @@ def save_record(form_id: str):
         return _client_error('Could not read the form configuration.', 502)
 
     if not record_key:
-        return jsonify({'error': "Table is missing a supported unique key column ('uuid' or 'id_tally')"}), 500
+        return (
+            jsonify(
+                {
+                    'error': "Table is missing a supported unique key column ('uuid' or 'id_tally')"
+                }
+            ),
+            500,
+        )
 
     if record_key not in filtered_fields:
         filtered_fields[record_key] = uuid
 
     # Check if record exists
     try:
-        existing_record, check_resp = fetch_record_by_field(base_url, record_key, filtered_fields[record_key], headers)
+        existing_record, check_resp = fetch_record_by_field(
+            base_url, record_key, filtered_fields[record_key], headers
+        )
         if check_resp.status_code != 200:
-            logger.error('save_record: existing-record lookup failed: HTTP %s', check_resp.status_code)
+            logger.error(
+                'save_record: existing-record lookup failed: HTTP %s',
+                check_resp.status_code,
+            )
             return _client_error('Could not verify the existing record.', 502)
-        record_id = existing_record.get('id') if isinstance(existing_record, dict) else None
+        record_id = (
+            existing_record.get('id') if isinstance(existing_record, dict) else None
+        )
     except Exception:
         logger.error('save_record: failed to check existing record')
         return _client_error('Could not verify the existing record.', 502)
@@ -9033,10 +11056,15 @@ def save_record(form_id: str):
         duplicates = find_duplicate_finess(config, uuid, incoming_finess, headers)
         if duplicates:
             duplicates_sorted = sorted(duplicates)
-            return jsonify({
-                'error': 'Un ou plusieurs numéros FINESS sont déjà utilisés par un autre questionnaire.',
-                'duplicates': duplicates_sorted,
-            }), 409
+            return (
+                jsonify(
+                    {
+                        'error': 'Un ou plusieurs numéros FINESS sont déjà utilisés par un autre questionnaire.',
+                        'duplicates': duplicates_sorted,
+                    }
+                ),
+                409,
+            )
     except Exception:
         logger.error('save_record: failed to validate FINESS uniqueness')
         return _client_error('Could not validate the submission.', 500)
@@ -9046,19 +11074,44 @@ def save_record(form_id: str):
         now_iso = _now_iso_utc()
         if form_id == 'eures-beta':
             if existing_record:
-                existing_fields = existing_record.get('fields', {}) if isinstance(existing_record.get('fields'), dict) else {}
-                filtered_fields['response_status'] = _normalize_eures_response_status(existing_fields.get('response_status', '')) or 'active'
-                filtered_fields['response_status_updated_at'] = str(existing_fields.get('response_status_updated_at') or '').strip() or now_iso
-                filtered_fields['response_status_updated_by'] = str(existing_fields.get('response_status_updated_by') or '').strip() or 'system_questionnaire_submission'
-                filtered_fields['response_received_at'] = _eures_response_received_at(existing_fields) or now_iso
+                existing_fields = (
+                    existing_record.get('fields', {})
+                    if isinstance(existing_record.get('fields'), dict)
+                    else {}
+                )
+                filtered_fields['response_status'] = (
+                    _normalize_eures_response_status(
+                        existing_fields.get('response_status', '')
+                    )
+                    or 'active'
+                )
+                filtered_fields['response_status_updated_at'] = (
+                    str(existing_fields.get('response_status_updated_at') or '').strip()
+                    or now_iso
+                )
+                filtered_fields['response_status_updated_by'] = (
+                    str(existing_fields.get('response_status_updated_by') or '').strip()
+                    or 'system_questionnaire_submission'
+                )
+                filtered_fields['response_received_at'] = (
+                    _eures_response_received_at(existing_fields) or now_iso
+                )
                 if filtered_fields['response_status'] == 'disabled':
-                    filtered_fields['response_disabled_at'] = str(existing_fields.get('response_disabled_at') or '').strip()
-                    filtered_fields['response_disabled_by'] = str(existing_fields.get('response_disabled_by') or '').strip()
-                    filtered_fields['response_disabled_reason'] = str(existing_fields.get('response_disabled_reason') or '').strip()
+                    filtered_fields['response_disabled_at'] = str(
+                        existing_fields.get('response_disabled_at') or ''
+                    ).strip()
+                    filtered_fields['response_disabled_by'] = str(
+                        existing_fields.get('response_disabled_by') or ''
+                    ).strip()
+                    filtered_fields['response_disabled_reason'] = str(
+                        existing_fields.get('response_disabled_reason') or ''
+                    ).strip()
             else:
                 filtered_fields['response_status'] = 'active'
                 filtered_fields['response_status_updated_at'] = now_iso
-                filtered_fields['response_status_updated_by'] = 'system_questionnaire_submission'
+                filtered_fields['response_status_updated_by'] = (
+                    'system_questionnaire_submission'
+                )
                 filtered_fields['response_received_at'] = now_iso
         action = 'updated' if record_id else 'created'
         if record_id:
@@ -9078,21 +11131,42 @@ def save_record(form_id: str):
             logger.error('save_record: Grist write failed: HTTP %s', resp.status_code)
             return _client_error('Could not save the record.', 502)
 
-        saved_record, verify_resp = fetch_record_by_field(base_url, record_key, filtered_fields[record_key], headers)
+        saved_record, verify_resp = fetch_record_by_field(
+            base_url, record_key, filtered_fields[record_key], headers
+        )
         if verify_resp.status_code != 200:
-            return jsonify({
-                'error': f'Grist write returned success, but verification failed with HTTP {verify_resp.status_code}.',
-            }), 502
+            return (
+                jsonify(
+                    {
+                        'error': f'Grist write returned success, but verification failed with HTTP {verify_resp.status_code}.',
+                    }
+                ),
+                502,
+            )
         if not isinstance(saved_record, dict):
-            return jsonify({
-                'error': 'Grist write returned success, but the questionnaire was not found after saving.',
-            }), 502
+            return (
+                jsonify(
+                    {
+                        'error': 'Grist write returned success, but the questionnaire was not found after saving.',
+                    }
+                ),
+                502,
+            )
 
-        saved_fields = saved_record.get('fields', {}) if isinstance(saved_record.get('fields'), dict) else {}
+        saved_fields = (
+            saved_record.get('fields', {})
+            if isinstance(saved_record.get('fields'), dict)
+            else {}
+        )
         if str(saved_fields.get(record_key) or '') != str(filtered_fields[record_key]):
-            return jsonify({
-                'error': f'Grist write returned success, but the saved questionnaire {record_key} did not match.',
-            }), 502
+            return (
+                jsonify(
+                    {
+                        'error': f'Grist write returned success, but the saved questionnaire {record_key} did not match.',
+                    }
+                ),
+                502,
+            )
 
         matching_result = None
         invitation_linking = None
@@ -9120,7 +11194,9 @@ def save_record(form_id: str):
                 and matching_result.get('processed')
                 and matching_result.get('no_immediate_match')
             ):
-                queue_eures_no_match_notification(str(fields.get('flow_role') or ''), int(saved_record.get('id') or 0))
+                queue_eures_no_match_notification(
+                    str(fields.get('flow_role') or ''), int(saved_record.get('id') or 0)
+                )
                 no_match_notification = {
                     'queued': True,
                     'status': 'pending',
@@ -9148,38 +11224,48 @@ def save_record(form_id: str):
                 and invitation_linking.get('linked')
                 and str(invitation_linking.get('invite_scope') or '') == 'new_company'
             ):
-                queue_eures_new_employer_alert(int(saved_record.get('id') or 0), invitation_linking)
+                queue_eures_new_employer_alert(
+                    int(saved_record.get('id') or 0), invitation_linking
+                )
                 new_employer_alert = {
                     'queued': True,
                     'status': 'pending',
                 }
             try:
-                _record_eures_visit_analytics_event('questionnaire_submitted', {
-                    'page': str(fields.get('source_page') or ''),
-                    'path': request.path,
-                    'lang': str(fields.get('ui_language') or ''),
-                    'role': str(fields.get('flow_role') or ''),
-                    'session_id': str(fields.get('analytics_session_id') or ''),
-                    'metadata': {
-                        'action': action,
-                        'record_id': saved_record.get('id'),
+                _record_eures_visit_analytics_event(
+                    'questionnaire_submitted',
+                    {
+                        'page': str(fields.get('source_page') or ''),
+                        'path': request.path,
+                        'lang': str(fields.get('ui_language') or ''),
+                        'role': str(fields.get('flow_role') or ''),
+                        'session_id': str(fields.get('analytics_session_id') or ''),
+                        'metadata': {
+                            'action': action,
+                            'record_id': saved_record.get('id'),
+                        },
                     },
-                })
+                )
             except Exception:
                 app.logger.error('EURES questionnaire submission analytics failed')
 
-        return jsonify({
-            'ok': True,
-            'action': action,
-            'uuid': uuid,
-            'record_key': record_key,
-            'record_id': saved_record.get('id'),
-            'matching': matching_result,
-            'no_match_notification': no_match_notification,
-            'new_job_request': new_job_request,
-            'new_employer_alert': new_employer_alert,
-            'invitation_linking': invitation_linking,
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'action': action,
+                    'uuid': uuid,
+                    'record_key': record_key,
+                    'record_id': saved_record.get('id'),
+                    'matching': matching_result,
+                    'no_match_notification': no_match_notification,
+                    'new_job_request': new_job_request,
+                    'new_employer_alert': new_employer_alert,
+                    'invitation_linking': invitation_linking,
+                }
+            ),
+            200,
+        )
     except Exception:
         logger.error('Unhandled error while handling request')
         return _client_error('Internal server error.', 500)
@@ -9200,7 +11286,12 @@ def export_readable_xlsx(form_id: str):
         logger.error('export_readable_xlsx: failed to build workbook')
         return _client_error('Could not build the export.', 500)
 
-    uuid = str(data.get('uuid') or (data.get('fields') or {}).get('uuid') or 'saisie').strip() or 'saisie'
+    uuid = (
+        str(
+            data.get('uuid') or (data.get('fields') or {}).get('uuid') or 'saisie'
+        ).strip()
+        or 'saisie'
+    )
     filename = f'fagerh_saisie_lisible_{uuid}.xlsx'
     return send_file(
         xlsx,
@@ -9217,9 +11308,14 @@ def check_finess(form_id: str):
     if proxied:
         return proxied
     if form_id == 'eures-beta':
-        return jsonify({
-            'error': 'Public FINESS lookup is disabled for this form.',
-        }), 403
+        return (
+            jsonify(
+                {
+                    'error': 'Public FINESS lookup is disabled for this form.',
+                }
+            ),
+            403,
+        )
     config = get_form_config(form_id)
     if not config:
         return jsonify({'error': f'Unknown form: {form_id}'}), 404
@@ -9238,11 +11334,16 @@ def check_finess(form_id: str):
 
     try:
         duplicates = sorted(find_duplicate_finess(config, uuid, finess_values, headers))
-        return jsonify({
-            'ok': True,
-            'duplicates': duplicates,
-            'has_duplicates': len(duplicates) > 0,
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'duplicates': duplicates,
+                    'has_duplicates': len(duplicates) > 0,
+                }
+            ),
+            200,
+        )
     except Exception:
         logger.error('Unhandled error while handling request')
         return _client_error('Internal server error.', 500)
@@ -9255,9 +11356,14 @@ def recover_by_email(form_id: str):
     if proxied:
         return proxied
     if form_id == 'eures-beta':
-        return jsonify({
-            'error': 'Public questionnaire recovery is disabled for this form.',
-        }), 403
+        return (
+            jsonify(
+                {
+                    'error': 'Public questionnaire recovery is disabled for this form.',
+                }
+            ),
+            403,
+        )
     config = get_form_config(form_id)
     if not config:
         return jsonify({'error': f'Unknown form: {form_id}'}), 404
@@ -9278,9 +11384,13 @@ def recover_by_email(form_id: str):
     try:
         # 1) Fast path: exact filter on the email column.
         filter_param = json.dumps({"validateur_email": [email]})
-        resp = requests.get(url, params={'filter': filter_param, 'limit': 5000}, headers=headers)
+        resp = requests.get(
+            url, params={'filter': filter_param, 'limit': 5000}, headers=headers
+        )
         if resp.status_code != 200:
-            logger.error('recover_by_email: Grist lookup failed: HTTP %s', resp.status_code)
+            logger.error(
+                'recover_by_email: Grist lookup failed: HTTP %s', resp.status_code
+            )
             return _client_error('Could not process the request.', 502)
         payload = resp.json()
         records = payload.get('records', [])
@@ -9300,7 +11410,10 @@ def recover_by_email(form_id: str):
         if not matches:
             scan_resp = requests.get(url, params={'limit': 5000}, headers=headers)
             if scan_resp.status_code != 200:
-                logger.error('recover_by_email: Grist scan failed: HTTP %s', scan_resp.status_code)
+                logger.error(
+                    'recover_by_email: Grist scan failed: HTTP %s',
+                    scan_resp.status_code,
+                )
                 return _client_error('Could not process the request.', 502)
             scan_payload = scan_resp.json()
             for rec in scan_payload.get('records', []):
@@ -9317,17 +11430,29 @@ def recover_by_email(form_id: str):
 
         if not matches:
             if finess:
-                return jsonify({'error': 'Aucun questionnaire trouvé pour ce couple email + FINESS.'}), 404
+                return (
+                    jsonify(
+                        {
+                            'error': 'Aucun questionnaire trouvé pour ce couple email + FINESS.'
+                        }
+                    ),
+                    404,
+                )
             return jsonify({'error': 'Aucun questionnaire trouvé pour cet email.'}), 404
 
         chosen = max(matches, key=lambda r: int(r.get('id', 0) or 0))
         chosen_fields = chosen.get('fields', {}) if isinstance(chosen, dict) else {}
-        return jsonify({
-            'ok': True,
-            'uuid': chosen_fields.get('uuid'),
-            'count': len(matches),
-            'match_on': 'email+finess' if finess else 'email',
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'uuid': chosen_fields.get('uuid'),
+                    'count': len(matches),
+                    'match_on': 'email+finess' if finess else 'email',
+                }
+            ),
+            200,
+        )
     except Exception:
         logger.error('Unhandled error while handling request')
         return _client_error('Internal server error.', 500)
@@ -9388,29 +11513,38 @@ def admin_overview(form_id: str):
         rows = [r for r in rows if r['saisie_terminee'] is want_done]
 
     if search:
+
         def _matches(r):
-            haystack = ' '.join([
-                str(r.get('es_nom', '')),
-                str(r.get('departement', '')),
-                str(r.get('finess_main', '')),
-                str(r.get('validateur_nom', '')),
-                str(r.get('validateur_prenom', '')),
-                str(r.get('validateur_email', '')),
-                str(r.get('uuid', '')),
-            ]).lower()
+            haystack = ' '.join(
+                [
+                    str(r.get('es_nom', '')),
+                    str(r.get('departement', '')),
+                    str(r.get('finess_main', '')),
+                    str(r.get('validateur_nom', '')),
+                    str(r.get('validateur_prenom', '')),
+                    str(r.get('validateur_email', '')),
+                    str(r.get('uuid', '')),
+                ]
+            ).lower()
             return search in haystack
+
         rows = [r for r in rows if _matches(r)]
 
-    return jsonify({
-        'ok': True,
-        'form_id': form_id,
-        'stats': {
-            'total_questionnaires': total,
-            'en_cours': en_cours,
-            'termines': termines,
-        },
-        'rows': rows,
-    }), 200
+    return (
+        jsonify(
+            {
+                'ok': True,
+                'form_id': form_id,
+                'stats': {
+                    'total_questionnaires': total,
+                    'en_cours': en_cours,
+                    'termines': termines,
+                },
+                'rows': rows,
+            }
+        ),
+        200,
+    )
 
 
 @app.route('/api/forms/<form_id>/admin/invitations', methods=['GET'])
@@ -9424,52 +11558,77 @@ def admin_eures_invitations(form_id: str):
         return jsonify({'error': f'Unknown invitation admin form: {form_id}'}), 404
 
     status = str(request.args.get('status', 'all') or 'all').strip().lower()
-    role = _normalize_eures_invitation_role(request.args.get('role', '')) if request.args.get('role') else ''
+    role = (
+        _normalize_eures_invitation_role(request.args.get('role', ''))
+        if request.args.get('role')
+        else ''
+    )
     search = str(request.args.get('search', '') or '').strip().lower()
 
     try:
         rows = list_eures_invitations()
         if status != 'all':
-            rows = [row for row in rows if str(row.get('invitation_status') or '') == status]
+            rows = [
+                row for row in rows if str(row.get('invitation_status') or '') == status
+            ]
         if role:
             rows = [row for row in rows if str(row.get('role') or '') == role]
         if search:
             rows = [
-                row for row in rows
-                if search in ' '.join([
-                    str(row.get('email') or ''),
-                    str(row.get('first_name') or ''),
-                    str(row.get('last_name') or ''),
-                    str(row.get('company_name') or ''),
-                    str(row.get('external_ref') or ''),
-                ]).lower()
+                row
+                for row in rows
+                if search
+                in ' '.join(
+                    [
+                        str(row.get('email') or ''),
+                        str(row.get('first_name') or ''),
+                        str(row.get('last_name') or ''),
+                        str(row.get('company_name') or ''),
+                        str(row.get('external_ref') or ''),
+                    ]
+                ).lower()
             ]
-        stats = Counter(row.get('invitation_status') or 'invitation_a_envoyer' for row in rows)
+        stats = Counter(
+            row.get('invitation_status') or 'invitation_a_envoyer' for row in rows
+        )
         reminder_due = sum(1 for row in rows if row.get('needs_reminder'))
         duplicate_followup_pending = sum(
-            1 for row in rows
-            if _normalize_eures_duplicate_followup_status(row.get('duplicate_followup_status', '')) == 'pending'
+            1
+            for row in rows
+            if _normalize_eures_duplicate_followup_status(
+                row.get('duplicate_followup_status', '')
+            )
+            == 'pending'
         )
         ready_to_send = sum(
-            1 for row in rows
+            1
+            for row in rows
             if str(row.get('invitation_status') or '') == 'invitation_a_envoyer'
-            and _normalize_eures_duplicate_followup_status(row.get('duplicate_followup_status', '')) != 'pending'
+            and _normalize_eures_duplicate_followup_status(
+                row.get('duplicate_followup_status', '')
+            )
+            != 'pending'
         )
-        return jsonify({
-            'ok': True,
-            'form_id': form_id,
-            'stats': {
-                'total': len(rows),
-                'invitation_a_envoyer': ready_to_send,
-                'invitation_envoyee': stats.get('invitation_envoyee', 0),
-                'questionnaire_recu': stats.get('questionnaire_recu', 0),
-                'rapprochee': stats.get('rapprochee', 0),
-                'erreur_envoi': stats.get('erreur_envoi', 0),
-                'reminder_due': reminder_due,
-                'duplicate_followup_pending': duplicate_followup_pending,
-            },
-            'rows': rows,
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'form_id': form_id,
+                    'stats': {
+                        'total': len(rows),
+                        'invitation_a_envoyer': ready_to_send,
+                        'invitation_envoyee': stats.get('invitation_envoyee', 0),
+                        'questionnaire_recu': stats.get('questionnaire_recu', 0),
+                        'rapprochee': stats.get('rapprochee', 0),
+                        'erreur_envoi': stats.get('erreur_envoi', 0),
+                        'reminder_due': reminder_due,
+                        'duplicate_followup_pending': duplicate_followup_pending,
+                    },
+                    'rows': rows,
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES invitations list failed')
         return _client_error('', 500)
@@ -9553,9 +11712,13 @@ def admin_eures_invitation_update(form_id: str, record_id: int):
     }:
         if field_name in data:
             if field_name == 'target_job_keys':
-                update_fields[field_name] = _serialize_eures_invitation_target_job_keys(data.get(field_name))
+                update_fields[field_name] = _serialize_eures_invitation_target_job_keys(
+                    data.get(field_name)
+                )
             elif field_name == 'campaign_type':
-                update_fields[field_name] = _normalize_eures_invitation_campaign_type(data.get(field_name))
+                update_fields[field_name] = _normalize_eures_invitation_campaign_type(
+                    data.get(field_name)
+                )
             else:
                 update_fields[field_name] = str(data.get(field_name) or '').strip()
 
@@ -9568,19 +11731,39 @@ def admin_eures_invitation_update(form_id: str, record_id: int):
 
     headers = _eures_admin_headers(config)
     try:
-        ensure_table_columns(config, set(update_fields.keys()) & EURES_INVITATION_FIELDS, headers)
+        ensure_table_columns(
+            config, set(update_fields.keys()) & EURES_INVITATION_FIELDS, headers
+        )
         allowed_columns = get_table_columns(config, headers)
-        filtered_fields = {k: v for k, v in update_fields.items() if k in allowed_columns}
+        filtered_fields = {
+            k: v for k, v in update_fields.items() if k in allowed_columns
+        }
         base_url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}/records"
-        resp = write_grist_records('PATCH', base_url, {'records': [{'id': record_id, 'fields': filtered_fields}]}, headers)
+        resp = write_grist_records(
+            'PATCH',
+            base_url,
+            {'records': [{'id': record_id, 'fields': filtered_fields}]},
+            headers,
+        )
         if resp.status_code != 200:
-            raise RuntimeError(f'Failed to update invitation: HTTP {resp.status_code} - {resp.text}')
-        updated = fetch_record_by_id(config['doc_id'], config['table_id'], record_id, headers)
-        return jsonify({
-            'ok': True,
-            'record_id': record_id,
-            'fields': updated.get('fields', {}) if isinstance(updated, dict) else {},
-        }), 200
+            raise RuntimeError(
+                f'Failed to update invitation: HTTP {resp.status_code} - {resp.text}'
+            )
+        updated = fetch_record_by_id(
+            config['doc_id'], config['table_id'], record_id, headers
+        )
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'record_id': record_id,
+                    'fields': (
+                        updated.get('fields', {}) if isinstance(updated, dict) else {}
+                    ),
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES invitation update failed')
         return _client_error('', 500)
@@ -9602,14 +11785,29 @@ def admin_eures_invitation_delete(form_id: str, record_id: int):
 
     headers = _eures_admin_headers(config)
     try:
-        existing = fetch_record_by_id(config['doc_id'], config['table_id'], record_id, headers)
+        existing = fetch_record_by_id(
+            config['doc_id'], config['table_id'], record_id, headers
+        )
         if not existing:
             return jsonify({'error': 'Invitation not found'}), 404
-        fields = existing.get('fields', {}) if isinstance(existing.get('fields'), dict) else {}
+        fields = (
+            existing.get('fields', {})
+            if isinstance(existing.get('fields'), dict)
+            else {}
+        )
         current_status = str(fields.get('invitation_status') or '').strip().lower()
-        followup_status = _normalize_eures_duplicate_followup_status(fields.get('duplicate_followup_status', ''))
+        followup_status = _normalize_eures_duplicate_followup_status(
+            fields.get('duplicate_followup_status', '')
+        )
         if current_status != 'erreur_envoi' and followup_status != 'pending':
-            return jsonify({'error': "Seules les invitations en erreur d'envoi ou les doublons à arbitrer peuvent être supprimés."}), 400
+            return (
+                jsonify(
+                    {
+                        'error': "Seules les invitations en erreur d'envoi ou les doublons à arbitrer peuvent être supprimés."
+                    }
+                ),
+                400,
+            )
 
         delete_eures_invitation_record_by_id(record_id, headers=headers)
         app.logger.info(
@@ -9621,17 +11819,25 @@ def admin_eures_invitation_delete(form_id: str, record_id: int):
                 'duplicate_followup_status': followup_status,
             },
         )
-        return jsonify({
-            'ok': True,
-            'record_id': record_id,
-            'deleted': True,
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'record_id': record_id,
+                    'deleted': True,
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES invitation delete failed')
         return _client_error('', 500)
 
 
-@app.route('/api/forms/<form_id>/admin/invitations/<int:record_id>/duplicate-followup', methods=['POST'])
+@app.route(
+    '/api/forms/<form_id>/admin/invitations/<int:record_id>/duplicate-followup',
+    methods=['POST'],
+)
 @admin_required
 def admin_eures_invitation_duplicate_followup(form_id: str, record_id: int):
     """Admin API: accept or ignore one duplicate invitation follow-up."""
@@ -9639,7 +11845,10 @@ def admin_eures_invitation_duplicate_followup(form_id: str, record_id: int):
     if proxied:
         return proxied
     if form_id != 'eures-beta':
-        return jsonify({'error': f'Unknown duplicate follow-up admin form: {form_id}'}), 404
+        return (
+            jsonify({'error': f'Unknown duplicate follow-up admin form: {form_id}'}),
+            404,
+        )
 
     data = request.get_json() or {}
     action = str(data.get('action') or '').strip().lower()
@@ -9654,32 +11863,63 @@ def admin_eures_invitation_duplicate_followup(form_id: str, record_id: int):
     headers = _eures_admin_headers(config)
     actor = get_admin_actor(form_id)
     try:
-        current = fetch_record_by_id(config['doc_id'], config['table_id'], record_id, headers)
+        current = fetch_record_by_id(
+            config['doc_id'], config['table_id'], record_id, headers
+        )
         if not current:
             return jsonify({'error': 'Invitation introuvable'}), 404
-        fields = current.get('fields', {}) if isinstance(current.get('fields'), dict) else {}
-        followup_status = _normalize_eures_duplicate_followup_status(fields.get('duplicate_followup_status', ''))
+        fields = (
+            current.get('fields', {}) if isinstance(current.get('fields'), dict) else {}
+        )
+        followup_status = _normalize_eures_duplicate_followup_status(
+            fields.get('duplicate_followup_status', '')
+        )
         if followup_status != 'pending':
-            return jsonify({'error': 'Cette proposition de relance a déjà été traitée.'}), 400
+            return (
+                jsonify({'error': 'Cette proposition de relance a déjà été traitée.'}),
+                400,
+            )
 
         target_type = str(fields.get('duplicate_followup_type') or '').strip().lower()
         target_record_id = int(fields.get('duplicate_followup_target_record_id') or 0)
         result = {'action': action}
         if action == 'remind':
             if target_type != 'existing_invitation' or not target_record_id:
-                return jsonify({'error': 'Aucune invitation existante ne peut être relancée pour cette adresse.'}), 400
-            result['reminder'] = send_eures_invitation_reminder_by_record_id(target_record_id, actor, headers=headers)
-            clear_eures_duplicate_followup(record_id, actor, status='reminded', note=note, headers=headers)
+                return (
+                    jsonify(
+                        {
+                            'error': 'Aucune invitation existante ne peut être relancée pour cette adresse.'
+                        }
+                    ),
+                    400,
+                )
+            result['reminder'] = send_eures_invitation_reminder_by_record_id(
+                target_record_id, actor, headers=headers
+            )
+            clear_eures_duplicate_followup(
+                record_id, actor, status='reminded', note=note, headers=headers
+            )
         else:
-            clear_eures_duplicate_followup(record_id, actor, status='ignored', note=note, headers=headers)
+            clear_eures_duplicate_followup(
+                record_id, actor, status='ignored', note=note, headers=headers
+            )
 
-        updated = fetch_record_by_id(config['doc_id'], config['table_id'], record_id, headers)
-        return jsonify({
-            'ok': True,
-            'record_id': record_id,
-            'result': result,
-            'fields': updated.get('fields', {}) if isinstance(updated, dict) else {},
-        }), 200
+        updated = fetch_record_by_id(
+            config['doc_id'], config['table_id'], record_id, headers
+        )
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'record_id': record_id,
+                    'result': result,
+                    'fields': (
+                        updated.get('fields', {}) if isinstance(updated, dict) else {}
+                    ),
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES duplicate follow-up update failed')
         return _client_error('', 500)
@@ -9699,7 +11939,10 @@ def admin_eures_invitations_send(form_id: str):
     requested_ids = data.get('record_ids') or []
     force_resend = bool(data.get('force_resend'))
     try:
-        requested_batch_limit = int(data.get('batch_limit') or os.environ.get('EURES_INVITATION_SEND_BATCH_LIMIT', '50'))
+        requested_batch_limit = int(
+            data.get('batch_limit')
+            or os.environ.get('EURES_INVITATION_SEND_BATCH_LIMIT', '50')
+        )
     except Exception:
         requested_batch_limit = 50
     batch_limit = max(1, min(requested_batch_limit, 100))
@@ -9716,35 +11959,46 @@ def admin_eures_invitations_send(form_id: str):
         records = fetch_table_records(config['doc_id'], config['table_id'], headers)
         if requested_ids:
             requested_ids_set = {int(value) for value in requested_ids}
-            target_records = [rec for rec in records if int(rec.get('id') or 0) in requested_ids_set]
+            target_records = [
+                rec for rec in records if int(rec.get('id') or 0) in requested_ids_set
+            ]
         else:
             target_records = []
             for rec in records:
                 fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
-                if str(fields.get('invitation_status') or '').strip().lower() == 'invitation_a_envoyer':
+                if (
+                    str(fields.get('invitation_status') or '').strip().lower()
+                    == 'invitation_a_envoyer'
+                ):
                     target_records.append(rec)
 
         total_target_records = len(target_records)
         remaining_after_batch = max(total_target_records - batch_limit, 0)
         target_records = target_records[:batch_limit]
-        conflict_indexes = build_eures_invitation_conflict_indexes(records, target_records, headers)
+        conflict_indexes = build_eures_invitation_conflict_indexes(
+            records, target_records, headers
+        )
 
         sent = []
         skipped = []
         errors = []
         for rec in target_records:
             record_id = int(rec.get('id') or 0)
-            fields = rec.get('fields', {}) if isinstance(rec.get('fields'), dict) else {}
+            fields = (
+                rec.get('fields', {}) if isinstance(rec.get('fields'), dict) else {}
+            )
             current_status = str(fields.get('invitation_status') or '').strip().lower()
             sendable_statuses = EURES_INVITATION_SENDABLE_STATUSES
             if force_resend and requested_ids:
                 sendable_statuses = EURES_INVITATION_ALLOWED_STATUSES - {'desactivee'}
             if current_status not in sendable_statuses:
-                skipped.append({
-                    'record_id': record_id,
-                    'email': fields.get('email', ''),
-                    'reason': f'status_not_sendable:{current_status or "unknown"}',
-                })
+                skipped.append(
+                    {
+                        'record_id': record_id,
+                        'email': fields.get('email', ''),
+                        'reason': f'status_not_sendable:{current_status or "unknown"}',
+                    }
+                )
                 continue
             send_conflict = check_eures_invitation_send_conflict_from_indexes(
                 fields.get('role', ''),
@@ -9763,63 +12017,90 @@ def admin_eures_invitations_send(form_id: str):
                     actor=actor,
                     headers=headers,
                 )
-                skipped.append({
-                    'record_id': record_id,
-                    'email': fields.get('email', ''),
-                    'reason': send_conflict['type'],
-                    'message': send_conflict['message'],
-                    'conflict_record_id': send_conflict['record_id'],
-                    'conflict_status': send_conflict['status'],
-                    'followup_created': True,
-                })
+                skipped.append(
+                    {
+                        'record_id': record_id,
+                        'email': fields.get('email', ''),
+                        'reason': send_conflict['type'],
+                        'message': send_conflict['message'],
+                        'conflict_record_id': send_conflict['record_id'],
+                        'conflict_status': send_conflict['status'],
+                        'followup_created': True,
+                    }
+                )
                 continue
             try:
-                recipient, subject, text_body, html_body, invite_token, invite_link = build_brevo_invitation_email(fields)
-                brevo_result = send_brevo_transactional_email(recipient, subject, text_body, html_body)
-                update_eures_invitation_record_by_id(record_id, {
-                    'invite_token': invite_token,
-                    'invite_link': invite_link,
-                    'invitation_status': 'invitation_envoyee',
-                    'invitation_status_updated_at': _now_iso_utc(),
-                    'invitation_status_updated_by': actor,
-                    'sent_at': _now_iso_utc(),
-                    'sent_by': actor,
-                    'brevo_message_id': str((brevo_result or {}).get('messageId') or ''),
-                }, headers=headers)
-                sent.append({
-                    'record_id': record_id,
-                    'email': recipient,
-                    'brevo_message_id': str((brevo_result or {}).get('messageId') or ''),
-                    'force_resend': force_resend,
-                })
-            except Exception as e:
-                error_message = 'Upstream operation failed.'
-                errors.append({
-                    'record_id': record_id,
-                    'email': fields.get('email', ''),
-                    'error': error_message,
-                })
-                try:
-                    update_eures_invitation_record_by_id(record_id, {
-                        'invitation_status': 'erreur_envoi',
+                recipient, subject, text_body, html_body, invite_token, invite_link = (
+                    build_brevo_invitation_email(fields)
+                )
+                brevo_result = send_brevo_transactional_email(
+                    recipient, subject, text_body, html_body
+                )
+                update_eures_invitation_record_by_id(
+                    record_id,
+                    {
+                        'invite_token': invite_token,
+                        'invite_link': invite_link,
+                        'invitation_status': 'invitation_envoyee',
                         'invitation_status_updated_at': _now_iso_utc(),
                         'invitation_status_updated_by': actor,
-                        'notes': error_message[:500],
-                    }, headers=headers)
+                        'sent_at': _now_iso_utc(),
+                        'sent_by': actor,
+                        'brevo_message_id': str(
+                            (brevo_result or {}).get('messageId') or ''
+                        ),
+                    },
+                    headers=headers,
+                )
+                sent.append(
+                    {
+                        'record_id': record_id,
+                        'email': recipient,
+                        'brevo_message_id': str(
+                            (brevo_result or {}).get('messageId') or ''
+                        ),
+                        'force_resend': force_resend,
+                    }
+                )
+            except Exception as e:
+                error_message = 'Upstream operation failed.'
+                errors.append(
+                    {
+                        'record_id': record_id,
+                        'email': fields.get('email', ''),
+                        'error': error_message,
+                    }
+                )
+                try:
+                    update_eures_invitation_record_by_id(
+                        record_id,
+                        {
+                            'invitation_status': 'erreur_envoi',
+                            'invitation_status_updated_at': _now_iso_utc(),
+                            'invitation_status_updated_by': actor,
+                            'notes': error_message[:500],
+                        },
+                        headers=headers,
+                    )
                 except Exception:
                     app.logger.error('EURES invitation error status update failed')
 
-        return jsonify({
-            'ok': True,
-            'requested': total_target_records,
-            'processed': len(target_records),
-            'batch_limit': batch_limit,
-            'remaining_after_batch': remaining_after_batch,
-            'force_resend': force_resend,
-            'sent': sent,
-            'skipped': skipped,
-            'errors': errors,
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'requested': total_target_records,
+                    'processed': len(target_records),
+                    'batch_limit': batch_limit,
+                    'remaining_after_batch': remaining_after_batch,
+                    'force_resend': force_resend,
+                    'sent': sent,
+                    'skipped': skipped,
+                    'errors': errors,
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES invitations send failed')
         return _client_error('', 500)
@@ -9849,11 +12130,15 @@ def admin_eures_invitations_remind(form_id: str):
     try:
         ensure_table_columns(config, EURES_INVITATION_FIELDS, headers)
         records = fetch_table_records(config['doc_id'], config['table_id'], headers)
-        requested_ids_set = {int(value) for value in requested_ids} if requested_ids else set()
+        requested_ids_set = (
+            {int(value) for value in requested_ids} if requested_ids else set()
+        )
         target_records = []
         for rec in records:
             record_id = int(rec.get('id') or 0)
-            fields = rec.get('fields', {}) if isinstance(rec.get('fields'), dict) else {}
+            fields = (
+                rec.get('fields', {}) if isinstance(rec.get('fields'), dict) else {}
+            )
             if requested_ids_set and record_id not in requested_ids_set:
                 continue
             if not requested_ids_set and not _eures_invitation_needs_reminder(fields):
@@ -9865,45 +12150,64 @@ def admin_eures_invitations_remind(form_id: str):
         errors = []
         for rec in target_records:
             record_id = int(rec.get('id') or 0)
-            fields = rec.get('fields', {}) if isinstance(rec.get('fields'), dict) else {}
+            fields = (
+                rec.get('fields', {}) if isinstance(rec.get('fields'), dict) else {}
+            )
             current_status = str(fields.get('invitation_status') or '').strip().lower()
             if current_status != 'invitation_envoyee':
-                skipped.append({
-                    'record_id': record_id,
-                    'email': fields.get('email', ''),
-                    'reason': f'status_not_remindable:{current_status or "unknown"}',
-                })
+                skipped.append(
+                    {
+                        'record_id': record_id,
+                        'email': fields.get('email', ''),
+                        'reason': f'status_not_remindable:{current_status or "unknown"}',
+                    }
+                )
                 continue
             if str(fields.get('answered_at') or '').strip():
-                skipped.append({
-                    'record_id': record_id,
-                    'email': fields.get('email', ''),
-                    'reason': 'already_answered',
-                })
+                skipped.append(
+                    {
+                        'record_id': record_id,
+                        'email': fields.get('email', ''),
+                        'reason': 'already_answered',
+                    }
+                )
                 continue
             if _is_manual_ft_invitation(fields):
-                skipped.append({
-                    'record_id': record_id,
-                    'email': fields.get('email', ''),
-                    'reason': 'manual_ft_email',
-                })
+                skipped.append(
+                    {
+                        'record_id': record_id,
+                        'email': fields.get('email', ''),
+                        'reason': 'manual_ft_email',
+                    }
+                )
                 continue
             try:
-                reminded.append(send_eures_invitation_reminder_by_record_id(record_id, actor, headers=headers))
+                reminded.append(
+                    send_eures_invitation_reminder_by_record_id(
+                        record_id, actor, headers=headers
+                    )
+                )
             except Exception as e:
-                errors.append({
-                    'record_id': record_id,
-                    'email': fields.get('email', ''),
-                    'error': _safe_error_message(502),
-                })
+                errors.append(
+                    {
+                        'record_id': record_id,
+                        'email': fields.get('email', ''),
+                        'error': _safe_error_message(502),
+                    }
+                )
 
-        return jsonify({
-            'ok': True,
-            'requested': len(target_records),
-            'reminded': reminded,
-            'skipped': skipped,
-            'errors': errors,
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'requested': len(target_records),
+                    'reminded': reminded,
+                    'skipped': skipped,
+                    'errors': errors,
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES invitations remind failed')
         return _client_error('', 500)
@@ -9920,11 +12224,16 @@ def admin_eures_cockpit(form_id: str):
         return jsonify({'error': f'Unknown cockpit admin form: {form_id}'}), 404
 
     try:
-        return jsonify({
-            'ok': True,
-            'form_id': form_id,
-            'cockpit': build_eures_cockpit_summary(),
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'form_id': form_id,
+                    'cockpit': build_eures_cockpit_summary(),
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES cockpit summary failed')
         return _client_error('', 500)
@@ -9947,17 +12256,22 @@ def admin_eures_tasks(form_id: str):
     try:
         rows = build_eures_admin_tasks(status=status)
         stats = Counter(str(row.get('status') or 'pending') for row in rows)
-        return jsonify({
-            'ok': True,
-            'form_id': form_id,
-            'stats': {
-                'total': len(rows),
-                'pending': stats.get('pending', 0),
-                'done': stats.get('done', 0),
-                'dismissed': stats.get('dismissed', 0),
-            },
-            'rows': rows,
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'form_id': form_id,
+                    'stats': {
+                        'total': len(rows),
+                        'pending': stats.get('pending', 0),
+                        'done': stats.get('done', 0),
+                        'dismissed': stats.get('dismissed', 0),
+                    },
+                    'rows': rows,
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES tasks list failed')
         return _client_error('', 500)
@@ -9979,18 +12293,25 @@ def admin_eures_questionnaire_responses(form_id: str, role: str):
 
     try:
         rows = list_eures_admin_questionnaire_responses(normalized_role)
-        stats = Counter('active' if row.get('is_active') else 'disabled' for row in rows)
-        return jsonify({
-            'ok': True,
-            'form_id': form_id,
-            'role': normalized_role,
-            'stats': {
-                'total': len(rows),
-                'active': stats.get('active', 0),
-                'disabled': stats.get('disabled', 0),
-            },
-            'rows': rows,
-        }), 200
+        stats = Counter(
+            'active' if row.get('is_active') else 'disabled' for row in rows
+        )
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'form_id': form_id,
+                    'role': normalized_role,
+                    'stats': {
+                        'total': len(rows),
+                        'active': stats.get('active', 0),
+                        'disabled': stats.get('disabled', 0),
+                    },
+                    'rows': rows,
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES questionnaire response list failed')
         return _client_error('', 500)
@@ -10008,20 +12329,28 @@ def admin_eures_employers(form_id: str):
 
     try:
         rows = build_eures_admin_employers()
-        return jsonify({
-            'ok': True,
-            'form_id': form_id,
-            'stats': {
-                'total': len(rows),
-            },
-            'rows': rows,
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'form_id': form_id,
+                    'stats': {
+                        'total': len(rows),
+                    },
+                    'rows': rows,
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES employers list failed')
         return _client_error('', 500)
 
 
-@app.route('/api/forms/<form_id>/admin/questionnaires/<role>/<int:record_id>/cv', methods=['GET'])
+@app.route(
+    '/api/forms/<form_id>/admin/questionnaires/<role>/<int:record_id>/cv',
+    methods=['GET'],
+)
 @admin_required
 def admin_eures_questionnaire_response_cv(form_id: str, role: str, record_id: int):
     """Admin API: download one stored candidate CV."""
@@ -10041,13 +12370,19 @@ def admin_eures_questionnaire_response_cv(form_id: str, role: str, record_id: in
 
     headers = _eures_admin_headers(config)
     try:
-        record = fetch_record_by_id(config['doc_id'], config['table_id'], record_id, headers)
+        record = fetch_record_by_id(
+            config['doc_id'], config['table_id'], record_id, headers
+        )
         if not record:
             return jsonify({'error': 'Réponse introuvable'}), 404
-        fields = record.get('fields', {}) if isinstance(record.get('fields'), dict) else {}
+        fields = (
+            record.get('fields', {}) if isinstance(record.get('fields'), dict) else {}
+        )
         cv_base64 = str(fields.get('cv_file_base64') or '').strip()
         cv_name = str(fields.get('cv_file_name') or '').strip() or 'cv-candidat'
-        cv_mime = str(fields.get('cv_file_mime') or '').strip() or 'application/octet-stream'
+        cv_mime = (
+            str(fields.get('cv_file_mime') or '').strip() or 'application/octet-stream'
+        )
         if not cv_base64:
             return jsonify({'error': 'Aucun CV disponible pour cette réponse.'}), 404
         try:
@@ -10065,7 +12400,10 @@ def admin_eures_questionnaire_response_cv(form_id: str, role: str, record_id: in
         return _client_error('', 500)
 
 
-@app.route('/api/forms/<form_id>/admin/questionnaires/<role>/<int:record_id>/status', methods=['POST'])
+@app.route(
+    '/api/forms/<form_id>/admin/questionnaires/<role>/<int:record_id>/status',
+    methods=['POST'],
+)
 @admin_required
 def admin_eures_questionnaire_response_status(form_id: str, role: str, record_id: int):
     """Admin API: activate or disable one candidate/employer response."""
@@ -10092,7 +12430,9 @@ def admin_eures_questionnaire_response_status(form_id: str, role: str, record_id
     headers = _eures_admin_headers(config)
     actor = get_admin_actor(form_id)
     try:
-        record = fetch_record_by_id(config['doc_id'], config['table_id'], record_id, headers)
+        record = fetch_record_by_id(
+            config['doc_id'], config['table_id'], record_id, headers
+        )
         if not record:
             return jsonify({'error': 'Réponse introuvable'}), 404
         update_fields = {
@@ -10103,23 +12443,38 @@ def admin_eures_questionnaire_response_status(form_id: str, role: str, record_id
             'response_disabled_at': _now_iso_utc() if status == 'disabled' else '',
             'response_disabled_by': actor if status == 'disabled' else '',
         }
-        update_table_record_by_id(config, record_id, update_fields, headers, EURES_RESPONSE_ADMIN_FIELDS)
+        update_table_record_by_id(
+            config, record_id, update_fields, headers, EURES_RESPONSE_ADMIN_FIELDS
+        )
         app.logger.info(
             'EURES questionnaire response status updated',
-            extra={'form_id': form_id, 'role': normalized_role, 'record_id': record_id, 'status': status},
+            extra={
+                'form_id': form_id,
+                'role': normalized_role,
+                'record_id': record_id,
+                'status': status,
+            },
         )
-        return jsonify({
-            'ok': True,
-            'record_id': record_id,
-            'role': normalized_role,
-            'status': status,
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'record_id': record_id,
+                    'role': normalized_role,
+                    'status': status,
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES questionnaire response status update failed')
         return _client_error('', 500)
 
 
-@app.route('/api/forms/<form_id>/admin/questionnaires/<role>/<int:record_id>', methods=['DELETE'])
+@app.route(
+    '/api/forms/<form_id>/admin/questionnaires/<role>/<int:record_id>',
+    methods=['DELETE'],
+)
 @admin_required
 def admin_eures_questionnaire_response_delete(form_id: str, role: str, record_id: int):
     """Admin API: delete one candidate/employer response and related matchings."""
@@ -10139,24 +12494,40 @@ def admin_eures_questionnaire_response_delete(form_id: str, role: str, record_id
 
     headers = _eures_admin_headers(config)
     try:
-        record = fetch_record_by_id(config['doc_id'], config['table_id'], record_id, headers)
+        record = fetch_record_by_id(
+            config['doc_id'], config['table_id'], record_id, headers
+        )
         if not record:
             return jsonify({'error': 'Réponse introuvable'}), 404
-        fields = record.get('fields', {}) if isinstance(record.get('fields'), dict) else {}
+        fields = (
+            record.get('fields', {}) if isinstance(record.get('fields'), dict) else {}
+        )
         response_key = str(fields.get('id_tally') or fields.get('uuid') or '').strip()
-        deleted_matchings = delete_matching_records_for_response(normalized_role, response_key)
+        deleted_matchings = delete_matching_records_for_response(
+            normalized_role, response_key
+        )
         delete_table_record_by_id(config, record_id, headers)
         app.logger.info(
             'EURES questionnaire response deleted',
-            extra={'form_id': form_id, 'role': normalized_role, 'record_id': record_id, 'deleted_matchings': deleted_matchings},
+            extra={
+                'form_id': form_id,
+                'role': normalized_role,
+                'record_id': record_id,
+                'deleted_matchings': deleted_matchings,
+            },
         )
-        return jsonify({
-            'ok': True,
-            'record_id': record_id,
-            'role': normalized_role,
-            'deleted': True,
-            'deleted_matchings': deleted_matchings,
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'record_id': record_id,
+                    'role': normalized_role,
+                    'deleted': True,
+                    'deleted_matchings': deleted_matchings,
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES questionnaire response delete failed')
         return _client_error('', 500)
@@ -10179,23 +12550,30 @@ def admin_eures_no_match(form_id: str):
     try:
         rows = list_eures_admin_no_match_notifications(status=status)
         stats = Counter(row['notification_status'] for row in rows)
-        return jsonify({
-            'ok': True,
-            'form_id': form_id,
-            'stats': {
-                'total': len(rows),
-                'pending': stats.get('pending', 0),
-                'sent': stats.get('sent', 0),
-                'dismissed': stats.get('dismissed', 0),
-            },
-            'rows': rows,
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'form_id': form_id,
+                    'stats': {
+                        'total': len(rows),
+                        'pending': stats.get('pending', 0),
+                        'sent': stats.get('sent', 0),
+                        'dismissed': stats.get('dismissed', 0),
+                    },
+                    'rows': rows,
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES no-match list failed')
         return _client_error('', 500)
 
 
-@app.route('/api/forms/<form_id>/admin/no-match/<role>/<int:record_id>/send', methods=['POST'])
+@app.route(
+    '/api/forms/<form_id>/admin/no-match/<role>/<int:record_id>/send', methods=['POST']
+)
 @admin_required
 def admin_eures_no_match_send(form_id: str, role: str, record_id: int):
     """Admin API: send one no-match follow-up email."""
@@ -10219,17 +12597,25 @@ def admin_eures_no_match_send(form_id: str, role: str, record_id: int):
     actor = get_admin_actor(form_id)
     try:
         ensure_brevo_ready(check_api=True)
-        record = fetch_record_by_id(config['doc_id'], config['table_id'], record_id, headers)
+        record = fetch_record_by_id(
+            config['doc_id'], config['table_id'], record_id, headers
+        )
         row = _build_eures_no_match_row(normalized_role, record or {})
         if not row:
             return jsonify({'error': 'No-match entry not found'}), 404
         row['note'] = note
 
         if normalized_role == 'candidate':
-            recipient, subject, text_body, html_body = build_brevo_candidate_no_match_email(row)
+            recipient, subject, text_body, html_body = (
+                build_brevo_candidate_no_match_email(row)
+            )
         else:
-            recipient, subject, text_body, html_body = build_brevo_employer_no_match_email(row)
-        brevo_result = send_brevo_transactional_email(recipient, subject, text_body, html_body)
+            recipient, subject, text_body, html_body = (
+                build_brevo_employer_no_match_email(row)
+            )
+        brevo_result = send_brevo_transactional_email(
+            recipient, subject, text_body, html_body
+        )
 
         update_table_record_by_id(
             config,
@@ -10245,22 +12631,35 @@ def admin_eures_no_match_send(form_id: str, role: str, record_id: int):
         )
         app.logger.info(
             'EURES no-match notification sent',
-            extra={'form_id': form_id, 'role': normalized_role, 'record_id': record_id, 'to_email': recipient},
+            extra={
+                'form_id': form_id,
+                'role': normalized_role,
+                'record_id': record_id,
+                'to_email': recipient,
+            },
         )
-        return jsonify({
-            'ok': True,
-            'record_id': record_id,
-            'role': normalized_role,
-            'notification_status': 'sent',
-            'email': recipient,
-            'email_result': brevo_result,
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'record_id': record_id,
+                    'role': normalized_role,
+                    'notification_status': 'sent',
+                    'email': recipient,
+                    'email_result': brevo_result,
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES no-match notification send failed')
         return _client_error('', 500)
 
 
-@app.route('/api/forms/<form_id>/admin/no-match/<role>/<int:record_id>/dismiss', methods=['POST'])
+@app.route(
+    '/api/forms/<form_id>/admin/no-match/<role>/<int:record_id>/dismiss',
+    methods=['POST'],
+)
 @admin_required
 def admin_eures_no_match_dismiss(form_id: str, role: str, record_id: int):
     """Admin API: dismiss one no-match follow-up without sending email."""
@@ -10299,12 +12698,17 @@ def admin_eures_no_match_dismiss(form_id: str, role: str, record_id: int):
             'EURES no-match notification dismissed',
             extra={'form_id': form_id, 'role': normalized_role, 'record_id': record_id},
         )
-        return jsonify({
-            'ok': True,
-            'record_id': record_id,
-            'role': normalized_role,
-            'notification_status': 'dismissed',
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'record_id': record_id,
+                    'role': normalized_role,
+                    'notification_status': 'dismissed',
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES no-match notification dismiss failed')
         return _client_error('', 500)
@@ -10327,23 +12731,31 @@ def admin_eures_new_job_requests(form_id: str):
     try:
         rows = list_eures_admin_new_job_requests(status=status)
         stats = Counter(row['request_status'] for row in rows)
-        return jsonify({
-            'ok': True,
-            'form_id': form_id,
-            'stats': {
-                'total': len(rows),
-                'pending': stats.get('pending', 0),
-                'processed': stats.get('processed', 0),
-                'dismissed': stats.get('dismissed', 0),
-            },
-            'rows': rows,
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'form_id': form_id,
+                    'stats': {
+                        'total': len(rows),
+                        'pending': stats.get('pending', 0),
+                        'processed': stats.get('processed', 0),
+                        'dismissed': stats.get('dismissed', 0),
+                    },
+                    'rows': rows,
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES new job requests list failed')
         return _client_error('', 500)
 
 
-@app.route('/api/forms/<form_id>/admin/new-job-requests/<int:record_id>/status', methods=['POST'])
+@app.route(
+    '/api/forms/<form_id>/admin/new-job-requests/<int:record_id>/status',
+    methods=['POST'],
+)
 @admin_required
 def admin_eures_new_job_request_status(form_id: str, record_id: int):
     """Admin API: mark one employer new-job request as processed or dismissed."""
@@ -10382,17 +12794,25 @@ def admin_eures_new_job_request_status(form_id: str, record_id: int):
             'EURES new job request status updated',
             extra={'form_id': form_id, 'record_id': record_id, 'status': status},
         )
-        return jsonify({
-            'ok': True,
-            'record_id': record_id,
-            'status': status,
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'record_id': record_id,
+                    'status': status,
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES new job request status update failed')
         return _client_error('', 500)
 
 
-@app.route('/api/forms/<form_id>/admin/new-employer-alerts/<int:record_id>/status', methods=['POST'])
+@app.route(
+    '/api/forms/<form_id>/admin/new-employer-alerts/<int:record_id>/status',
+    methods=['POST'],
+)
 @admin_required
 def admin_eures_new_employer_alert_status(form_id: str, record_id: int):
     """Admin API: mark one newly referred employer alert as reviewed or dismissed."""
@@ -10431,11 +12851,16 @@ def admin_eures_new_employer_alert_status(form_id: str, record_id: int):
             'EURES new employer alert status updated',
             extra={'form_id': form_id, 'record_id': record_id, 'status': status},
         )
-        return jsonify({
-            'ok': True,
-            'record_id': record_id,
-            'status': status,
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'record_id': record_id,
+                    'status': status,
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES new employer alert status update failed')
         return _client_error('', 500)
@@ -10458,17 +12883,22 @@ def admin_eures_matchings(form_id: str):
     try:
         rows = list_eures_admin_matchings(status=status)
         stats = Counter(row['admin_status'] for row in rows)
-        return jsonify({
-            'ok': True,
-            'form_id': form_id,
-            'stats': {
-                'total': len(rows),
-                'pending': stats.get('pending', 0),
-                'accepted': stats.get('accepted', 0),
-                'refused': stats.get('refused', 0),
-            },
-            'rows': rows,
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'form_id': form_id,
+                    'stats': {
+                        'total': len(rows),
+                        'pending': stats.get('pending', 0),
+                        'accepted': stats.get('accepted', 0),
+                        'refused': stats.get('refused', 0),
+                    },
+                    'rows': rows,
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES admin matchings list failed')
         return _client_error('', 500)
@@ -10497,7 +12927,10 @@ def admin_eures_manual_matching(form_id: str):
     candidate_config = get_form_config('eures-beta', 'candidate')
     employer_config = get_form_config('eures-beta', 'employer')
     if not matching_config or not candidate_config or not employer_config:
-        return jsonify({'error': 'EURES beta matching configuration is incomplete.'}), 500
+        return (
+            jsonify({'error': 'EURES beta matching configuration is incomplete.'}),
+            500,
+        )
 
     headers = _eures_admin_headers(matching_config)
     candidate_headers = _eures_admin_headers(candidate_config)
@@ -10507,23 +12940,62 @@ def admin_eures_manual_matching(form_id: str):
     try:
         if send_directly:
             ensure_brevo_ready(check_api=True)
-        candidat_record = fetch_record_by_id(candidate_config['doc_id'], EURES_CANDIDATS_TABLE, candidat_record_id, candidate_headers)
-        employeur_record = fetch_record_by_id(employer_config['doc_id'], EURES_BESOINS_TABLE, employeur_record_id, employer_headers)
+        candidat_record = fetch_record_by_id(
+            candidate_config['doc_id'],
+            EURES_CANDIDATS_TABLE,
+            candidat_record_id,
+            candidate_headers,
+        )
+        employeur_record = fetch_record_by_id(
+            employer_config['doc_id'],
+            EURES_BESOINS_TABLE,
+            employeur_record_id,
+            employer_headers,
+        )
         if not candidat_record:
             return jsonify({'error': 'Candidate record not found'}), 404
         if not employeur_record:
             return jsonify({'error': 'Employer record not found'}), 404
 
-        candidat_fields = candidat_record.get('fields', {}) if isinstance(candidat_record.get('fields'), dict) else {}
-        employeur_fields = employeur_record.get('fields', {}) if isinstance(employeur_record.get('fields'), dict) else {}
+        candidat_fields = (
+            candidat_record.get('fields', {})
+            if isinstance(candidat_record.get('fields'), dict)
+            else {}
+        )
+        employeur_fields = (
+            employeur_record.get('fields', {})
+            if isinstance(employeur_record.get('fields'), dict)
+            else {}
+        )
         if not _is_eures_response_active(candidat_fields):
-            return jsonify({'error': 'Le candidat sélectionné est désactivé et ne peut pas être utilisé pour un matching.'}), 400
+            return (
+                jsonify(
+                    {
+                        'error': 'Le candidat sélectionné est désactivé et ne peut pas être utilisé pour un matching.'
+                    }
+                ),
+                400,
+            )
         if not _is_eures_response_active(employeur_fields):
-            return jsonify({'error': "Le besoin employeur sélectionné est désactivé et ne peut pas être utilisé pour un matching."}), 400
-        candidat_id = str(candidat_fields.get('id_tally') or candidat_fields.get('uuid') or '').strip()
-        besoin_id = str(employeur_fields.get('id_tally') or employeur_fields.get('uuid') or '').strip()
+            return (
+                jsonify(
+                    {
+                        'error': "Le besoin employeur sélectionné est désactivé et ne peut pas être utilisé pour un matching."
+                    }
+                ),
+                400,
+            )
+        candidat_id = str(
+            candidat_fields.get('id_tally') or candidat_fields.get('uuid') or ''
+        ).strip()
+        besoin_id = str(
+            employeur_fields.get('id_tally') or employeur_fields.get('uuid') or ''
+        ).strip()
         if not candidat_id or not besoin_id:
-            return jsonify({'error': 'Matching keys are missing on the selected records'}), 400
+            return (
+                jsonify({'error': 'Matching keys are missing on the selected records'}),
+                400,
+            )
 
         matching = compute_eures_matching(employeur_fields, candidat_fields)
         payload = {
@@ -10538,7 +13010,9 @@ def admin_eures_manual_matching(form_id: str):
             **matching,
         }
         upsert_matching_record(matching_config['doc_id'], payload, headers)
-        existing = fetch_matching_record(matching_config['doc_id'], besoin_id, candidat_id, headers)
+        existing = fetch_matching_record(
+            matching_config['doc_id'], besoin_id, candidat_id, headers
+        )
         record_id = int((existing or {}).get('id') or 0)
         brevo_result = None
         candidate_brevo_result = None
@@ -10553,13 +13027,30 @@ def admin_eures_manual_matching(form_id: str):
                 'candidate_email_comment': candidate_email_comment,
                 **_matching_workflow_update_fields('valide_admin', actor),
             }
-            update_matching_record_by_id(matching_config['doc_id'], record_id, decision_fields, headers)
-            matching_rows = list_eures_admin_matchings(status='all', include_candidate_cv=True)
-            matching_row = next((row for row in matching_rows if int(row.get('record_id') or 0) == record_id), None)
+            update_matching_record_by_id(
+                matching_config['doc_id'], record_id, decision_fields, headers
+            )
+            matching_rows = list_eures_admin_matchings(
+                status='all', include_candidate_cv=True
+            )
+            matching_row = next(
+                (
+                    row
+                    for row in matching_rows
+                    if int(row.get('record_id') or 0) == record_id
+                ),
+                None,
+            )
             if not matching_row:
-                raise RuntimeError('Manual matching could not be reloaded for direct email delivery.')
-            cv_attachment = get_candidate_cv_attachment(matching_row.get('candidat', {}))
-            to_email, subject, text_body, html_body = build_brevo_matching_email(matching_row)
+                raise RuntimeError(
+                    'Manual matching could not be reloaded for direct email delivery.'
+                )
+            cv_attachment = get_candidate_cv_attachment(
+                matching_row.get('candidat', {})
+            )
+            to_email, subject, text_body, html_body = build_brevo_matching_email(
+                matching_row
+            )
             brevo_result = send_brevo_transactional_email(
                 to_email,
                 subject,
@@ -10567,7 +13058,12 @@ def admin_eures_manual_matching(form_id: str):
                 html_body,
                 attachments=[cv_attachment] if cv_attachment else None,
             )
-            candidate_to_email, candidate_subject, candidate_text_body, candidate_html_body = build_brevo_candidate_matching_notification_email(matching_row)
+            (
+                candidate_to_email,
+                candidate_subject,
+                candidate_text_body,
+                candidate_html_body,
+            ) = build_brevo_candidate_matching_notification_email(matching_row)
             candidate_brevo_result = send_brevo_transactional_email(
                 candidate_to_email,
                 candidate_subject,
@@ -10592,17 +13088,22 @@ def admin_eures_manual_matching(form_id: str):
                 'send_directly': send_directly,
             },
         )
-        return jsonify({
-            'ok': True,
-            'record_id': record_id,
-            'besoin_id': besoin_id,
-            'candidat_id': candidat_id,
-            'score': matching.get('score', 0),
-            'statut': matching.get('statut', ''),
-            'sent_directly': send_directly,
-            'email_result': brevo_result,
-            'candidate_email_result': candidate_brevo_result,
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'record_id': record_id,
+                    'besoin_id': besoin_id,
+                    'candidat_id': candidat_id,
+                    'score': matching.get('score', 0),
+                    'statut': matching.get('statut', ''),
+                    'sent_directly': send_directly,
+                    'email_result': brevo_result,
+                    'candidate_email_result': candidate_brevo_result,
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES manual matching failed')
         return _client_error('', 500)
@@ -10616,7 +13117,10 @@ def admin_eures_spontaneous_candidate(form_id: str):
     if proxied:
         return proxied
     if form_id != 'eures-beta':
-        return jsonify({'error': f'Unknown spontaneous application form: {form_id}'}), 404
+        return (
+            jsonify({'error': f'Unknown spontaneous application form: {form_id}'}),
+            404,
+        )
 
     data = request.get_json() or {}
     candidate_record_id = int(data.get('candidate_record_id') or 0)
@@ -10629,7 +13133,12 @@ def admin_eures_spontaneous_candidate(form_id: str):
     employer_comment = str(data.get('employer_comment') or '').strip()
     candidate_comment = str(data.get('candidate_comment') or '').strip()
     if not candidate_record_id or not employer['company'] or not employer['email']:
-        return jsonify({'error': 'Candidate, employer company and employer email are required'}), 400
+        return (
+            jsonify(
+                {'error': 'Candidate, employer company and employer email are required'}
+            ),
+            400,
+        )
 
     candidate_config = get_form_config('eures-beta', 'candidate')
     if not candidate_config:
@@ -10637,93 +13146,140 @@ def admin_eures_spontaneous_candidate(form_id: str):
     headers = _eures_admin_headers(candidate_config)
     try:
         ensure_brevo_ready(check_api=True)
-        record = fetch_record_by_id(candidate_config['doc_id'], EURES_CANDIDATS_TABLE, candidate_record_id, headers)
+        record = fetch_record_by_id(
+            candidate_config['doc_id'],
+            EURES_CANDIDATS_TABLE,
+            candidate_record_id,
+            headers,
+        )
         if not record:
             return jsonify({'error': 'Candidate record not found'}), 404
-        candidate = record.get('fields', {}) if isinstance(record.get('fields'), dict) else {}
+        candidate = (
+            record.get('fields', {}) if isinstance(record.get('fields'), dict) else {}
+        )
         if not _is_eures_response_active(candidate):
             return jsonify({'error': 'Le candidat sélectionné est désactivé.'}), 400
         attachment = get_candidate_cv_attachment(candidate)
         if not attachment:
-            return jsonify({'error': 'Le candidat sélectionné ne possède pas de CV transmissible.'}), 400
+            return (
+                jsonify(
+                    {
+                        'error': 'Le candidat sélectionné ne possède pas de CV transmissible.'
+                    }
+                ),
+                400,
+            )
 
         actor = get_admin_actor(form_id)
         now = _now_iso_utc()
-        tracking_record_id = create_eures_spontaneous_record({
-            'candidate_record_id': candidate_record_id,
-            'candidate_id': str(candidate.get('id_tally') or candidate.get('uuid') or ''),
-            'candidate_name': str(candidate.get('nom') or ''),
-            'candidate_email': normalize_email(candidate.get('email') or ''),
-            'employer_company': employer['company'],
-            'employer_contact': employer['contact'],
-            'employer_email': employer['email'],
-            'employer_need': employer['need'],
-            'employer_comment': employer_comment,
-            'candidate_comment': candidate_comment,
-            'status': 'sending',
-            'sent_at': now,
-            'sent_by': actor,
-            'employer_email_status': 'pending',
-            'candidate_email_status': 'pending',
-            'updated_at': now,
-            'updated_by': actor,
-        })
-
-        employer_to, employer_subject, employer_text, employer_html = build_brevo_spontaneous_candidate_email(
-            candidate,
-            employer,
-            employer_comment,
+        tracking_record_id = create_eures_spontaneous_record(
             {
-                'interested': _build_eures_spontaneous_feedback_url(tracking_record_id, 'interested'),
-                'not_interested': _build_eures_spontaneous_feedback_url(tracking_record_id, 'not_interested'),
-            },
+                'candidate_record_id': candidate_record_id,
+                'candidate_id': str(
+                    candidate.get('id_tally') or candidate.get('uuid') or ''
+                ),
+                'candidate_name': str(candidate.get('nom') or ''),
+                'candidate_email': normalize_email(candidate.get('email') or ''),
+                'employer_company': employer['company'],
+                'employer_contact': employer['contact'],
+                'employer_email': employer['email'],
+                'employer_need': employer['need'],
+                'employer_comment': employer_comment,
+                'candidate_comment': candidate_comment,
+                'status': 'sending',
+                'sent_at': now,
+                'sent_by': actor,
+                'employer_email_status': 'pending',
+                'candidate_email_status': 'pending',
+                'updated_at': now,
+                'updated_by': actor,
+            }
+        )
+
+        employer_to, employer_subject, employer_text, employer_html = (
+            build_brevo_spontaneous_candidate_email(
+                candidate,
+                employer,
+                employer_comment,
+                {
+                    'interested': _build_eures_spontaneous_feedback_url(
+                        tracking_record_id, 'interested'
+                    ),
+                    'not_interested': _build_eures_spontaneous_feedback_url(
+                        tracking_record_id, 'not_interested'
+                    ),
+                },
+            )
         )
         employer_result = send_brevo_transactional_email(
-            employer_to, employer_subject, employer_text, employer_html, attachments=[attachment]
+            employer_to,
+            employer_subject,
+            employer_text,
+            employer_html,
+            attachments=[attachment],
         )
-        update_eures_spontaneous_record(tracking_record_id, {
-            'employer_email_status': 'sent',
-            'status': 'employer_sent',
-            'updated_at': _now_iso_utc(),
-            'updated_by': actor,
-        })
-        candidate_to, candidate_subject, candidate_text, candidate_html = build_brevo_spontaneous_candidate_notice(
-            candidate, employer, candidate_comment
+        update_eures_spontaneous_record(
+            tracking_record_id,
+            {
+                'employer_email_status': 'sent',
+                'status': 'employer_sent',
+                'updated_at': _now_iso_utc(),
+                'updated_by': actor,
+            },
+        )
+        candidate_to, candidate_subject, candidate_text, candidate_html = (
+            build_brevo_spontaneous_candidate_notice(
+                candidate, employer, candidate_comment
+            )
         )
         candidate_result = send_brevo_transactional_email(
             candidate_to, candidate_subject, candidate_text, candidate_html
         )
-        update_eures_spontaneous_record(tracking_record_id, {
-            'candidate_email_status': 'sent',
-            'status': 'waiting_employer',
-            'updated_at': _now_iso_utc(),
-            'updated_by': actor,
-        })
-        app.logger.info('EURES spontaneous candidate application sent', extra={
-            'form_id': form_id,
-            'candidate_record_id': candidate_record_id,
-            'tracking_record_id': tracking_record_id,
-            'employer_email': employer_to,
-            'sent_by': get_admin_actor(form_id),
-        })
-        return jsonify({
-            'ok': True,
-            'candidate_record_id': candidate_record_id,
-            'tracking_record_id': tracking_record_id,
-            'employer_email': employer_to,
-            'candidate_email': candidate_to,
-            'employer_email_result': employer_result,
-            'candidate_email_result': candidate_result,
-        }), 200
+        update_eures_spontaneous_record(
+            tracking_record_id,
+            {
+                'candidate_email_status': 'sent',
+                'status': 'waiting_employer',
+                'updated_at': _now_iso_utc(),
+                'updated_by': actor,
+            },
+        )
+        app.logger.info(
+            'EURES spontaneous candidate application sent',
+            extra={
+                'form_id': form_id,
+                'candidate_record_id': candidate_record_id,
+                'tracking_record_id': tracking_record_id,
+                'employer_email': employer_to,
+                'sent_by': get_admin_actor(form_id),
+            },
+        )
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'candidate_record_id': candidate_record_id,
+                    'tracking_record_id': tracking_record_id,
+                    'employer_email': employer_to,
+                    'candidate_email': candidate_to,
+                    'employer_email_result': employer_result,
+                    'candidate_email_result': candidate_result,
+                }
+            ),
+            200,
+        )
     except Exception as e:
         if 'tracking_record_id' in locals() and tracking_record_id:
             try:
-                update_eures_spontaneous_record(tracking_record_id, {
-                    'status': 'send_error',
-                    'status_note': 'Upstream operation failed.',
-                    'updated_at': _now_iso_utc(),
-                    'updated_by': get_admin_actor(form_id),
-                })
+                update_eures_spontaneous_record(
+                    tracking_record_id,
+                    {
+                        'status': 'send_error',
+                        'status_note': 'Upstream operation failed.',
+                        'updated_at': _now_iso_utc(),
+                        'updated_by': get_admin_actor(form_id),
+                    },
+                )
             except Exception:
                 app.logger.error('EURES spontaneous tracking error update failed')
         app.logger.error('EURES spontaneous candidate application failed')
@@ -10734,7 +13290,10 @@ def admin_eures_spontaneous_candidate(form_id: str):
 @admin_required
 def admin_eures_spontaneous_candidates(form_id: str):
     if form_id != 'eures-beta':
-        return jsonify({'error': f'Unknown spontaneous application form: {form_id}'}), 404
+        return (
+            jsonify({'error': f'Unknown spontaneous application form: {form_id}'}),
+            404,
+        )
     try:
         return jsonify({'ok': True, 'rows': list_eures_spontaneous_records()}), 200
     except Exception as e:
@@ -10742,14 +13301,26 @@ def admin_eures_spontaneous_candidates(form_id: str):
         return _client_error('', 500)
 
 
-@app.route('/api/forms/<form_id>/admin/spontaneous-candidates/<int:record_id>/status', methods=['POST'])
+@app.route(
+    '/api/forms/<form_id>/admin/spontaneous-candidates/<int:record_id>/status',
+    methods=['POST'],
+)
 @admin_required
 def admin_eures_spontaneous_candidate_status(form_id: str, record_id: int):
     if form_id != 'eures-beta':
-        return jsonify({'error': f'Unknown spontaneous application form: {form_id}'}), 404
+        return (
+            jsonify({'error': f'Unknown spontaneous application form: {form_id}'}),
+            404,
+        )
     data = request.get_json() or {}
     status = str(data.get('status') or '').strip().lower()
-    if status not in {'waiting_employer', 'interested', 'not_interested', 'no_response', 'closed'}:
+    if status not in {
+        'waiting_employer',
+        'interested',
+        'not_interested',
+        'no_response',
+        'closed',
+    }:
         return jsonify({'error': 'Invalid spontaneous application status'}), 400
     actor = get_admin_actor(form_id)
     fields = {
@@ -10759,7 +13330,12 @@ def admin_eures_spontaneous_candidate_status(form_id: str, record_id: int):
         'updated_by': actor,
     }
     if status in {'interested', 'not_interested'}:
-        fields.update({'employer_response_at': _now_iso_utc(), 'employer_response_source': 'admin_manual'})
+        fields.update(
+            {
+                'employer_response_at': _now_iso_utc(),
+                'employer_response_source': 'admin_manual',
+            }
+        )
     try:
         update_eures_spontaneous_record(record_id, fields)
         return jsonify({'ok': True, 'record_id': record_id, 'status': status}), 200
@@ -10772,7 +13348,9 @@ def admin_eures_spontaneous_candidate_status(form_id: str, record_id: int):
 def eures_spontaneous_feedback():
     token = str(request.args.get('token') or '').strip()
     if not token:
-        return Response('Lien invalide : token manquant.', status=400, mimetype='text/plain')
+        return Response(
+            'Lien invalide : token manquant.', status=400, mimetype='text/plain'
+        )
     try:
         payload = get_eures_email_action_serializer().loads(token)
     except BadSignature:
@@ -10782,15 +13360,20 @@ def eures_spontaneous_feedback():
     record_id = int(payload.get('record_id') or 0)
     response_code = str(payload.get('response') or '').strip().lower()
     if not record_id or response_code not in {'interested', 'not_interested'}:
-        return Response('Lien invalide : données incomplètes.', status=400, mimetype='text/plain')
+        return Response(
+            'Lien invalide : données incomplètes.', status=400, mimetype='text/plain'
+        )
     try:
-        update_eures_spontaneous_record(record_id, {
-            'status': response_code,
-            'employer_response_at': _now_iso_utc(),
-            'employer_response_source': 'email_button',
-            'updated_at': _now_iso_utc(),
-            'updated_by': 'employer_email_button',
-        })
+        update_eures_spontaneous_record(
+            record_id,
+            {
+                'status': response_code,
+                'employer_response_at': _now_iso_utc(),
+                'employer_response_source': 'email_button',
+                'updated_at': _now_iso_utc(),
+                'updated_by': 'employer_email_button',
+            },
+        )
         message = (
             'Votre intérêt a bien été enregistré. Eric Barthélémy pourra revenir vers vous pour la suite.'
             if response_code == 'interested'
@@ -10807,7 +13390,11 @@ def eures_spontaneous_feedback_test():
     response_code = str(request.args.get('response') or '').strip().lower()
     if response_code not in {'interested', 'not_interested'}:
         return Response('Lien de test invalide.', status=400, mimetype='text/plain')
-    label = 'Je suis intéressé' if response_code == 'interested' else 'Ce profil ne correspond pas'
+    label = (
+        'Je suis intéressé'
+        if response_code == 'interested'
+        else 'Ce profil ne correspond pas'
+    )
     return Response(
         f'Test uniquement : le bouton « {label} » fonctionne visuellement. Aucune donnée métier n’a été enregistrée.',
         status=200,
@@ -10825,13 +13412,27 @@ def admin_eures_brevo_health(form_id: str):
     if form_id != 'eures-beta':
         return jsonify({'error': f'Unknown admin form: {form_id}'}), 404
 
-    check_api = str(request.args.get('check') or '').strip().lower() in {'1', 'true', 'yes', 'on'}
+    check_api = str(request.args.get('check') or '').strip().lower() in {
+        '1',
+        'true',
+        'yes',
+        'on',
+    }
     health = get_brevo_health(check_api=check_api)
-    status_code = 200 if health['configured'] and (not check_api or health['api_ok'] is True) else 503
-    return jsonify({
-        'ok': status_code == 200,
-        'brevo': health,
-    }), status_code
+    status_code = (
+        200
+        if health['configured'] and (not check_api or health['api_ok'] is True)
+        else 503
+    )
+    return (
+        jsonify(
+            {
+                'ok': status_code == 200,
+                'brevo': health,
+            }
+        ),
+        status_code,
+    )
 
 
 @app.route('/api/forms/<form_id>/admin/matchings/test-emails', methods=['POST'])
@@ -10855,10 +13456,15 @@ def admin_eures_matching_test_emails(form_id: str):
                 'sent_by': get_admin_actor(form_id),
             },
         )
-        return jsonify({
-            'ok': True,
-            **result,
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    **result,
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES matching test emails failed')
         return _client_error('', 500)
@@ -10889,16 +13495,23 @@ def admin_eures_email_test_send(form_id: str):
                 'sent_by': get_admin_actor(form_id),
             },
         )
-        return jsonify({
-            'ok': True,
-            **result,
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    **result,
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES admin email test failed')
         return _client_error('', 500)
 
 
-@app.route('/api/forms/<form_id>/admin/matchings/<int:record_id>/decision', methods=['POST'])
+@app.route(
+    '/api/forms/<form_id>/admin/matchings/<int:record_id>/decision', methods=['POST']
+)
 @admin_required
 def admin_eures_matching_decision(form_id: str, record_id: int):
     """Admin API: accept or refuse one matching."""
@@ -10920,14 +13533,23 @@ def admin_eures_matching_decision(form_id: str, record_id: int):
 
     config = get_eures_matching_config()
     if not config:
-        return jsonify({'error': 'EURES beta matching configuration is incomplete.'}), 500
+        return (
+            jsonify({'error': 'EURES beta matching configuration is incomplete.'}),
+            500,
+        )
 
     headers = _eures_admin_headers(config)
     try:
-        existing = fetch_record_by_id(config['doc_id'], EURES_MATCHINGS_TABLE, record_id, headers)
+        existing = fetch_record_by_id(
+            config['doc_id'], EURES_MATCHINGS_TABLE, record_id, headers
+        )
         if not existing:
             return jsonify({'error': 'Matching not found'}), 404
-        existing_fields = existing.get('fields', {}) if isinstance(existing.get('fields'), dict) else {}
+        existing_fields = (
+            existing.get('fields', {})
+            if isinstance(existing.get('fields'), dict)
+            else {}
+        )
 
         if decision == 'accepted' and send_emails:
             ensure_brevo_ready(check_api=True)
@@ -10942,10 +13564,16 @@ def admin_eures_matching_decision(form_id: str, record_id: int):
             'candidate_email_comment': candidate_email_comment,
         }
         if decision == 'accepted':
-            decision_fields.update(_matching_workflow_update_fields('valide_admin', decided_by))
+            decision_fields.update(
+                _matching_workflow_update_fields('valide_admin', decided_by)
+            )
         else:
-            decision_fields.update(_matching_workflow_update_fields('refuse_admin', decided_by))
-        update_matching_record_by_id(config['doc_id'], record_id, decision_fields, headers)
+            decision_fields.update(
+                _matching_workflow_update_fields('refuse_admin', decided_by)
+            )
+        update_matching_record_by_id(
+            config['doc_id'], record_id, decision_fields, headers
+        )
 
         app.logger.info(
             'EURES matching decision saved',
@@ -10957,17 +13585,34 @@ def admin_eures_matching_decision(form_id: str, record_id: int):
             },
         )
 
-        updated = fetch_record_by_id(config['doc_id'], EURES_MATCHINGS_TABLE, record_id, headers)
+        updated = fetch_record_by_id(
+            config['doc_id'], EURES_MATCHINGS_TABLE, record_id, headers
+        )
         updated_fields = updated.get('fields', {}) if isinstance(updated, dict) else {}
         brevo_result = None
         candidate_brevo_result = None
         if decision == 'accepted' and send_emails:
-            matching_rows = list_eures_admin_matchings(status='all', include_candidate_cv=True)
-            matching_row = next((row for row in matching_rows if int(row.get('record_id') or 0) == record_id), None)
+            matching_rows = list_eures_admin_matchings(
+                status='all', include_candidate_cv=True
+            )
+            matching_row = next(
+                (
+                    row
+                    for row in matching_rows
+                    if int(row.get('record_id') or 0) == record_id
+                ),
+                None,
+            )
             if not matching_row:
-                raise RuntimeError('Accepted matching could not be reloaded for email delivery.')
-            cv_attachment = get_candidate_cv_attachment(matching_row.get('candidat', {}))
-            to_email, subject, text_body, html_body = build_brevo_matching_email(matching_row)
+                raise RuntimeError(
+                    'Accepted matching could not be reloaded for email delivery.'
+                )
+            cv_attachment = get_candidate_cv_attachment(
+                matching_row.get('candidat', {})
+            )
+            to_email, subject, text_body, html_body = build_brevo_matching_email(
+                matching_row
+            )
             brevo_result = send_brevo_transactional_email(
                 to_email,
                 subject,
@@ -10975,7 +13620,12 @@ def admin_eures_matching_decision(form_id: str, record_id: int):
                 html_body,
                 attachments=[cv_attachment] if cv_attachment else None,
             )
-            candidate_to_email, candidate_subject, candidate_text_body, candidate_html_body = build_brevo_candidate_matching_notification_email(matching_row)
+            (
+                candidate_to_email,
+                candidate_subject,
+                candidate_text_body,
+                candidate_html_body,
+            ) = build_brevo_candidate_matching_notification_email(matching_row)
             candidate_brevo_result = send_brevo_transactional_email(
                 candidate_to_email,
                 candidate_subject,
@@ -11004,25 +13654,43 @@ def admin_eures_matching_decision(form_id: str, record_id: int):
                     'to_email': candidate_to_email,
                 },
             )
-        return jsonify({
-            'ok': True,
-            'record_id': record_id,
-            'admin_status': updated_fields.get('admin_status', decision),
-            'admin_decision_at': updated_fields.get('admin_decision_at', decision_fields['admin_decision_at']),
-            'admin_decision_by': updated_fields.get('admin_decision_by', decided_by),
-            'admin_decision_note': updated_fields.get('admin_decision_note', note),
-            'employer_email_comment': updated_fields.get('employer_email_comment', employer_email_comment),
-            'candidate_email_comment': updated_fields.get('candidate_email_comment', candidate_email_comment),
-            'email_sent': decision == 'accepted' and send_emails,
-            'email_result': brevo_result,
-            'candidate_email_result': candidate_brevo_result,
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'record_id': record_id,
+                    'admin_status': updated_fields.get('admin_status', decision),
+                    'admin_decision_at': updated_fields.get(
+                        'admin_decision_at', decision_fields['admin_decision_at']
+                    ),
+                    'admin_decision_by': updated_fields.get(
+                        'admin_decision_by', decided_by
+                    ),
+                    'admin_decision_note': updated_fields.get(
+                        'admin_decision_note', note
+                    ),
+                    'employer_email_comment': updated_fields.get(
+                        'employer_email_comment', employer_email_comment
+                    ),
+                    'candidate_email_comment': updated_fields.get(
+                        'candidate_email_comment', candidate_email_comment
+                    ),
+                    'email_sent': decision == 'accepted' and send_emails,
+                    'email_result': brevo_result,
+                    'candidate_email_result': candidate_brevo_result,
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES matching decision update failed')
         return _client_error('', 500)
 
 
-@app.route('/api/forms/<form_id>/admin/matchings/<int:record_id>/candidate-email', methods=['POST'])
+@app.route(
+    '/api/forms/<form_id>/admin/matchings/<int:record_id>/candidate-email',
+    methods=['POST'],
+)
 @admin_required
 def admin_eures_matching_candidate_email(form_id: str, record_id: int):
     """Admin API: resend only the candidate notification email for one matching."""
@@ -11034,18 +13702,33 @@ def admin_eures_matching_candidate_email(form_id: str, record_id: int):
 
     config = get_eures_matching_config()
     if not config:
-        return jsonify({'error': 'EURES beta matching configuration is incomplete.'}), 500
+        return (
+            jsonify({'error': 'EURES beta matching configuration is incomplete.'}),
+            500,
+        )
 
     try:
         ensure_brevo_ready(check_api=True)
-        matching_rows = list_eures_admin_matchings(status='all', include_candidate_cv=True)
-        matching_row = next((row for row in matching_rows if int(row.get('record_id') or 0) == record_id), None)
+        matching_rows = list_eures_admin_matchings(
+            status='all', include_candidate_cv=True
+        )
+        matching_row = next(
+            (
+                row
+                for row in matching_rows
+                if int(row.get('record_id') or 0) == record_id
+            ),
+            None,
+        )
         if not matching_row:
             return jsonify({'error': 'Matching not found'}), 404
 
-        candidate_to_email, candidate_subject, candidate_text_body, candidate_html_body = (
-            build_brevo_candidate_matching_notification_email(matching_row)
-        )
+        (
+            candidate_to_email,
+            candidate_subject,
+            candidate_text_body,
+            candidate_html_body,
+        ) = build_brevo_candidate_matching_notification_email(matching_row)
         candidate_brevo_result = send_brevo_transactional_email(
             candidate_to_email,
             candidate_subject,
@@ -11061,19 +13744,26 @@ def admin_eures_matching_candidate_email(form_id: str, record_id: int):
                 'to_email': candidate_to_email,
             },
         )
-        return jsonify({
-            'ok': True,
-            'record_id': record_id,
-            'candidate_email_sent': True,
-            'candidate_email': candidate_to_email,
-            'candidate_email_result': candidate_brevo_result,
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'record_id': record_id,
+                    'candidate_email_sent': True,
+                    'candidate_email': candidate_to_email,
+                    'candidate_email_result': candidate_brevo_result,
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES matching candidate notification resend failed')
         return _client_error('', 500)
 
 
-@app.route('/api/forms/<form_id>/admin/matchings/<int:record_id>/workflow', methods=['POST'])
+@app.route(
+    '/api/forms/<form_id>/admin/matchings/<int:record_id>/workflow', methods=['POST']
+)
 @admin_required
 def admin_eures_matching_workflow(form_id: str, record_id: int):
     """Admin API: advance one matching in the business workflow."""
@@ -11093,7 +13783,12 @@ def admin_eures_matching_workflow(form_id: str, record_id: int):
         if relation_result not in EURES_RELATION_RESULTS:
             return jsonify({'error': 'Unsupported relation result'}), 400
         target_status = _relation_result_workflow_status(relation_result)
-    allowed_targets = {'mise_en_relation_faite', 'embauche_confirmee', 'envoye_employeur', 'relation_terminee'}
+    allowed_targets = {
+        'mise_en_relation_faite',
+        'embauche_confirmee',
+        'envoye_employeur',
+        'relation_terminee',
+    }
     if target_status not in allowed_targets:
         return jsonify({'error': 'Unsupported workflow status'}), 400
     if relation_channel and relation_channel not in EURES_RELATION_CHANNELS:
@@ -11101,19 +13796,33 @@ def admin_eures_matching_workflow(form_id: str, record_id: int):
 
     config = get_eures_matching_config()
     if not config:
-        return jsonify({'error': 'EURES beta matching configuration is incomplete.'}), 500
+        return (
+            jsonify({'error': 'EURES beta matching configuration is incomplete.'}),
+            500,
+        )
 
     headers = _eures_admin_headers(config)
     try:
-        existing = fetch_record_by_id(config['doc_id'], EURES_MATCHINGS_TABLE, record_id, headers)
+        existing = fetch_record_by_id(
+            config['doc_id'], EURES_MATCHINGS_TABLE, record_id, headers
+        )
         if not existing:
             return jsonify({'error': 'Matching not found'}), 404
-        existing_fields = existing.get('fields', {}) if isinstance(existing.get('fields'), dict) else {}
+        existing_fields = (
+            existing.get('fields', {})
+            if isinstance(existing.get('fields'), dict)
+            else {}
+        )
         current_status = _matching_workflow_status(existing_fields)
         if not _eures_workflow_transition_allowed(current_status, target_status):
-            return jsonify({
-                'error': f'Transition impossible: {current_status} -> {target_status}',
-            }), 400
+            return (
+                jsonify(
+                    {
+                        'error': f'Transition impossible: {current_status} -> {target_status}',
+                    }
+                ),
+                400,
+            )
 
         actor = get_admin_actor(form_id)
         update_fields = _matching_workflow_update_fields(target_status, actor)
@@ -11129,28 +13838,49 @@ def admin_eures_matching_workflow(form_id: str, record_id: int):
             if relation_result_note:
                 update_fields['relation_result_note'] = relation_result_note
         if note:
-            previous_note = str(existing_fields.get('admin_decision_note') or '').strip()
-            update_fields['admin_decision_note'] = f'{previous_note}\n{note}'.strip() if previous_note else note
-        update_matching_record_by_id(config['doc_id'], record_id, update_fields, headers)
-        updated = fetch_record_by_id(config['doc_id'], EURES_MATCHINGS_TABLE, record_id, headers)
+            previous_note = str(
+                existing_fields.get('admin_decision_note') or ''
+            ).strip()
+            update_fields['admin_decision_note'] = (
+                f'{previous_note}\n{note}'.strip() if previous_note else note
+            )
+        update_matching_record_by_id(
+            config['doc_id'], record_id, update_fields, headers
+        )
+        updated = fetch_record_by_id(
+            config['doc_id'], EURES_MATCHINGS_TABLE, record_id, headers
+        )
         updated_fields = updated.get('fields', {}) if isinstance(updated, dict) else {}
-        return jsonify({
-            'ok': True,
-            'record_id': record_id,
-            'workflow_status': _matching_workflow_status(updated_fields),
-            'workflow_label': _matching_workflow_label(_matching_workflow_status(updated_fields)),
-            'workflow_status_updated_at': updated_fields.get('workflow_status_updated_at', ''),
-            'workflow_status_updated_by': updated_fields.get('workflow_status_updated_by', actor),
-            'relation_channel': updated_fields.get('relation_channel', ''),
-            'relation_result': updated_fields.get('relation_result', ''),
-            'relation_result_at': updated_fields.get('relation_result_at', ''),
-        }), 200
+        return (
+            jsonify(
+                {
+                    'ok': True,
+                    'record_id': record_id,
+                    'workflow_status': _matching_workflow_status(updated_fields),
+                    'workflow_label': _matching_workflow_label(
+                        _matching_workflow_status(updated_fields)
+                    ),
+                    'workflow_status_updated_at': updated_fields.get(
+                        'workflow_status_updated_at', ''
+                    ),
+                    'workflow_status_updated_by': updated_fields.get(
+                        'workflow_status_updated_by', actor
+                    ),
+                    'relation_channel': updated_fields.get('relation_channel', ''),
+                    'relation_result': updated_fields.get('relation_result', ''),
+                    'relation_result_at': updated_fields.get('relation_result_at', ''),
+                }
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error('EURES matching workflow update failed')
         return _client_error('', 500)
 
 
-def _find_eures_employer_fields_for_matching(matching_fields: dict, headers: dict) -> dict:
+def _find_eures_employer_fields_for_matching(
+    matching_fields: dict, headers: dict
+) -> dict:
     """Return employer need fields associated with one matching, when available."""
     besoin_id = str((matching_fields or {}).get('besoin_id') or '').strip()
     if not besoin_id:
@@ -11159,14 +13889,18 @@ def _find_eures_employer_fields_for_matching(matching_fields: dict, headers: dic
     if not employer_config:
         return {}
     employer_headers = _eures_admin_headers(employer_config)
-    for rec in fetch_table_records(employer_config['doc_id'], EURES_BESOINS_TABLE, employer_headers):
+    for rec in fetch_table_records(
+        employer_config['doc_id'], EURES_BESOINS_TABLE, employer_headers
+    ):
         fields = rec.get('fields', {}) if isinstance(rec, dict) else {}
         if str(fields.get('id_tally') or fields.get('uuid') or '').strip() == besoin_id:
             return fields
     return {}
 
 
-def _render_eures_whatsapp_phone_confirmation(token: str, record_id: int, matching_fields: dict, employer_fields: dict) -> Response:
+def _render_eures_whatsapp_phone_confirmation(
+    token: str, record_id: int, matching_fields: dict, employer_fields: dict
+) -> Response:
     """Render the employer phone confirmation page before recording WhatsApp consent."""
     current_phone = _normalize_phone(
         (matching_fields or {}).get('employer_whatsapp_phone')
@@ -11236,9 +13970,18 @@ def _render_eures_whatsapp_phone_confirmation(token: str, record_id: int, matchi
 @app.route('/eures-beta/matching-feedback', methods=['GET', 'POST'])
 def eures_matching_feedback():
     """Record employer feedback from email CTA links."""
-    token = str((request.form.get('token') if request.method == 'POST' else request.args.get('token')) or '').strip()
+    token = str(
+        (
+            request.form.get('token')
+            if request.method == 'POST'
+            else request.args.get('token')
+        )
+        or ''
+    ).strip()
     if not token:
-        return Response('Lien invalide : token manquant.', status=400, mimetype='text/plain')
+        return Response(
+            'Lien invalide : token manquant.', status=400, mimetype='text/plain'
+        )
 
     try:
         payload = get_eures_email_action_serializer().loads(token)
@@ -11252,12 +13995,20 @@ def eures_matching_feedback():
     response_code = str(payload.get('response') or '').strip().lower()
     if response_code == 'contact':
         response_code = 'contact_whatsapp'
-    if not record_id or response_code not in {'contact_whatsapp', 'contact_no_whatsapp', 'not_contact'}:
-        return Response('Lien invalide : données incomplètes.', status=400, mimetype='text/plain')
+    if not record_id or response_code not in {
+        'contact_whatsapp',
+        'contact_no_whatsapp',
+        'not_contact',
+    }:
+        return Response(
+            'Lien invalide : données incomplètes.', status=400, mimetype='text/plain'
+        )
 
     config = get_eures_matching_config()
     if not config:
-        return Response('Configuration EURES incomplète.', status=500, mimetype='text/plain')
+        return Response(
+            'Configuration EURES incomplète.', status=500, mimetype='text/plain'
+        )
 
     headers = _eures_admin_headers(config)
     response_label = {
@@ -11268,39 +14019,65 @@ def eures_matching_feedback():
 
     if response_code == 'contact_whatsapp' and request.method == 'GET':
         try:
-            matching_record = fetch_record_by_id(config['doc_id'], EURES_MATCHINGS_TABLE, record_id, headers)
-            matching_fields = matching_record.get('fields', {}) if isinstance(matching_record, dict) else {}
-            employer_fields = _find_eures_employer_fields_for_matching(matching_fields, headers)
-            return _render_eures_whatsapp_phone_confirmation(token, record_id, matching_fields, employer_fields)
+            matching_record = fetch_record_by_id(
+                config['doc_id'], EURES_MATCHINGS_TABLE, record_id, headers
+            )
+            matching_fields = (
+                matching_record.get('fields', {})
+                if isinstance(matching_record, dict)
+                else {}
+            )
+            employer_fields = _find_eures_employer_fields_for_matching(
+                matching_fields, headers
+            )
+            return _render_eures_whatsapp_phone_confirmation(
+                token, record_id, matching_fields, employer_fields
+            )
         except Exception as e:
             app.logger.error('EURES employer WhatsApp confirmation page failed')
             return Response(_safe_error_message(500), status=500, mimetype='text/plain')
 
     update_fields = _matching_workflow_update_fields(
-        'accepte_employeur' if response_code in {'contact_whatsapp', 'contact_no_whatsapp'} else 'refuse_employeur',
+        (
+            'accepte_employeur'
+            if response_code in {'contact_whatsapp', 'contact_no_whatsapp'}
+            else 'refuse_employeur'
+        ),
         'employer_email_link',
     )
     if response_code == 'contact_whatsapp':
         employer_phone = _normalize_phone(request.form.get('employer_phone'))
         if not employer_phone:
-            return Response('Le numéro WhatsApp est obligatoire pour confirmer cette option.', status=400, mimetype='text/plain')
+            return Response(
+                'Le numéro WhatsApp est obligatoire pour confirmer cette option.',
+                status=400,
+                mimetype='text/plain',
+            )
         now = datetime.now(timezone.utc).isoformat()
-        update_fields.update({
-            'employer_whatsapp_consent': 'yes',
-            'employer_whatsapp_phone': employer_phone,
-            'employer_whatsapp_confirmed_at': now,
-        })
+        update_fields.update(
+            {
+                'employer_whatsapp_consent': 'yes',
+                'employer_whatsapp_phone': employer_phone,
+                'employer_whatsapp_confirmed_at': now,
+            }
+        )
     elif response_code == 'contact_no_whatsapp':
-        update_fields.update({
-            'employer_whatsapp_consent': 'no',
-        })
+        update_fields.update(
+            {
+                'employer_whatsapp_consent': 'no',
+            }
+        )
     else:
-        update_fields.update({
-            'employer_whatsapp_consent': 'no',
-        })
+        update_fields.update(
+            {
+                'employer_whatsapp_consent': 'no',
+            }
+        )
 
     try:
-        update_matching_record_by_id(config['doc_id'], record_id, update_fields, headers)
+        update_matching_record_by_id(
+            config['doc_id'], record_id, update_fields, headers
+        )
         app.logger.info(
             'EURES employer response recorded',
             extra={
@@ -11350,7 +14127,9 @@ def admin_eures_tracking_metadata(form_id: str):
     return jsonify({'ok': True, 'metadata': tracking_metadata()})
 
 
-@app.route('/api/forms/<form_id>/admin/documentation/documents', methods=['GET', 'POST'])
+@app.route(
+    '/api/forms/<form_id>/admin/documentation/documents', methods=['GET', 'POST']
+)
 @admin_required
 def admin_eures_documentation_documents(form_id: str):
     if form_id != 'eures-beta':
@@ -11358,20 +14137,29 @@ def admin_eures_documentation_documents(form_id: str):
     actor = get_admin_actor(form_id, fallback='admin')
     try:
         if request.method == 'GET':
-            return jsonify({
-                'ok': True,
-                'documents': list_documentation_documents(),
-                'categories': list(EURES_DOCUMENTATION_CATEGORIES),
-                'statuses': list(EURES_DOCUMENTATION_STATUSES),
-            })
-        result = save_documentation_document(request.get_json(silent=True) or {}, actor=actor)
-        return jsonify(result), (200 if result.get('ok') else (409 if result.get('conflict') else 400))
+            return jsonify(
+                {
+                    'ok': True,
+                    'documents': list_documentation_documents(),
+                    'categories': list(EURES_DOCUMENTATION_CATEGORIES),
+                    'statuses': list(EURES_DOCUMENTATION_STATUSES),
+                }
+            )
+        result = save_documentation_document(
+            request.get_json(silent=True) or {}, actor=actor
+        )
+        return jsonify(result), (
+            200 if result.get('ok') else (409 if result.get('conflict') else 400)
+        )
     except Exception as exc:
         app.logger.error('EURES project documentation failed')
         return _client_error('', 500)
 
 
-@app.route('/api/forms/<form_id>/admin/documentation/documents/<int:record_id>', methods=['GET', 'PATCH'])
+@app.route(
+    '/api/forms/<form_id>/admin/documentation/documents/<int:record_id>',
+    methods=['GET', 'PATCH'],
+)
 @admin_required
 def admin_eures_documentation_document(form_id: str, record_id: int):
     if form_id != 'eures-beta':
@@ -11379,15 +14167,21 @@ def admin_eures_documentation_document(form_id: str, record_id: int):
     actor = get_admin_actor(form_id, fallback='admin')
     try:
         config, headers = _documentation_table_ready()
-        record = fetch_record_by_id(config['doc_id'], config['table_id'], record_id, headers)
+        record = fetch_record_by_id(
+            config['doc_id'], config['table_id'], record_id, headers
+        )
         if not record:
             return jsonify({'error': 'Page documentaire introuvable.'}), 404
         if request.method == 'GET':
-            return jsonify({'ok': True, 'document': _documentation_document_from_record(record)})
+            return jsonify(
+                {'ok': True, 'document': _documentation_document_from_record(record)}
+            )
         payload = request.get_json(silent=True) or {}
         payload['record_id'] = record_id
         result = save_documentation_document(payload, actor=actor)
-        return jsonify(result), (200 if result.get('ok') else (409 if result.get('conflict') else 400))
+        return jsonify(result), (
+            200 if result.get('ok') else (409 if result.get('conflict') else 400)
+        )
     except Exception as exc:
         app.logger.error('EURES project documentation document failed')
         return _client_error('', 500)
@@ -11402,7 +14196,13 @@ def admin_eures_tracking_cards(form_id: str):
     language = _tracking_request_language()
     try:
         if request.method == 'GET':
-            return jsonify({'ok': True, 'cards': list_tracking_cards(), 'metadata': tracking_metadata()})
+            return jsonify(
+                {
+                    'ok': True,
+                    'cards': list_tracking_cards(),
+                    'metadata': tracking_metadata(),
+                }
+            )
         payload = request.get_json(silent=True) or {}
         result = save_tracking_card(payload, actor=actor, language=language)
         return jsonify(result), (200 if result.get('ok') else 400)
@@ -11411,7 +14211,10 @@ def admin_eures_tracking_cards(form_id: str):
         return _client_error('', 500)
 
 
-@app.route('/api/forms/<form_id>/admin/tracking/cards/<int:record_id>', methods=['GET', 'PATCH', 'DELETE'])
+@app.route(
+    '/api/forms/<form_id>/admin/tracking/cards/<int:record_id>',
+    methods=['GET', 'PATCH', 'DELETE'],
+)
 @admin_required
 def admin_eures_tracking_card(form_id: str, record_id: int):
     if form_id != 'eures-beta':
@@ -11420,7 +14223,9 @@ def admin_eures_tracking_card(form_id: str, record_id: int):
     language = _tracking_request_language()
     try:
         config, headers = _tracking_table_ready()
-        record = fetch_record_by_id(config['doc_id'], config['table_id'], record_id, headers)
+        record = fetch_record_by_id(
+            config['doc_id'], config['table_id'], record_id, headers
+        )
         if not record:
             return jsonify({'error': 'Tracking card not found.'}), 404
         if request.method == 'GET':
@@ -11437,7 +14242,10 @@ def admin_eures_tracking_card(form_id: str, record_id: int):
         return _client_error('', 500)
 
 
-@app.route('/api/forms/<form_id>/admin/tracking/cards/<int:record_id>/comments', methods=['POST'])
+@app.route(
+    '/api/forms/<form_id>/admin/tracking/cards/<int:record_id>/comments',
+    methods=['POST'],
+)
 @admin_required
 def admin_eures_tracking_card_comment(form_id: str, record_id: int):
     if form_id != 'eures-beta':
@@ -11446,7 +14254,9 @@ def admin_eures_tracking_card_comment(form_id: str, record_id: int):
     language = _tracking_request_language()
     payload = request.get_json(silent=True) or {}
     try:
-        card = add_tracking_comment(record_id, payload.get('body') or '', actor, language=language)
+        card = add_tracking_comment(
+            record_id, payload.get('body') or '', actor, language=language
+        )
         return jsonify({'ok': True, 'card': card})
     except Exception as e:
         app.logger.error('EURES tracking comment failed')
@@ -11470,9 +14280,15 @@ def admin_eures_tracking_ai_draft(form_id: str):
     )
     if payload.get('create') and not draft['errors']:
         created = save_tracking_card(draft['card'], actor=actor, language=language)
-        created['warnings'] = list(dict.fromkeys((draft.get('warnings') or []) + (created.get('warnings') or [])))
+        created['warnings'] = list(
+            dict.fromkeys(
+                (draft.get('warnings') or []) + (created.get('warnings') or [])
+            )
+        )
         return jsonify(created), (200 if created.get('ok') else 400)
-    return jsonify({'ok': not bool(draft['errors']), **draft}), (200 if not draft['errors'] else 400)
+    return jsonify({'ok': not bool(draft['errors']), **draft}), (
+        200 if not draft['errors'] else 400
+    )
 
 
 @app.route('/api/forms/<form_id>/admin/tracking/ai/validate', methods=['POST'])
@@ -11488,10 +14304,16 @@ def admin_eures_tracking_ai_validate(form_id: str):
     try:
         if record_id:
             config, headers = _tracking_table_ready()
-            record = fetch_record_by_id(config['doc_id'], config['table_id'], int(record_id), headers)
+            record = fetch_record_by_id(
+                config['doc_id'], config['table_id'], int(record_id), headers
+            )
             existing = _tracking_card_from_record(record) if record else None
-        result = validate_tracking_card(payload, existing=existing, actor=actor, language=language)
-        return jsonify({'ok': not bool(result['errors']), **result}), (200 if not result['errors'] else 400)
+        result = validate_tracking_card(
+            payload, existing=existing, actor=actor, language=language
+        )
+        return jsonify({'ok': not bool(result['errors']), **result}), (
+            200 if not result['errors'] else 400
+        )
     except Exception as e:
         app.logger.error('EURES tracking validation failed')
         return _client_error('', 500)
@@ -11503,7 +14325,9 @@ def admin_eures_tracking_ai_translate(form_id: str):
     if form_id != 'eures-beta':
         return jsonify({'error': f'Unknown tracking admin form: {form_id}'}), 404
     payload = request.get_json(silent=True) or {}
-    translated, warnings = translate_tracking_card_payload(payload.get('card') or {}, payload.get('target_language') or 'fr')
+    translated, warnings = translate_tracking_card_payload(
+        payload.get('card') or {}, payload.get('target_language') or 'fr'
+    )
     return jsonify({'ok': True, 'translated': translated, 'warnings': warnings})
 
 
@@ -11575,7 +14399,9 @@ def _visit_analytics_referrer_host(value) -> str:
         return ''
 
 
-def _eures_visit_analytics_event_fields(event_type: str, payload: dict | None = None) -> dict | None:
+def _eures_visit_analytics_event_fields(
+    event_type: str, payload: dict | None = None
+) -> dict | None:
     event_type = _clean_visit_analytics_value(event_type, 60)
     if event_type not in EURES_VISIT_ANALYTICS_EVENT_TYPES:
         return None
@@ -11599,14 +14425,20 @@ def _eures_visit_analytics_event_fields(event_type: str, payload: dict | None = 
         'referrer_host': _visit_analytics_referrer_host(payload.get('referrer')),
         'metadata_json': '',
     }
-    metadata = payload.get('metadata') if isinstance(payload.get('metadata'), dict) else {}
+    metadata = (
+        payload.get('metadata') if isinstance(payload.get('metadata'), dict) else {}
+    )
     if metadata:
         clean_metadata = {
-            _clean_visit_analytics_value(key, 50): _clean_visit_analytics_value(value, 180)
+            _clean_visit_analytics_value(key, 50): _clean_visit_analytics_value(
+                value, 180
+            )
             for key, value in metadata.items()
             if _clean_visit_analytics_value(key, 50)
         }
-        fields['metadata_json'] = json.dumps(clean_metadata, ensure_ascii=False, separators=(',', ':'))
+        fields['metadata_json'] = json.dumps(
+            clean_metadata, ensure_ascii=False, separators=(',', ':')
+        )
     return fields
 
 
@@ -11615,14 +14447,18 @@ def _write_eures_visit_analytics_fallback(event: dict) -> bool:
         EURES_VISIT_ANALYTICS_FILE.parent.mkdir(parents=True, exist_ok=True)
         with _EURES_VISIT_ANALYTICS_LOCK:
             with EURES_VISIT_ANALYTICS_FILE.open('a', encoding='utf-8') as handle:
-                handle.write(json.dumps(event, ensure_ascii=False, separators=(',', ':')) + '\n')
+                handle.write(
+                    json.dumps(event, ensure_ascii=False, separators=(',', ':')) + '\n'
+                )
         return True
     except Exception:
         app.logger.error('EURES visit analytics fallback write failed')
         return False
 
 
-def _record_eures_visit_analytics_event(event_type: str, payload: dict | None = None) -> dict:
+def _record_eures_visit_analytics_event(
+    event_type: str, payload: dict | None = None
+) -> dict:
     """Store a minimal, non-identifying Match Europe visit event.
 
     This intentionally avoids storing IP addresses, full user agents or form answers.
@@ -11640,20 +14476,37 @@ def _record_eures_visit_analytics_event(event_type: str, payload: dict | None = 
             headers = _tracking_admin_headers(config)
             _ensure_grist_table(config, headers, EURES_VISIT_ANALYTICS_TABLE_COLUMNS)
             url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}/records"
-            resp = write_grist_records('POST', url, {'records': [{'fields': fields}]}, headers)
+            resp = write_grist_records(
+                'POST', url, {'records': [{'fields': fields}]}, headers
+            )
             if resp.status_code == 200:
-                return {'ok': True, 'stored': True, 'storage': 'grist', 'event_id': fields['event_id']}
-            app.logger.warning('EURES visit analytics Grist write failed: HTTP %s', resp.status_code)
+                return {
+                    'ok': True,
+                    'stored': True,
+                    'storage': 'grist',
+                    'event_id': fields['event_id'],
+                }
+            app.logger.warning(
+                'EURES visit analytics Grist write failed: HTTP %s', resp.status_code
+            )
         except Exception:
             app.logger.error('EURES visit analytics Grist write failed')
 
     fallback_ok = _write_eures_visit_analytics_fallback(fields)
     if fallback_ok:
-        return {'ok': True, 'stored': True, 'storage': 'temporary_file', 'event_id': fields['event_id'], 'warning': 'grist_unavailable'}
+        return {
+            'ok': True,
+            'stored': True,
+            'storage': 'temporary_file',
+            'event_id': fields['event_id'],
+            'warning': 'grist_unavailable',
+        }
     return {'ok': False, 'stored': False, 'reason': 'storage_unavailable'}
 
 
-def _read_eures_visit_analytics_events_from_grist(days: int = 30, limit: int = 50000) -> list[dict]:
+def _read_eures_visit_analytics_events_from_grist(
+    days: int = 30, limit: int = 50000
+) -> list[dict]:
     config = get_eures_visit_analytics_config()
     if not config or not config.get('doc_id') or not config.get('api_key'):
         return []
@@ -11663,7 +14516,9 @@ def _read_eures_visit_analytics_events_from_grist(days: int = 30, limit: int = 5
         url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/{config['table_id']}/records"
         resp = requests.get(url, headers=headers, params={'limit': str(limit)})
         if resp.status_code != 200:
-            app.logger.warning('EURES visit analytics Grist read failed: HTTP %s', resp.status_code)
+            app.logger.warning(
+                'EURES visit analytics Grist read failed: HTTP %s', resp.status_code
+            )
             return []
         records = resp.json().get('records', [])
     except Exception:
@@ -11689,7 +14544,9 @@ def _read_eures_visit_analytics_events_from_grist(days: int = 30, limit: int = 5
     return events
 
 
-def _read_eures_visit_analytics_events_from_file(days: int = 30, limit: int = 50000) -> list[dict]:
+def _read_eures_visit_analytics_events_from_file(
+    days: int = 30, limit: int = 50000
+) -> list[dict]:
     if days <= 0:
         days = 30
     since = datetime.now(timezone.utc) - timedelta(days=min(days, 365))
@@ -11731,10 +14588,24 @@ def _build_eures_visit_analytics_summary(days: int = 30) -> dict:
             storage_kind = 'temporary_file'
             storage_durable = False
             storage_warning = "Lecture du fallback temporaire : Grist ne contient pas encore d'événement ou est indisponible."
-    event_counts = Counter(str(event.get('event_type') or 'unknown') for event in events)
-    page_counts = Counter(str(event.get('page') or event.get('path') or 'inconnue') for event in events if event.get('event_type') == 'page_view')
-    source_counts = Counter(str(event.get('source') or event.get('referrer_host') or 'direct') for event in events if event.get('event_type') == 'page_view')
-    campaign_counts = Counter(str(event.get('campaign') or 'sans campagne') for event in events if event.get('campaign'))
+    event_counts = Counter(
+        str(event.get('event_type') or 'unknown') for event in events
+    )
+    page_counts = Counter(
+        str(event.get('page') or event.get('path') or 'inconnue')
+        for event in events
+        if event.get('event_type') == 'page_view'
+    )
+    source_counts = Counter(
+        str(event.get('source') or event.get('referrer_host') or 'direct')
+        for event in events
+        if event.get('event_type') == 'page_view'
+    )
+    campaign_counts = Counter(
+        str(event.get('campaign') or 'sans campagne')
+        for event in events
+        if event.get('campaign')
+    )
     daily = defaultdict(Counter)
     page_breakdown = defaultdict(Counter)
     for event in events:
@@ -11754,7 +14625,9 @@ def _build_eures_visit_analytics_summary(days: int = 30) -> dict:
         'days': days,
         'total_events': len(events),
         'events': dict(event_counts),
-        'pages': [{'page': key, 'count': value} for key, value in page_counts.most_common(20)],
+        'pages': [
+            {'page': key, 'count': value} for key, value in page_counts.most_common(20)
+        ],
         'page_breakdown': [
             {
                 'page': page,
@@ -11770,11 +14643,16 @@ def _build_eures_visit_analytics_summary(days: int = 30) -> dict:
                 reverse=True,
             )
         ],
-        'sources': [{'source': key, 'count': value} for key, value in source_counts.most_common(20)],
-        'campaigns': [{'campaign': key, 'count': value} for key, value in campaign_counts.most_common(20)],
+        'sources': [
+            {'source': key, 'count': value}
+            for key, value in source_counts.most_common(20)
+        ],
+        'campaigns': [
+            {'campaign': key, 'count': value}
+            for key, value in campaign_counts.most_common(20)
+        ],
         'daily': [
-            {'date': day, **dict(counter)}
-            for day, counter in sorted(daily.items())
+            {'date': day, **dict(counter)} for day, counter in sorted(daily.items())
         ],
     }
 
@@ -11807,7 +14685,12 @@ def admin_eures_visit_analytics(form_id: str):
 @app.route('/health')
 def health():
     """Health check endpoint."""
-    deep = str(request.args.get('deep') or '').strip().lower() in {'1', 'true', 'yes', 'on'}
+    deep = str(request.args.get('deep') or '').strip().lower() in {
+        '1',
+        'true',
+        'yes',
+        'on',
+    }
     payload = {'status': 'ok'}
     if deep:
         brevo = get_brevo_health(check_api=True)
@@ -11836,9 +14719,6 @@ def serve_form(form_id: str):
     return send_from_directory(FORMS_DIR / form_id, 'index.html')
 
 
-
-
-
 @app.route('/forms/<form_id>/<path:filename>')
 def serve_form_file(form_id: str, filename: str):
     """Serve extra files from a form folder (e.g. UI prototypes)."""
@@ -11853,7 +14733,6 @@ def serve_form_file(form_id: str, filename: str):
     return send_from_directory(FORMS_DIR / form_id, resolved)
 
 
-
 @app.route('/admin/<form_id>/login', methods=['GET', 'POST'])
 def admin_login(form_id: str):
     """Magic-link login entrypoint for admin surfaces."""
@@ -11864,7 +14743,11 @@ def admin_login(form_id: str):
         return proxied
     mode = get_admin_auth_mode(form_id)
     if mode not in {'magic_link', 'hybrid'}:
-        return Response('Admin magic-link login is not enabled for this form.', status=404, mimetype='text/plain')
+        return Response(
+            'Admin magic-link login is not enabled for this form.',
+            status=404,
+            mimetype='text/plain',
+        )
 
     if _current_admin_session(form_id):
         return redirect(url_for('serve_admin', form_id=form_id))
@@ -11875,20 +14758,26 @@ def admin_login(form_id: str):
     payload = request.get_json(silent=True) if request.is_json else {}
     email = normalize_email((payload or {}).get('email') or request.form.get('email'))
     allowed_emails = get_admin_allowed_emails(form_id)
-    generic_message = "Si cette adresse est autorisee, un lien de connexion vient d'etre envoye."
+    generic_message = (
+        "Si cette adresse est autorisee, un lien de connexion vient d'etre envoye."
+    )
     rate_limit_seconds = get_admin_magic_link_rate_limit_seconds(form_id)
 
     if not email:
         if request.is_json:
             return jsonify({'error': 'Email required'}), 400
-        return _render_admin_login_page(form_id, error='Veuillez saisir une adresse email valide.')
+        return _render_admin_login_page(
+            form_id, error='Veuillez saisir une adresse email valide.'
+        )
 
     app.logger.info(
         'Admin magic link requested',
         extra={
             'form_id': form_id,
             'email': email,
-            'client_ip': request.headers.get('X-Forwarded-For', request.remote_addr or ''),
+            'client_ip': request.headers.get(
+                'X-Forwarded-For', request.remote_addr or ''
+            ),
         },
     )
 
@@ -11902,13 +14791,17 @@ def admin_login(form_id: str):
                 extra={'form_id': form_id, 'email': email},
             )
         else:
-            token = get_admin_magic_link_serializer(form_id).dumps({
-                'form_id': form_id,
-                'email': email,
-                'jti': secrets.token_urlsafe(16),
-            })
+            token = get_admin_magic_link_serializer(form_id).dumps(
+                {
+                    'form_id': form_id,
+                    'email': email,
+                    'jti': secrets.token_urlsafe(16),
+                }
+            )
             login_link = build_admin_magic_login_link(form_id, token)
-            recipient, subject, text_body, html_body = build_admin_magic_link_email(form_id, email, login_link)
+            recipient, subject, text_body, html_body = build_admin_magic_link_email(
+                form_id, email, login_link
+            )
             send_brevo_transactional_email(recipient, subject, text_body, html_body)
             _ADMIN_MAGIC_LINK_REQUESTS[throttle_key] = now
             app.logger.info(
@@ -11926,7 +14819,6 @@ def admin_login(form_id: str):
     return _render_admin_login_page(form_id, message=generic_message)
 
 
-
 @app.route('/admin/<form_id>/magic', methods=['GET'])
 @app.route('/admin/<form_id>/magic-login', methods=['GET'])
 def admin_magic_link_consume(form_id: str):
@@ -11938,11 +14830,17 @@ def admin_magic_link_consume(form_id: str):
         return proxied
     mode = get_admin_auth_mode(form_id)
     if mode not in {'magic_link', 'hybrid'}:
-        return Response('Admin magic-link login is not enabled for this form.', status=404, mimetype='text/plain')
+        return Response(
+            'Admin magic-link login is not enabled for this form.',
+            status=404,
+            mimetype='text/plain',
+        )
 
     token = str(request.args.get('token') or '').strip()
     if not token:
-        return Response('Lien invalide : token manquant.', status=400, mimetype='text/plain')
+        return Response(
+            'Lien invalide : token manquant.', status=400, mimetype='text/plain'
+        )
 
     try:
         payload = get_admin_magic_link_serializer(form_id).loads(
@@ -11960,13 +14858,21 @@ def admin_magic_link_consume(form_id: str):
     email = normalize_email(payload.get('email'))
     token_form_id = str(payload.get('form_id') or '').strip()
     jti = str(payload.get('jti') or '').strip()
-    if token_form_id != form_id or email not in get_admin_allowed_emails(form_id) or not jti:
+    if (
+        token_form_id != form_id
+        or email not in get_admin_allowed_emails(form_id)
+        or not jti
+    ):
         app.logger.warning(
             'Admin magic link rejected after decode',
             extra={'form_id': form_id, 'email': email},
         )
-        return Response('Lien invalide : acces non autorise.', status=403, mimetype='text/plain')
-    if not _consume_admin_magic_link_jti(jti, get_admin_magic_link_ttl_seconds(form_id)):
+        return Response(
+            'Lien invalide : acces non autorise.', status=403, mimetype='text/plain'
+        )
+    if not _consume_admin_magic_link_jti(
+        jti, get_admin_magic_link_ttl_seconds(form_id)
+    ):
         app.logger.warning(
             'Admin magic link replay blocked',
             extra={'form_id': form_id, 'email': email},
@@ -11976,6 +14882,7 @@ def admin_magic_link_consume(form_id: str):
     _set_admin_session(form_id, email)
     if form_id == 'eures-beta':
         from eures_permissions import issue_session_version
+
         version = issue_session_version(email, _eures_permission_reader())
         if version is not None:
             personal = dict(session[_admin_session_key(form_id)])
@@ -11987,7 +14894,6 @@ def admin_magic_link_consume(form_id: str):
             extra={'form_id': form_id, 'email': email},
         )
     return redirect(url_for('serve_admin', form_id=form_id))
-
 
 
 @app.route('/admin/<form_id>/logout', methods=['GET', 'POST'])
@@ -12008,7 +14914,6 @@ def admin_logout(form_id: str):
     return redirect(url_for('admin_login', form_id=form_id))
 
 
-
 @app.route('/admin/<form_id>/')
 @app.route('/admin/<form_id>')
 @admin_required
@@ -12022,20 +14927,26 @@ def serve_admin(form_id: str):
     return send_from_directory(FORMS_DIR / form_id, 'admin.html')
 
 
-
-
-
-
-
-
-
 # Initiative contacts: personally authenticated, explicitly authorized.
 EURES_NETWORK_LIST_FIELDS = (
-    "Prenom", "Nom", "Organisation", "Fonction", "Pays", "Type_contact", "Actif",
+    "Prenom",
+    "Nom",
+    "Organisation",
+    "Fonction",
+    "Pays",
+    "Type_contact",
+    "Actif",
 )
 EURES_NETWORK_DETAIL_FIELDS = EURES_NETWORK_LIST_FIELDS + (
-    "Email", "Telephone", "Source_contact", "Date_premier_contact", "Introduit_par",
-    "Newsletter_statut", "Date_consentement", "Derniere_interaction", "Notes",
+    "Email",
+    "Telephone",
+    "Source_contact",
+    "Date_premier_contact",
+    "Introduit_par",
+    "Newsletter_statut",
+    "Date_consentement",
+    "Derniere_interaction",
+    "Notes",
     "Proprietaire_contact",
 )
 
@@ -12053,14 +14964,21 @@ def network_required(fn):
         if proxied is not None:
             return proxied
         return fn(*args, **kwargs)
+
     return guarded
 
 
 @app.after_request
 def network_private_response(response):
-    if request.path.startswith(("/admin/eures-beta/reseau", "/api/forms/eures-beta/admin/reseau",
-            "/admin/eures-beta/utilisateurs", "/api/forms/eures-beta/admin/utilisateurs",
-            "/api/forms/eures-beta/admin/roles")):
+    if request.path.startswith(
+        (
+            "/admin/eures-beta/reseau",
+            "/api/forms/eures-beta/admin/reseau",
+            "/admin/eures-beta/utilisateurs",
+            "/api/forms/eures-beta/admin/utilisateurs",
+            "/api/forms/eures-beta/admin/roles",
+        )
+    ):
         response.headers["Cache-Control"] = "no-store, private"
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -12077,7 +14995,9 @@ def _network_records(record_id=None):
     params = {"limit": 5001}
     if record_id is not None:
         params = {"filter": json.dumps({"id": [record_id]}), "limit": 1}
-    response = requests.get(url, headers=_tracking_admin_headers(config), params=params, timeout=20)
+    response = requests.get(
+        url, headers=_tracking_admin_headers(config), params=params, timeout=20
+    )
     response.raise_for_status()
     records = response.json()["records"]
     if not isinstance(records, list) or len(records) > 5000:
@@ -12093,10 +15013,18 @@ def _network_project(record, fields):
 def _network_audit(action, target):
     # WARNING ensures emission with the existing default production log level.
     # Never include contact content, search terms, tokens, or upstream responses.
-    app.logger.warning("network_audit %s", json.dumps({
-        "user": _current_admin_session("eures-beta")["email"],
-        "action": action, "target": target, "timestamp": _now_iso_utc(),
-    }, ensure_ascii=True))
+    app.logger.warning(
+        "network_audit %s",
+        json.dumps(
+            {
+                "user": _current_admin_session("eures-beta")["email"],
+                "action": action,
+                "target": target,
+                "timestamp": _now_iso_utc(),
+            },
+            ensure_ascii=True,
+        ),
+    )
 
 
 @app.route("/api/forms/<form_id>/admin/reseau/access")
@@ -12107,7 +15035,9 @@ def admin_network_access(form_id):
         return jsonify({'error': 'Authorization unavailable'}), 503
     if not authorization.has_permission('reseau.read'):
         return jsonify({'error': 'Access denied'}), 403
-    response = jsonify({"allowed": True, "can_write": authorization.has_permission('reseau.write')})
+    response = jsonify(
+        {"allowed": True, "can_write": authorization.has_permission('reseau.write')}
+    )
     response.headers["Cache-Control"] = "no-store, private"
     return response
 
@@ -12116,12 +15046,18 @@ def admin_network_access(form_id):
 @network_required
 def admin_network_contacts(form_id):
     try:
-        contacts = [_network_project(row, EURES_NETWORK_LIST_FIELDS) for row in _network_records()]
+        contacts = [
+            _network_project(row, EURES_NETWORK_LIST_FIELDS)
+            for row in _network_records()
+        ]
         _network_audit("list", "Contacts_Initiative")
         return jsonify({"contacts": contacts})
     except Exception:
         app.logger.warning("Network list unavailable")
-        return jsonify({"error": "Le réseau est indisponible. Réessayez plus tard."}), 503
+        return (
+            jsonify({"error": "Le réseau est indisponible. Réessayez plus tard."}),
+            503,
+        )
 
 
 @app.route("/api/forms/<form_id>/admin/reseau/contacts/<int:record_id>")
@@ -12137,16 +15073,26 @@ def admin_network_contact(form_id, record_id):
         owner = contact.get('Proprietaire_contact')
         if owner:
             users, _ = _eures_permission_reader()()
-            matches = [r['fields'] for r in users if r['fields'].get('Utilisateur_ID') == owner]
+            matches = [
+                r['fields'] for r in users if r['fields'].get('Utilisateur_ID') == owner
+            ]
             if len(matches) == 1:
                 user = matches[0]
-                contact['Proprietaire_contact_label'] = (' '.join(str(user.get(k) or '').strip()
-                    for k in ('Prenom', 'Nom')).strip() or user.get('Email') or owner)
+                contact['Proprietaire_contact_label'] = (
+                    ' '.join(
+                        str(user.get(k) or '').strip() for k in ('Prenom', 'Nom')
+                    ).strip()
+                    or user.get('Email')
+                    or owner
+                )
         _network_audit("view", f"Contacts_Initiative/{record_id}")
         return jsonify({"contact": contact})
     except Exception:
         app.logger.warning("Network contact unavailable")
-        return jsonify({"error": "La fiche est indisponible. Réessayez plus tard."}), 503
+        return (
+            jsonify({"error": "La fiche est indisponible. Réessayez plus tard."}),
+            503,
+        )
 
 
 @app.route("/admin/<form_id>/reseau")
@@ -12157,27 +15103,42 @@ def serve_admin_network(form_id):
 
 def network_editor_required(fn):
     """Both independent permissions, one fresh snapshot; never proxy mutations."""
+
     @wraps(fn)
     def guarded(*args, **kwargs):
         from eures_permissions import resolve_authorization
+
         if kwargs.get('form_id') != 'eures-beta':
             return jsonify({'error': 'Rubrique inconnue.'}), 404
         personal = _eures_permission_session()
         snapshot = None
+
         def reader():
             nonlocal snapshot
             snapshot = _eures_permission_reader()()
             return snapshot
+
         authorization = resolve_authorization(personal, reader)
         if authorization.reason == 'grist_unavailable':
             return jsonify({'error': 'Authorization unavailable'}), 503
-        if not all(authorization.has_permission(p) for p in ('reseau.read', 'reseau.write')):
+        if not all(
+            authorization.has_permission(p) for p in ('reseau.read', 'reseau.write')
+        ):
             return jsonify({'error': 'Access denied'}), 403
         if request.method in ('POST', 'PATCH'):
             token = request.headers.get('X-Network-CSRF', '')
             expected = session.get('network_csrf', '')
-            if not token or not expected or not hmac.compare_digest(token.encode('utf-8'), expected.encode('utf-8')):
-                return jsonify({'error': 'Formulaire expiré. Rouvrez-le puis réessayez.'}), 403
+            if (
+                not token
+                or not expected
+                or not hmac.compare_digest(
+                    token.encode('utf-8'), expected.encode('utf-8')
+                )
+            ):
+                return (
+                    jsonify({'error': 'Formulaire expiré. Rouvrez-le puis réessayez.'}),
+                    403,
+                )
             if not request.is_json:
                 return jsonify({'error': 'Corps JSON requis.'}), 400
             if request.content_length is None or request.content_length > 65536:
@@ -12188,16 +15149,32 @@ def network_editor_required(fn):
             for row in snapshot[0]:
                 user = row['fields']
                 uid = user.get('Utilisateur_ID')
-                if not isinstance(uid, str) or not uid.strip() or len(uid) > 300 or uid != uid.strip() or uid in all_ids:
+                if (
+                    not isinstance(uid, str)
+                    or not uid.strip()
+                    or len(uid) > 300
+                    or uid != uid.strip()
+                    or uid in all_ids
+                ):
                     raise ValueError('Invalid user catalogue')
                 all_ids.add(uid)
                 if user.get('Actif') is True:
-                    name = ' '.join(str(user.get(k) or '').strip() for k in ('Prenom', 'Nom')).strip()
+                    name = ' '.join(
+                        str(user.get(k) or '').strip() for k in ('Prenom', 'Nom')
+                    ).strip()
                     owners[uid] = name or user.get('Email') or uid
-            return fn(*args, **kwargs, owners=owners, current_user=authorization.user_id)
+            return fn(
+                *args, **kwargs, owners=owners, current_user=authorization.user_id
+            )
         except Exception:
             app.logger.warning('Network editor unavailable')
-            return jsonify({'error': 'Le formulaire est indisponible. Réessayez plus tard.'}), 503
+            return (
+                jsonify(
+                    {'error': 'Le formulaire est indisponible. Réessayez plus tard.'}
+                ),
+                503,
+            )
+
     return guarded
 
 
@@ -12211,26 +15188,43 @@ def _network_write_config():
 
 def _network_choices():
     from network_editor import CHOICES, TEXT, DATES
+
     config = _network_write_config()
     response = requests.get(
         f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/Contacts_Initiative/columns",
-        headers=_tracking_admin_headers(config), timeout=20, allow_redirects=False)
+        headers=_tracking_admin_headers(config),
+        timeout=20,
+        allow_redirects=False,
+    )
     if response.status_code != 200:
         raise RuntimeError('Network schema unavailable')
     columns = {c['id']: c['fields'] for c in response.json()['columns']}
-    expected = {**{k: 'Text' for k in TEXT}, **{k: 'Date' for k in DATES},
-                **{k: 'Choice' for k in CHOICES}, 'Contact_ID': 'Text', 'Actif': 'Bool'}
+    expected = {
+        **{k: 'Text' for k in TEXT},
+        **{k: 'Date' for k in DATES},
+        **{k: 'Choice' for k in CHOICES},
+        'Contact_ID': 'Text',
+        'Actif': 'Bool',
+    }
     for key, kind in expected.items():
         column = columns[key]
-        if column.get('type') != kind or column.get('isFormula') or column.get('formula'):
+        if (
+            column.get('type') != kind
+            or column.get('isFormula')
+            or column.get('formula')
+        ):
             raise RuntimeError('Network schema incompatible; no migration attempted')
     choices = {}
     for key in CHOICES:
         column = columns[key]
         options = json.loads(column.get('widgetOptions') or '{}').get('choices')
-        if (column.get('type') != 'Choice' or column.get('isFormula')
-                or not isinstance(options, list) or not options
-                or any(not isinstance(v, str) or len(v) > 300 for v in options)):
+        if (
+            column.get('type') != 'Choice'
+            or column.get('isFormula')
+            or not isinstance(options, list)
+            or not options
+            or any(not isinstance(v, str) or len(v) > 300 for v in options)
+        ):
             raise RuntimeError('Network schema incompatible')
         choices[key] = options
     if not {'Non sollicité', 'Accepté'}.issubset(choices['Newsletter_statut']):
@@ -12242,6 +15236,7 @@ def _network_new_id():
     # UUID4: 122 random bits, no personal data, stable once written. Check known
     # collisions with a bounded retry. Grist has no atomic uniqueness constraint.
     from uuid import uuid4
+
     existing = {r.get('fields', {}).get('Contact_ID') for r in _network_records()}
     for _ in range(5):
         candidate = 'CI-' + str(uuid4())
@@ -12252,7 +15247,10 @@ def _network_new_id():
 
 def _network_write(fields, record_id=None):
     from network_editor import FIELDS
-    if set(fields) - (FIELDS | {'Actif', 'Contact_ID'}) or (record_id is not None and 'Contact_ID' in fields):
+
+    if set(fields) - (FIELDS | {'Actif', 'Contact_ID'}) or (
+        record_id is not None and 'Contact_ID' in fields
+    ):
         raise ValueError('Forbidden fields')
     config = _network_write_config()
     url = f"{GRIST_BASE_URL}/api/docs/{config['doc_id']}/tables/Contacts_Initiative/records"
@@ -12260,19 +15258,31 @@ def _network_write(fields, record_id=None):
     if record_id is not None:
         record['id'] = record_id
     response = (requests.post if record_id is None else requests.patch)(
-        url, headers=_tracking_admin_headers(config), json={'records': [record]},
-        timeout=20, allow_redirects=False)
+        url,
+        headers=_tracking_admin_headers(config),
+        json={'records': [record]},
+        timeout=20,
+        allow_redirects=False,
+    )
     if response.status_code not in (200, 201):
         raise RuntimeError('Network write unavailable')
 
 
 def _network_mutation_audit(action, record_id, fields):
     # Only field names and application-generated target IDs, never contact values.
-    app.logger.warning('network_audit %s', json.dumps({
-        'user': _current_admin_session('eures-beta')['email'],
-        'action': action, 'target': f'Contacts_Initiative/{record_id}',
-        'timestamp': _now_iso_utc(), 'fields': sorted(fields),
-    }, ensure_ascii=True))
+    app.logger.warning(
+        'network_audit %s',
+        json.dumps(
+            {
+                'user': _current_admin_session('eures-beta')['email'],
+                'action': action,
+                'target': f'Contacts_Initiative/{record_id}',
+                'timestamp': _now_iso_utc(),
+                'fields': sorted(fields),
+            },
+            ensure_ascii=True,
+        ),
+    )
 
 
 @app.route('/api/forms/<form_id>/admin/reseau/editor')
@@ -12280,41 +15290,57 @@ def _network_mutation_audit(action, record_id, fields):
 def admin_network_editor(form_id, owners, current_user):
     if not session.get('network_csrf'):
         session['network_csrf'] = secrets.token_urlsafe(32)
-    return jsonify(choices=_network_choices(), owners=[{'id': k, 'label': v} for k, v in owners.items()],
-                   default_owner=current_user, csrf=session['network_csrf'])
+    return jsonify(
+        choices=_network_choices(),
+        owners=[{'id': k, 'label': v} for k, v in owners.items()],
+        default_owner=current_user,
+        csrf=session['network_csrf'],
+    )
 
 
 @app.route('/api/forms/<form_id>/admin/reseau/contacts', methods=['POST'])
-@app.route('/api/forms/<form_id>/admin/reseau/contacts/<int:record_id>', methods=['PATCH'])
+@app.route(
+    '/api/forms/<form_id>/admin/reseau/contacts/<int:record_id>', methods=['PATCH']
+)
 @network_editor_required
 def admin_network_save(form_id, owners, current_user, record_id=None):
     from network_editor import validate
+
     existing = None
     if record_id is not None:
-        row = next((r for r in _network_records(record_id) if r.get('id') == record_id), None)
+        row = next(
+            (r for r in _network_records(record_id) if r.get('id') == record_id), None
+        )
         if row is None:
             return jsonify({'error': 'Contact introuvable.'}), 404
         existing = row['fields']
     choices = _network_choices()
     try:
-        fields = validate(request.get_json(silent=True), choices, owners, current_user, existing)
+        fields = validate(
+            request.get_json(silent=True), choices, owners, current_user, existing
+        )
     except ValueError as error:
         return jsonify({'error': str(error)}), 400
     if record_id is None:
         fields['Contact_ID'] = _network_new_id()
     if fields:
         _network_write(fields, record_id)
-        audit_target = fields['Contact_ID'] if record_id is None else existing['Contact_ID']
-        _network_mutation_audit('create' if record_id is None else 'update',
-                                audit_target, fields)
+        audit_target = (
+            fields['Contact_ID'] if record_id is None else existing['Contact_ID']
+        )
+        _network_mutation_audit(
+            'create' if record_id is None else 'update', audit_target, fields
+        )
     return jsonify({'saved': True}), 201 if record_id is None else 200
 
 
 # Administration des utilisateurs: session personnelle versionnee et permission explicite.
 def _admin_users_directory():
     from eures_admin_users import GristAdminDirectory
+
     return GristAdminDirectory(
-        lambda: get_form_config('eures-beta', 'candidate') or get_form_config('eures-beta'),
+        lambda: get_form_config('eures-beta', 'candidate')
+        or get_form_config('eures-beta'),
         lambda: GRIST_BASE_URL,
     )
 
@@ -12332,8 +15358,12 @@ def _admin_users_csrf_token():
 def _admin_users_csrf_valid():
     expected = session.get('admin_users_csrf:eures-beta')
     provided = request.headers.get('X-CSRF-Token', '')
-    return (isinstance(expected, str) and isinstance(provided, str) and bool(expected)
-            and hmac.compare_digest(expected.encode('utf-8'), provided.encode('utf-8')))
+    return (
+        isinstance(expected, str)
+        and isinstance(provided, str)
+        and bool(expected)
+        and hmac.compare_digest(expected.encode('utf-8'), provided.encode('utf-8'))
+    )
 
 
 def admin_users_required(fn):
@@ -12348,20 +15378,30 @@ def admin_users_required(fn):
         if denied is not None:
             return denied
         from eures_permissions import PermissionDenied
+
         try:
             g.eures_authorization = require_permission('admin.users')
         except PermissionDenied as error:
             unavailable = str(error) == 'grist_unavailable'
-            return jsonify({'error': 'Authorization unavailable' if unavailable
-                            else 'Access denied'}), 503 if unavailable else 403
+            return jsonify(
+                {
+                    'error': (
+                        'Authorization unavailable' if unavailable else 'Access denied'
+                    )
+                }
+            ), (503 if unavailable else 403)
         return fn(*args, **kwargs)
+
     return guarded
 
 
 def _admin_users_error(error):
     from eures_admin_users import ConflictError, DirectoryUnavailable, ValidationError
+
     if isinstance(error, ValidationError):
-        return jsonify({'error': error.code, 'field': error.field}), 404 if error.code == 'not_found' else 400
+        return jsonify({'error': error.code, 'field': error.field}), (
+            404 if error.code == 'not_found' else 400
+        )
     if isinstance(error, ConflictError):
         return jsonify({'error': str(error)}), 409
     if isinstance(error, DirectoryUnavailable):
@@ -12372,14 +15412,20 @@ def _admin_users_error(error):
 def _admin_users_audit(action, target_user_id, changed_fields=()):
     identity = _current_admin_session('eures-beta') or {}
     # Target values, tokens, credentials and upstream responses are excluded.
-    app.logger.warning('admin_users_audit %s', json.dumps({
-        'actor_user_id': g.eures_authorization.user_id,
-        'actor_email': identity.get('email', ''),
-        'action': action,
-        'target_user_id': target_user_id,
-        'changed_fields': sorted(changed_fields),
-        'timestamp': _now_iso_utc(),
-    }, ensure_ascii=True))
+    app.logger.warning(
+        'admin_users_audit %s',
+        json.dumps(
+            {
+                'actor_user_id': g.eures_authorization.user_id,
+                'actor_email': identity.get('email', ''),
+                'action': action,
+                'target_user_id': target_user_id,
+                'changed_fields': sorted(changed_fields),
+                'timestamp': _now_iso_utc(),
+            },
+            ensure_ascii=True,
+        ),
+    )
 
 
 @app.route('/api/forms/<form_id>/admin/utilisateurs/access')
@@ -12392,12 +15438,15 @@ def admin_users_access(form_id):
 @admin_users_required
 def admin_users_collection(form_id):
     from eures_admin_users import new_user_fields, public_user, role_map
+
     directory = _admin_users_directory()
     try:
         users, roles = directory.read()
         roles_by_code = role_map(roles)
         if request.method == 'GET':
-            return jsonify({'users': [public_user(record, roles_by_code) for record in users]})
+            return jsonify(
+                {'users': [public_user(record, roles_by_code) for record in users]}
+            )
         if not _admin_users_csrf_valid():
             return jsonify({'error': 'csrf_failed'}), 403
         fields = new_user_fields(request.get_json(silent=True), users, roles)
@@ -12405,14 +15454,19 @@ def admin_users_collection(form_id):
         _admin_users_audit('create', fields['Utilisateur_ID'], fields.keys())
         return jsonify({'user': public_user(created, roles_by_code)}), 201
     except Exception as error:
-        app.logger.warning('Admin users operation unavailable', extra={'operation': request.method})
+        app.logger.warning(
+            'Admin users operation unavailable', extra={'operation': request.method}
+        )
         return _admin_users_error(error)
 
 
-@app.route('/api/forms/<form_id>/admin/utilisateurs/<int:record_id>', methods=['GET', 'PATCH'])
+@app.route(
+    '/api/forms/<form_id>/admin/utilisateurs/<int:record_id>', methods=['GET', 'PATCH']
+)
 @admin_users_required
 def admin_user_detail(form_id, record_id):
     from eures_admin_users import ValidationError, plan_update, public_user, role_map
+
     directory = _admin_users_directory()
     try:
         users, roles = directory.read()
@@ -12425,17 +15479,24 @@ def admin_user_detail(form_id, record_id):
         if not _admin_users_csrf_valid():
             return jsonify({'error': 'csrf_failed'}), 403
         current, changes, actions = plan_update(
-            request.get_json(silent=True), users, roles, record_id,
+            request.get_json(silent=True),
+            users,
+            roles,
+            record_id,
             g.eures_authorization.user_id,
         )
         if changes:
             directory.update_user(record_id, changes)
             for action in actions:
-                _admin_users_audit(action, current['fields'].get('Utilisateur_ID'), changes.keys())
+                _admin_users_audit(
+                    action, current['fields'].get('Utilisateur_ID'), changes.keys()
+                )
         merged = {'id': current['id'], 'fields': {**current['fields'], **changes}}
         return jsonify({'user': public_user(merged, roles_by_code)})
     except Exception as error:
-        app.logger.warning('Admin user detail unavailable', extra={'operation': request.method})
+        app.logger.warning(
+            'Admin user detail unavailable', extra={'operation': request.method}
+        )
         return _admin_users_error(error)
 
 
@@ -12443,6 +15504,7 @@ def admin_user_detail(form_id, record_id):
 @admin_users_required
 def admin_roles_collection(form_id):
     from eures_admin_users import public_role
+
     try:
         _users, roles = _admin_users_directory().read()
         return jsonify({'roles': [public_role(record) for record in roles]})
@@ -12456,6 +15518,7 @@ def admin_roles_collection(form_id):
 def serve_admin_users(form_id):
     return send_from_directory(BASE_DIR / 'templates', 'admin-utilisateurs.html')
 
+
 @app.route('/admin/<form_id>/suivi')
 @admin_required
 def serve_admin_tracking(form_id: str):
@@ -12468,7 +15531,6 @@ def serve_admin_tracking(form_id: str):
     if form_id != 'eures-beta':
         return jsonify({'error': f'Unknown tracking admin form: {form_id}'}), 404
     return send_from_directory(FORMS_DIR / form_id, 'admin-suivi.html')
-
 
 
 @app.route('/admin/<form_id>/documentation')
@@ -12512,10 +15574,6 @@ def serve_admin_documentation_file(form_id: str, document_key: str):
 def serve_assets(filename: str):
     """Serve static assets (JS, CSS)."""
     return send_from_directory(ASSETS_DIR, filename)
-
-
-
-
 
 
 if __name__ == '__main__':

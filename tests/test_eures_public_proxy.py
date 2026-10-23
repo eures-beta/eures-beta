@@ -17,22 +17,42 @@ class EuresLocalRoutingTest(unittest.TestCase):
         request.assert_not_called()
 
     def test_admin_requires_local_auth_instead_of_upstream_forwarding(self):
-        with patch.dict(app.os.environ, {'ADMIN_AUTH_MODE_EURES_BETA': 'basic',
-                                        'ADMIN_USERNAME_EURES_BETA': 'fictional',
-                                        'ADMIN_PASSWORD_EURES_BETA': 'fictional-secret'}), patch.object(app.requests, 'request') as request:
-            response = self.client.get('/admin/eures-beta/', base_url='https://app.example.test')
+        with (
+            patch.dict(
+                app.os.environ,
+                {
+                    'ADMIN_AUTH_MODE_EURES_BETA': 'basic',
+                    'ADMIN_USERNAME_EURES_BETA': 'fictional',
+                    'ADMIN_PASSWORD_EURES_BETA': 'fictional-secret',
+                },
+            ),
+            patch.object(app.requests, 'request') as request,
+        ):
+            response = self.client.get(
+                '/admin/eures-beta/', base_url='https://app.example.test'
+            )
         self.assertEqual(response.status_code, 401)
         request.assert_not_called()
 
     def test_old_proxy_flag_cannot_enable_forwarding(self):
-        with patch.dict(app.os.environ, {'EURES_PUBLIC_PROXY_ENABLED': 'true'}), app.app.test_request_context('/'):
+        with (
+            patch.dict(app.os.environ, {'EURES_PUBLIC_PROXY_ENABLED': 'true'}),
+            app.app.test_request_context('/'),
+        ):
             self.assertFalse(app.should_proxy_eures_public_request('eures-beta'))
             self.assertIsNone(app.maybe_proxy_eures_request('eures-beta'))
 
     def test_public_urls_use_configuration_or_request_origin(self):
-        with patch.dict(app.os.environ, {'PUBLIC_APP_BASE_URL': 'https://configured.example.test/'}):
-            self.assertEqual(app.get_public_app_base_url(), 'https://configured.example.test')
-        with patch.dict(app.os.environ, {'PUBLIC_APP_BASE_URL': ''}), app.app.test_request_context('/', base_url='https://app.example.test'):
+        with patch.dict(
+            app.os.environ, {'PUBLIC_APP_BASE_URL': 'https://configured.example.test/'}
+        ):
+            self.assertEqual(
+                app.get_public_app_base_url(), 'https://configured.example.test'
+            )
+        with (
+            patch.dict(app.os.environ, {'PUBLIC_APP_BASE_URL': ''}),
+            app.app.test_request_context('/', base_url='https://app.example.test'),
+        ):
             self.assertEqual(app.get_public_app_base_url(), 'https://app.example.test')
         with patch.dict(app.os.environ, {'PUBLIC_APP_BASE_URL': ''}):
             with self.assertRaisesRegex(RuntimeError, 'PUBLIC_APP_BASE_URL'):

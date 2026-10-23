@@ -22,7 +22,9 @@ class AdminMagicLinkTest(unittest.TestCase):
             response = self.client.get('/admin/eures-beta/')
 
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(response.headers['Location'].endswith('/admin/eures-beta/login'))
+        self.assertTrue(
+            response.headers['Location'].endswith('/admin/eures-beta/login')
+        )
 
     def test_magic_link_mode_returns_401_on_admin_api_without_session(self):
         with patch.dict(os.environ, self.env, clear=False):
@@ -34,31 +36,41 @@ class AdminMagicLinkTest(unittest.TestCase):
         self.assertEqual(payload['login_url'], '/admin/eures-beta/login')
 
     @patch.object(app, 'send_brevo_transactional_email')
-    def test_magic_link_login_sends_email_to_allowed_address(self, send_brevo_transactional_email):
+    def test_magic_link_login_sends_email_to_allowed_address(
+        self, send_brevo_transactional_email
+    ):
         send_brevo_transactional_email.return_value = {'messageId': 'brevo-789'}
 
         with patch.dict(os.environ, self.env, clear=False):
-            response = self.client.post('/admin/eures-beta/login', data={'email': 'admin@example.org'})
+            response = self.client.post(
+                '/admin/eures-beta/login', data={'email': 'admin@example.org'}
+            )
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("lien de connexion", response.get_data(as_text=True).lower())
         send_brevo_transactional_email.assert_called_once()
 
     @patch.object(app, 'send_brevo_transactional_email')
-    def test_magic_link_login_does_not_send_for_email_outside_allowlist(self, send_brevo_transactional_email):
+    def test_magic_link_login_does_not_send_for_email_outside_allowlist(
+        self, send_brevo_transactional_email
+    ):
         with patch.dict(os.environ, self.env, clear=False):
-            response = self.client.post('/admin/eures-beta/login', data={'email': 'outsider@example.org'})
+            response = self.client.post(
+                '/admin/eures-beta/login', data={'email': 'outsider@example.org'}
+            )
 
         self.assertEqual(response.status_code, 200)
         send_brevo_transactional_email.assert_not_called()
 
     def test_magic_link_consume_opens_session(self):
         with patch.dict(os.environ, self.env, clear=False):
-            token = app.get_admin_magic_link_serializer('eures-beta').dumps({
-                'form_id': 'eures-beta',
-                'email': 'admin@example.org',
-                'jti': 'token-1',
-            })
+            token = app.get_admin_magic_link_serializer('eures-beta').dumps(
+                {
+                    'form_id': 'eures-beta',
+                    'email': 'admin@example.org',
+                    'jti': 'token-1',
+                }
+            )
             response = self.client.get(f'/admin/eures-beta/magic-login?token={token}')
 
             self.assertEqual(response.status_code, 302)
@@ -70,11 +82,13 @@ class AdminMagicLinkTest(unittest.TestCase):
 
     def test_magic_link_session_cookie_is_not_persistent_by_default(self):
         with patch.dict(os.environ, self.env, clear=False):
-            token = app.get_admin_magic_link_serializer('eures-beta').dumps({
-                'form_id': 'eures-beta',
-                'email': 'admin@example.org',
-                'jti': 'token-session-cookie',
-            })
+            token = app.get_admin_magic_link_serializer('eures-beta').dumps(
+                {
+                    'form_id': 'eures-beta',
+                    'email': 'admin@example.org',
+                    'jti': 'token-session-cookie',
+                }
+            )
             response = self.client.get(f'/admin/eures-beta/magic-login?token={token}')
 
         self.assertEqual(response.status_code, 302)
@@ -83,25 +97,35 @@ class AdminMagicLinkTest(unittest.TestCase):
         self.assertNotIn('Max-Age=', set_cookie)
 
     def test_magic_link_session_expires_server_side(self):
-        with patch.dict(os.environ, self.env | {'ADMIN_SESSION_TTL_SECONDS_EURES_BETA': '300'}, clear=False):
+        with patch.dict(
+            os.environ,
+            self.env | {'ADMIN_SESSION_TTL_SECONDS_EURES_BETA': '300'},
+            clear=False,
+        ):
             with self.client.session_transaction() as sess:
                 sess['admin_session:eures-beta'] = {
                     'email': 'admin@example.org',
-                    'authenticated_at': (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat(),
+                    'authenticated_at': (
+                        datetime.now(timezone.utc) - timedelta(minutes=10)
+                    ).isoformat(),
                 }
 
             response = self.client.get('/admin/eures-beta/')
 
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(response.headers['Location'].endswith('/admin/eures-beta/login'))
+        self.assertTrue(
+            response.headers['Location'].endswith('/admin/eures-beta/login')
+        )
 
     def test_magic_link_cannot_be_reused(self):
         with patch.dict(os.environ, self.env, clear=False):
-            token = app.get_admin_magic_link_serializer('eures-beta').dumps({
-                'form_id': 'eures-beta',
-                'email': 'admin@example.org',
-                'jti': 'token-replay',
-            })
+            token = app.get_admin_magic_link_serializer('eures-beta').dumps(
+                {
+                    'form_id': 'eures-beta',
+                    'email': 'admin@example.org',
+                    'jti': 'token-replay',
+                }
+            )
             first = self.client.get(f'/admin/eures-beta/magic-login?token={token}')
             self.assertEqual(first.status_code, 302)
 

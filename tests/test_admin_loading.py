@@ -38,7 +38,9 @@ class AdminLoadingTest(unittest.TestCase):
         def build():
             self.read()
             self.read(limit=10)
-            app.fetch_table_records('fictional-doc', 'Table', {'Authorization': 'other'})
+            app.fetch_table_records(
+                'fictional-doc', 'Table', {'Authorization': 'other'}
+            )
             app.fetch_table_records('other-doc', 'Table', self.headers)
             app.fetch_table_records('fictional-doc', 'OtherTable', self.headers)
 
@@ -93,26 +95,62 @@ class AdminLoadingTest(unittest.TestCase):
 
     def test_real_builders_read_each_table_once_and_preserve_results(self):
         def config(_form, role=None):
-            return {'doc_id': 'fictional-doc', 'api_key': 'fictional',
-                    'table_id': app.EURES_BESOINS_TABLE if role == 'employer' else app.EURES_CANDIDATS_TABLE}
+            return {
+                'doc_id': 'fictional-doc',
+                'api_key': 'fictional',
+                'table_id': (
+                    app.EURES_BESOINS_TABLE
+                    if role == 'employer'
+                    else app.EURES_CANDIDATS_TABLE
+                ),
+            }
 
         records = {
-            app.EURES_CANDIDATS_TABLE: [{'id': 1, 'fields': {
-                'id_tally': 'candidate-1', 'nom': 'Fictional', 'email': 'fictional@example.org'}}],
-            app.EURES_BESOINS_TABLE: [{'id': 2, 'fields': {
-                'id_tally': 'need-1', 'employeur': 'Fictional employer', 'poste': 'Fictional job'}}],
-            app.EURES_MATCHINGS_TABLE: [{'id': 3, 'fields': {
-                'candidat_id': 'candidate-1', 'besoin_id': 'need-1', 'statut': 'a_valider', 'score': 70}}],
+            app.EURES_CANDIDATS_TABLE: [
+                {
+                    'id': 1,
+                    'fields': {
+                        'id_tally': 'candidate-1',
+                        'nom': 'Fictional',
+                        'email': 'fictional@example.org',
+                    },
+                }
+            ],
+            app.EURES_BESOINS_TABLE: [
+                {
+                    'id': 2,
+                    'fields': {
+                        'id_tally': 'need-1',
+                        'employeur': 'Fictional employer',
+                        'poste': 'Fictional job',
+                    },
+                }
+            ],
+            app.EURES_MATCHINGS_TABLE: [
+                {
+                    'id': 3,
+                    'fields': {
+                        'candidat_id': 'candidate-1',
+                        'besoin_id': 'need-1',
+                        'statut': 'a_valider',
+                        'score': 70,
+                    },
+                }
+            ],
         }
 
         def response(url, **_kwargs):
             table = url.split('/')[-2]
-            return Mock(status_code=200, json=lambda: {'records': records.get(table, [])})
+            return Mock(
+                status_code=200, json=lambda: {'records': records.get(table, [])}
+            )
 
         for builder in (app.build_eures_admin_tasks, app.build_eures_cockpit_summary):
-            with self.subTest(builder=builder.__name__), \
-                    patch.object(app, 'get_form_config', side_effect=config), \
-                    patch.object(app.requests, 'get', side_effect=response) as get:
+            with (
+                self.subTest(builder=builder.__name__),
+                patch.object(app, 'get_form_config', side_effect=config),
+                patch.object(app.requests, 'get', side_effect=response) as get,
+            ):
                 actual = builder()
                 counts = Counter(call.args[0] for call in get.call_args_list)
                 self.assertEqual(len(counts), 4)
@@ -120,7 +158,11 @@ class AdminLoadingTest(unittest.TestCase):
                 get.reset_mock()
                 # Compare to the exact previous behavior with snapshot reuse disabled.
                 if builder is app.build_eures_cockpit_summary:
-                    with patch.object(app, 'build_eures_admin_tasks', app.build_eures_admin_tasks.__wrapped__):
+                    with patch.object(
+                        app,
+                        'build_eures_admin_tasks',
+                        app.build_eures_admin_tasks.__wrapped__,
+                    ):
                         expected = builder.__wrapped__()
                 else:
                     expected = builder.__wrapped__()
