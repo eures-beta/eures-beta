@@ -210,3 +210,18 @@ Admin scripts are served from same-origin files in `assets/admin/`, allowing an 
 ### Error responses and diagnostics
 
 Server/upstream failures use generic FR/EN/DE responses. Exception messages, tracebacks, raw upstream responses and redirect URLs are not returned to clients or copied into the affected application error logs/failure notes. Logs retain stable operation names and safe HTTP status codes. Local validation errors remain actionable. Brevo health diagnostics expose HTTP status rather than an upstream error message. Reverse-proxy/platform logging must be reviewed separately; this change does not configure external log collectors.
+
+## Formatage Python
+
+`make install-quality` installe la version de Black épinglée dans un environnement
+isolé. `make format` applique le formatage ; `make format-check` le vérifie sans
+modifier les fichiers. Python 3.12 est requis pour cet outillage. Les guillemets
+existants sont conservés pour réduire le bruit et préserver les adaptations FT.
+
+Le workflow **Qualité Python**, contrôle **Black**, exécute cette vérification à
+chaque push et pull request, sans secret ni dépendance applicative. Pour bloquer
+les fusions, rendre **Black** obligatoire dans les règles de protection de `main`
+et appliquer la règle aux administrateurs sans contournement. Ce réglage GitHub
+n’est pas modifié par cette PR. Les protections des dépôts privés d’organisation
+nécessitent un abonnement GitHub compatible. Black contrôle le format Python,
+pas les erreurs métier, la sécurité, les templates ou le JavaScript.

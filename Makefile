@@ -1,5 +1,18 @@
 # Commandes locales Flask/Grist ; aucun déploiement ni accès FT dans ce dépôt public.
 .DEFAULT_GOAL := help
+# Outillage isolé des dépendances de l'application et des identifiants personnels.
+QUALITY_PYTHON ?= .venv-quality/bin/python
+
+.PHONY: install-quality format format-check
+install-quality: ## Installer Black dans un environnement dédié (Python 3.12)
+	python3.12 -m venv .venv-quality
+	.venv-quality/bin/python -m pip install -r requirements-quality.txt
+
+format: ## Formater les fichiers Python avec Black (modifie les fichiers)
+	$(QUALITY_PYTHON) -m black --no-cache .
+
+format-check: ## Vérifier le formatage sans modifier les fichiers
+	$(QUALITY_PYTHON) -m black --check --diff --no-cache .
 UV ?= uv
 HOST ?= 127.0.0.1
 PORT ?= 5005
