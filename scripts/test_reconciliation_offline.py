@@ -1,4 +1,5 @@
 """Run the reconciled EURES tests with external connections and dotenv disabled."""
+
 import os
 from pathlib import Path
 import socket
@@ -10,7 +11,12 @@ os.chdir(ROOT)
 sys.path.insert(0, str(ROOT))
 os.environ['PYTHON_DOTENV_DISABLED'] = '1'
 for key in list(os.environ):
-    if key.startswith(('GRIST_', 'BREVO_', 'OPENAI_', 'ADMIN_', 'SESSION_', 'FLASK_', 'EURES_')) or key == 'APP_MODE':
+    if (
+        key.startswith(
+            ('GRIST_', 'BREVO_', 'OPENAI_', 'ADMIN_', 'SESSION_', 'FLASK_', 'EURES_')
+        )
+        or key == 'APP_MODE'
+    ):
         del os.environ[key]
 os.environ['SESSION_SECRET'] = 'offline-tests-only'
 os.environ['EURES_EMAIL_ACTION_SECRET'] = 'offline-email-tests-only'
@@ -23,5 +29,7 @@ def block_network(*args, **kwargs):
 
 socket.create_connection = block_network
 socket.socket.connect = block_network
-result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.discover('tests'))
+result = unittest.TextTestRunner(verbosity=2).run(
+    unittest.defaultTestLoader.discover('tests')
+)
 raise SystemExit(not result.wasSuccessful())

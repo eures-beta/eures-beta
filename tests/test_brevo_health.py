@@ -8,13 +8,13 @@ import app
 class BrevoHealthTest(unittest.TestCase):
     def setUp(self):
         self.client = app.app.test_client()
-        self.admin_auth = {
-            'Authorization': 'Basic YWRtaW46QWRtaW5FdXJlczIwMjY='
-        }
+        self.admin_auth = {'Authorization': 'Basic YWRtaW46QWRtaW5FdXJlczIwMjY='}
 
     def test_get_brevo_health_detects_missing_configuration(self):
         with patch.dict(os.environ, {}, clear=False):
-            with patch.dict(os.environ, {'BREVO_API_KEY': '', 'BREVO_FROM_EMAIL': ''}, clear=False):
+            with patch.dict(
+                os.environ, {'BREVO_API_KEY': '', 'BREVO_FROM_EMAIL': ''}, clear=False
+            ):
                 health = app.get_brevo_health()
 
         self.assertFalse(health['configured'])
@@ -26,31 +26,44 @@ class BrevoHealthTest(unittest.TestCase):
         response = Mock(status_code=201, text='')
         response.json.return_value = {'messageId': 'brevo-123'}
         requests_post.return_value = response
-        with patch.dict(os.environ, {
-            'BREVO_API_KEY': 'brevo-key',
-            'BREVO_FROM_EMAIL': 'sender@example.org',
-            'BREVO_FROM_NAME': 'Match Europe',
-            'BREVO_REPLY_TO_EMAIL': 'admin@example.test',
-            'BREVO_REPLY_TO_NAME': 'Eric Barthélémy',
-        }, clear=False):
-            app.send_brevo_transactional_email('employer@example.org', 'Sujet', 'Texte', '<p>Texte</p>')
+        with patch.dict(
+            os.environ,
+            {
+                'BREVO_API_KEY': 'brevo-key',
+                'BREVO_FROM_EMAIL': 'sender@example.org',
+                'BREVO_FROM_NAME': 'Match Europe',
+                'BREVO_REPLY_TO_EMAIL': 'admin@example.test',
+                'BREVO_REPLY_TO_NAME': 'Eric Barthélémy',
+            },
+            clear=False,
+        ):
+            app.send_brevo_transactional_email(
+                'employer@example.org', 'Sujet', 'Texte', '<p>Texte</p>'
+            )
 
         payload = requests_post.call_args.kwargs['json']
         self.assertEqual(payload['sender']['email'], 'sender@example.org')
-        self.assertEqual(payload['replyTo'], {
-            'email': 'admin@example.test',
-            'name': 'Eric Barthélémy',
-        })
+        self.assertEqual(
+            payload['replyTo'],
+            {
+                'email': 'admin@example.test',
+                'name': 'Eric Barthélémy',
+            },
+        )
 
     @patch.object(app.requests, 'get')
     def test_get_brevo_health_checks_api_successfully(self, requests_get):
         requests_get.return_value = Mock(status_code=200, ok=True)
 
-        with patch.dict(os.environ, {
-            'BREVO_API_KEY': 'brevo-key',
-            'BREVO_FROM_EMAIL': 'eures@example.org',
-            'BREVO_FROM_NAME': 'EURES beta',
-        }, clear=False):
+        with patch.dict(
+            os.environ,
+            {
+                'BREVO_API_KEY': 'brevo-key',
+                'BREVO_FROM_EMAIL': 'eures@example.org',
+                'BREVO_FROM_NAME': 'EURES beta',
+            },
+            clear=False,
+        ):
             health = app.get_brevo_health(check_api=True)
 
         self.assertTrue(health['configured'])
@@ -64,10 +77,14 @@ class BrevoHealthTest(unittest.TestCase):
         response.json.return_value = {'message': 'Key not found'}
         requests_get.return_value = response
 
-        with patch.dict(os.environ, {
-            'BREVO_API_KEY': 'bad-key',
-            'BREVO_FROM_EMAIL': 'eures@example.org',
-        }, clear=False):
+        with patch.dict(
+            os.environ,
+            {
+                'BREVO_API_KEY': 'bad-key',
+                'BREVO_FROM_EMAIL': 'eures@example.org',
+            },
+            clear=False,
+        ):
             health = app.get_brevo_health(check_api=True)
 
         self.assertTrue(health['configured'])
@@ -138,7 +155,10 @@ class BrevoHealthTest(unittest.TestCase):
         get_eures_matching_config,
         _should_proxy,
     ):
-        get_eures_matching_config.return_value = {'doc_id': 'doc', 'table_id': 'Matchings'}
+        get_eures_matching_config.return_value = {
+            'doc_id': 'doc',
+            'table_id': 'Matchings',
+        }
         fetch_record_by_id.return_value = {'id': 57, 'fields': {'besoin_id': 'EMP-1'}}
         find_employer_fields.return_value = {
             'employeur': 'ARHIS',
@@ -146,10 +166,12 @@ class BrevoHealthTest(unittest.TestCase):
             'poste': 'Nettoyage',
             'telephone': '+352 123456',
         }
-        token = app.get_eures_email_action_serializer().dumps({
-            'record_id': 57,
-            'response': 'contact_whatsapp',
-        })
+        token = app.get_eures_email_action_serializer().dumps(
+            {
+                'record_id': 57,
+                'response': 'contact_whatsapp',
+            }
+        )
 
         response = self.client.get(f'/eures-beta/matching-feedback?token={token}')
 
@@ -168,16 +190,24 @@ class BrevoHealthTest(unittest.TestCase):
         get_eures_matching_config,
         _should_proxy,
     ):
-        get_eures_matching_config.return_value = {'doc_id': 'doc', 'table_id': 'Matchings'}
-        token = app.get_eures_email_action_serializer().dumps({
-            'record_id': 57,
-            'response': 'contact_whatsapp',
-        })
+        get_eures_matching_config.return_value = {
+            'doc_id': 'doc',
+            'table_id': 'Matchings',
+        }
+        token = app.get_eures_email_action_serializer().dumps(
+            {
+                'record_id': 57,
+                'response': 'contact_whatsapp',
+            }
+        )
 
-        response = self.client.post('/eures-beta/matching-feedback', data={
-            'token': token,
-            'employer_phone': ' +352 123456 ',
-        })
+        response = self.client.post(
+            '/eures-beta/matching-feedback',
+            data={
+                'token': token,
+                'employer_phone': ' +352 123456 ',
+            },
+        )
 
         self.assertEqual(response.status_code, 200)
         update_matching_record_by_id.assert_called_once()
@@ -196,11 +226,16 @@ class BrevoHealthTest(unittest.TestCase):
         get_eures_matching_config,
         _should_proxy,
     ):
-        get_eures_matching_config.return_value = {'doc_id': 'doc', 'table_id': 'Matchings'}
-        token = app.get_eures_email_action_serializer().dumps({
-            'record_id': 57,
-            'response': 'contact_no_whatsapp',
-        })
+        get_eures_matching_config.return_value = {
+            'doc_id': 'doc',
+            'table_id': 'Matchings',
+        }
+        token = app.get_eures_email_action_serializer().dumps(
+            {
+                'record_id': 57,
+                'response': 'contact_no_whatsapp',
+            }
+        )
 
         response = self.client.get(f'/eures-beta/matching-feedback?token={token}')
 
@@ -211,7 +246,9 @@ class BrevoHealthTest(unittest.TestCase):
         self.assertEqual(fields['employer_whatsapp_consent'], 'no')
         self.assertNotIn('employer_whatsapp_phone', fields)
 
-    def test_build_candidate_matching_notification_email_mentions_company_and_spam_check(self):
+    def test_build_candidate_matching_notification_email_mentions_company_and_spam_check(
+        self,
+    ):
         row = {
             'record_id': 57,
             'candidat': {
@@ -223,7 +260,9 @@ class BrevoHealthTest(unittest.TestCase):
             },
         }
 
-        recipient, subject, text_body, html_body = app.build_brevo_candidate_matching_notification_email(row)
+        recipient, subject, text_body, html_body = (
+            app.build_brevo_candidate_matching_notification_email(row)
+        )
 
         self.assertEqual(recipient, 'romuald08150@gmail.com')
         self.assertIn('ARHIS HR SOLUTIONS', subject)
@@ -242,7 +281,9 @@ class BrevoHealthTest(unittest.TestCase):
             'invite_link': 'https://formulaires.inclusion.gouv.fr/forms/eures-beta/questionnaire-candidate?lang=fr&invite_token=token-demo',
         }
 
-        recipient, subject, text_body, html_body, invite_token, invite_link = app.build_brevo_invitation_email(invitation)
+        recipient, subject, text_body, html_body, invite_token, invite_link = (
+            app.build_brevo_invitation_email(invitation)
+        )
 
         self.assertEqual(recipient, 'candidate@example.org')
         self.assertEqual(invite_token, 'token-demo')
@@ -270,8 +311,10 @@ class BrevoHealthTest(unittest.TestCase):
             'need': 'production',
         }
 
-        recipient, subject, text_body, html_body = app.build_brevo_spontaneous_candidate_email(
-            candidate, employer, 'Profil disponible rapidement.'
+        recipient, subject, text_body, html_body = (
+            app.build_brevo_spontaneous_candidate_email(
+                candidate, employer, 'Profil disponible rapidement.'
+            )
         )
 
         self.assertEqual(recipient, 'recrutement@example.org')
@@ -294,25 +337,31 @@ class BrevoHealthTest(unittest.TestCase):
         self.assertIn('Ce profil ne correspond pas', html_body)
 
     @patch.object(app, 'update_eures_spontaneous_record')
-    def test_spontaneous_feedback_button_updates_tracking(self, update_eures_spontaneous_record):
-        token = app.get_eures_email_action_serializer().dumps({
-            'kind': 'spontaneous_candidate',
-            'record_id': 73,
-            'response': 'interested',
-        })
+    def test_spontaneous_feedback_button_updates_tracking(
+        self, update_eures_spontaneous_record
+    ):
+        token = app.get_eures_email_action_serializer().dumps(
+            {
+                'kind': 'spontaneous_candidate',
+                'record_id': 73,
+                'response': 'interested',
+            }
+        )
         response = self.client.get(f'/eures-beta/spontaneous-feedback?token={token}')
 
         self.assertEqual(response.status_code, 200)
         update_eures_spontaneous_record.assert_called_once()
         self.assertEqual(update_eures_spontaneous_record.call_args.args[0], 73)
-        self.assertEqual(update_eures_spontaneous_record.call_args.args[1]['status'], 'interested')
+        self.assertEqual(
+            update_eures_spontaneous_record.call_args.args[1]['status'], 'interested'
+        )
 
     def test_spontaneous_candidate_notice_does_not_imply_employer_interest(self):
         candidate = {'nom': 'Flora A', 'email': 'flora@example.org'}
         employer = {'company': 'Entreprise Démo'}
 
-        recipient, subject, text_body, html_body = app.build_brevo_spontaneous_candidate_notice(
-            candidate, employer
+        recipient, subject, text_body, html_body = (
+            app.build_brevo_spontaneous_candidate_notice(candidate, employer)
         )
 
         self.assertEqual(recipient, 'flora@example.org')
@@ -321,11 +370,15 @@ class BrevoHealthTest(unittest.TestCase):
         self.assertIn("ne signifie pas encore que l’employeur est intéressé", html_body)
 
     def test_admin_email_tests_include_both_spontaneous_templates(self):
-        employer_to, employer_subject, employer_text, employer_html = app.build_eures_admin_email_test_message(
-            'employer_spontaneous_candidate', 'test@example.org'
+        employer_to, employer_subject, employer_text, employer_html = (
+            app.build_eures_admin_email_test_message(
+                'employer_spontaneous_candidate', 'test@example.org'
+            )
         )
-        candidate_to, candidate_subject, candidate_text, _ = app.build_eures_admin_email_test_message(
-            'candidate_spontaneous_notice', 'test@example.org'
+        candidate_to, candidate_subject, candidate_text, _ = (
+            app.build_eures_admin_email_test_message(
+                'candidate_spontaneous_notice', 'test@example.org'
+            )
         )
 
         self.assertEqual(employer_to, 'test@example.org')
@@ -338,7 +391,9 @@ class BrevoHealthTest(unittest.TestCase):
         self.assertIn('Aucun CV réel', candidate_text)
 
     def test_spontaneous_feedback_test_does_not_write_business_data(self):
-        response = self.client.get('/eures-beta/spontaneous-feedback-test?response=interested')
+        response = self.client.get(
+            '/eures-beta/spontaneous-feedback-test?response=interested'
+        )
         self.assertEqual(response.status_code, 200)
         self.assertIn('Aucune donnée métier', response.get_data(as_text=True))
 
@@ -352,22 +407,32 @@ class BrevoHealthTest(unittest.TestCase):
             'invite_link': 'https://formulaires.inclusion.gouv.fr/forms/eures-beta/questionnaire-candidate?lang=fr&invite_token=token-demo',
         }
 
-        recipient, subject, text_body, html_body, invite_token, invite_link = app.build_brevo_invitation_email(invitation)
+        recipient, subject, text_body, html_body, invite_token, invite_link = (
+            app.build_brevo_invitation_email(invitation)
+        )
 
         self.assertEqual(recipient, 'candidate@example.org')
         self.assertEqual(invite_token, 'token-demo')
-        self.assertIn('Votre CV EURES peut correspondre à des besoins employeurs', subject)
-        self.assertIn('Vous venez de déposer ou d’actualiser votre CV sur EURES', text_body)
+        self.assertIn(
+            'Votre CV EURES peut correspondre à des besoins employeurs', subject
+        )
+        self.assertIn(
+            'Vous venez de déposer ou d’actualiser votre CV sur EURES', text_body
+        )
         self.assertIn('Match Europe', text_body)
         self.assertIn('Compléter mon profil Match Europe', html_body)
 
     @patch.object(app, 'send_brevo_transactional_email')
     @patch.object(app, 'update_eures_invitation_record_by_id')
-    @patch.object(app, 'build_eures_invitation_conflict_indexes', return_value={
-        'blocking_statuses': set(),
-        'invitation_by_key': {},
-        'questionnaire_by_key': {},
-    })
+    @patch.object(
+        app,
+        'build_eures_invitation_conflict_indexes',
+        return_value={
+            'blocking_statuses': set(),
+            'invitation_by_key': {},
+            'questionnaire_by_key': {},
+        },
+    )
     @patch.object(app, 'fetch_table_records')
     @patch.object(app, 'get_eures_invitations_config')
     def test_admin_invitation_send_allows_force_resend_for_sent_rows(
@@ -383,24 +448,30 @@ class BrevoHealthTest(unittest.TestCase):
             'table_id': 'Invitations',
             'api_key': 'grist-key',
         }
-        fetch_table_records.return_value = [{
-            'id': 159,
-            'fields': {
-                'role': 'candidate',
-                'email': 'candidate@example.org',
-                'first_name': 'Marie',
-                'language': 'fr',
-                'invite_token': 'token-demo',
-                'invite_link': 'https://formulaires.inclusion.gouv.fr/forms/eures-beta/questionnaire-candidate?lang=fr&invite_token=token-demo',
-                'invitation_status': 'invitation_envoyee',
-            },
-        }]
+        fetch_table_records.return_value = [
+            {
+                'id': 159,
+                'fields': {
+                    'role': 'candidate',
+                    'email': 'candidate@example.org',
+                    'first_name': 'Marie',
+                    'language': 'fr',
+                    'invite_token': 'token-demo',
+                    'invite_link': 'https://formulaires.inclusion.gouv.fr/forms/eures-beta/questionnaire-candidate?lang=fr&invite_token=token-demo',
+                    'invitation_status': 'invitation_envoyee',
+                },
+            }
+        ]
         send_brevo_transactional_email.return_value = {'messageId': 'brevo-123'}
 
-        with patch.dict(os.environ, {
-            'ADMIN_USERNAME': 'admin',
-            'ADMIN_PASSWORD': 'AdminEures2026',
-        }, clear=False):
+        with patch.dict(
+            os.environ,
+            {
+                'ADMIN_USERNAME': 'admin',
+                'ADMIN_PASSWORD': 'AdminEures2026',
+            },
+            clear=False,
+        ):
             response = self.client.post(
                 '/api/forms/eures-beta/admin/invitations/send',
                 json={'record_ids': [159], 'force_resend': True},
@@ -417,7 +488,11 @@ class BrevoHealthTest(unittest.TestCase):
         send_brevo_transactional_email.assert_called_once()
         update_eures_invitation_record_by_id.assert_called_once()
 
-    @patch.object(app, 'get_eures_matching_config', new=lambda: {'doc_id': 'test-doc', 'api_key': 'test-key'})
+    @patch.object(
+        app,
+        'get_eures_matching_config',
+        new=lambda: {'doc_id': 'test-doc', 'api_key': 'test-key'},
+    )
     @patch.object(app, 'send_brevo_transactional_email')
     @patch.object(app, 'list_eures_admin_matchings')
     @patch.object(app, 'ensure_brevo_ready')
@@ -427,24 +502,30 @@ class BrevoHealthTest(unittest.TestCase):
         list_eures_admin_matchings,
         send_brevo_transactional_email,
     ):
-        list_eures_admin_matchings.return_value = [{
-            'record_id': 32,
-            'candidat': {
-                'nom': 'Eric Barthelemy',
-                'email': 'candidate@example.test',
-            },
-            'employeur': {
-                'employeur': 'ARHIS HR SOLUTIONS',
-            },
-        }]
+        list_eures_admin_matchings.return_value = [
+            {
+                'record_id': 32,
+                'candidat': {
+                    'nom': 'Eric Barthelemy',
+                    'email': 'candidate@example.test',
+                },
+                'employeur': {
+                    'employeur': 'ARHIS HR SOLUTIONS',
+                },
+            }
+        ]
         send_brevo_transactional_email.return_value = {'messageId': 'brevo-456'}
 
-        with patch.dict(os.environ, {
-            'ADMIN_USERNAME': 'admin',
-            'ADMIN_PASSWORD': 'AdminEures2026',
-            'BREVO_API_KEY': 'brevo-key',
-            'BREVO_FROM_EMAIL': 'eures@example.org',
-        }, clear=False):
+        with patch.dict(
+            os.environ,
+            {
+                'ADMIN_USERNAME': 'admin',
+                'ADMIN_PASSWORD': 'AdminEures2026',
+                'BREVO_API_KEY': 'brevo-key',
+                'BREVO_FROM_EMAIL': 'eures@example.org',
+            },
+            clear=False,
+        ):
             response = self.client.post(
                 '/api/forms/eures-beta/admin/matchings/32/candidate-email',
                 headers=self.admin_auth,
@@ -471,12 +552,16 @@ class BrevoHealthTest(unittest.TestCase):
             {'messageId': 'brevo-candidate-test'},
         ]
 
-        with patch.dict(os.environ, {
-            'ADMIN_USERNAME': 'admin',
-            'ADMIN_PASSWORD': 'AdminEures2026',
-            'BREVO_API_KEY': 'brevo-key',
-            'BREVO_FROM_EMAIL': 'eures@example.org',
-        }, clear=False):
+        with patch.dict(
+            os.environ,
+            {
+                'ADMIN_USERNAME': 'admin',
+                'ADMIN_PASSWORD': 'AdminEures2026',
+                'BREVO_API_KEY': 'brevo-key',
+                'BREVO_FROM_EMAIL': 'eures@example.org',
+            },
+            clear=False,
+        ):
             response = self.client.post(
                 '/api/forms/eures-beta/admin/matchings/test-emails',
                 headers=self.admin_auth,
@@ -503,14 +588,20 @@ class BrevoHealthTest(unittest.TestCase):
         ensure_brevo_ready,
         send_brevo_transactional_email,
     ):
-        send_brevo_transactional_email.return_value = {'messageId': 'brevo-selected-test'}
+        send_brevo_transactional_email.return_value = {
+            'messageId': 'brevo-selected-test'
+        }
 
-        with patch.dict(os.environ, {
-            'ADMIN_USERNAME': 'admin',
-            'ADMIN_PASSWORD': 'AdminEures2026',
-            'BREVO_API_KEY': 'brevo-key',
-            'BREVO_FROM_EMAIL': 'eures@example.org',
-        }, clear=False):
+        with patch.dict(
+            os.environ,
+            {
+                'ADMIN_USERNAME': 'admin',
+                'ADMIN_PASSWORD': 'AdminEures2026',
+                'BREVO_API_KEY': 'brevo-key',
+                'BREVO_FROM_EMAIL': 'eures@example.org',
+            },
+            clear=False,
+        ):
             response = self.client.post(
                 '/api/forms/eures-beta/admin/email-tests/send',
                 headers=self.admin_auth,
@@ -525,11 +616,18 @@ class BrevoHealthTest(unittest.TestCase):
         self.assertTrue(payload['ok'])
         self.assertEqual(payload['recipient_email'], 'test@example.org')
         self.assertEqual(payload['email_type'], 'candidate_invitation_eures_cv')
-        self.assertIn('Votre CV EURES peut correspondre à des besoins employeurs', payload['subject'])
+        self.assertIn(
+            'Votre CV EURES peut correspondre à des besoins employeurs',
+            payload['subject'],
+        )
         ensure_brevo_ready.assert_called_once_with(check_api=True)
         send_brevo_transactional_email.assert_called_once()
-        self.assertEqual(send_brevo_transactional_email.call_args.args[0], 'test@example.org')
-        self.assertTrue(send_brevo_transactional_email.call_args.args[1].startswith('[TEST] '))
+        self.assertEqual(
+            send_brevo_transactional_email.call_args.args[0], 'test@example.org'
+        )
+        self.assertTrue(
+            send_brevo_transactional_email.call_args.args[1].startswith('[TEST] ')
+        )
 
     @patch.object(app, 'send_brevo_transactional_email')
     @patch.object(app, 'update_eures_spontaneous_record')
@@ -546,18 +644,31 @@ class BrevoHealthTest(unittest.TestCase):
         update_eures_spontaneous_record,
         send_brevo_transactional_email,
     ):
-        get_form_config.return_value = {'doc_id': 'doc-id', 'table_id': 'Candidats', 'api_key': 'key'}
-        fetch_record_by_id.return_value = {'fields': {
-            'id_tally': 'candidate-1',
-            'nom': 'Flora A',
-            'email': 'flora@example.org',
-            'metier': 'Production',
-            'cv_file_name': 'cv.pdf',
-            'cv_file_base64': 'dGVzdA==',
-        }}
-        send_brevo_transactional_email.side_effect = [{'messageId': 'employer'}, {'messageId': 'candidate'}]
+        get_form_config.return_value = {
+            'doc_id': 'doc-id',
+            'table_id': 'Candidats',
+            'api_key': 'key',
+        }
+        fetch_record_by_id.return_value = {
+            'fields': {
+                'id_tally': 'candidate-1',
+                'nom': 'Flora A',
+                'email': 'flora@example.org',
+                'metier': 'Production',
+                'cv_file_name': 'cv.pdf',
+                'cv_file_base64': 'dGVzdA==',
+            }
+        }
+        send_brevo_transactional_email.side_effect = [
+            {'messageId': 'employer'},
+            {'messageId': 'candidate'},
+        ]
 
-        with patch.dict(os.environ, {'ADMIN_USERNAME': 'admin', 'ADMIN_PASSWORD': 'AdminEures2026'}, clear=False):
+        with patch.dict(
+            os.environ,
+            {'ADMIN_USERNAME': 'admin', 'ADMIN_PASSWORD': 'AdminEures2026'},
+            clear=False,
+        ):
             response = self.client.post(
                 '/api/forms/eures-beta/admin/spontaneous-candidate',
                 headers=self.admin_auth,
@@ -573,9 +684,17 @@ class BrevoHealthTest(unittest.TestCase):
         self.assertEqual(response.get_json()['tracking_record_id'], 73)
         create_eures_spontaneous_record.assert_called_once()
         self.assertEqual(update_eures_spontaneous_record.call_count, 2)
-        self.assertEqual(update_eures_spontaneous_record.call_args_list[-1].args[1]['status'], 'waiting_employer')
+        self.assertEqual(
+            update_eures_spontaneous_record.call_args_list[-1].args[1]['status'],
+            'waiting_employer',
+        )
         self.assertEqual(send_brevo_transactional_email.call_count, 2)
-        self.assertEqual(send_brevo_transactional_email.call_args_list[0].kwargs['attachments'][0]['name'], 'cv.pdf')
+        self.assertEqual(
+            send_brevo_transactional_email.call_args_list[0].kwargs['attachments'][0][
+                'name'
+            ],
+            'cv.pdf',
+        )
 
 
 if __name__ == '__main__':

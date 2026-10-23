@@ -2,7 +2,6 @@
 
 import re
 
-
 _CANONICAL_SCORE = re.compile(r"(?:0|[1-9][0-9]*)\Z")
 
 

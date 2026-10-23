@@ -22,12 +22,16 @@ class EuresBetaOnlyModeTest(unittest.TestCase):
 
         self.assertEqual(response.status_code, 404)
 
-    @patch.dict(app.os.environ, {
-        'ADMIN_USERNAME': 'shared-admin',
-        'ADMIN_PASSWORD': 'shared-password',
-        'ADMIN_USERNAME_EURES_BETA': 'eures-admin',
-        'ADMIN_PASSWORD_EURES_BETA': 'eures-password',
-    }, clear=False)
+    @patch.dict(
+        app.os.environ,
+        {
+            'ADMIN_USERNAME': 'shared-admin',
+            'ADMIN_PASSWORD': 'shared-password',
+            'ADMIN_USERNAME_EURES_BETA': 'eures-admin',
+            'ADMIN_PASSWORD_EURES_BETA': 'eures-password',
+        },
+        clear=False,
+    )
     def test_eures_admin_prefers_form_specific_credentials(self):
         token = base64.b64encode(b'eures-admin:eures-password').decode('ascii')
 
@@ -40,10 +44,14 @@ class EuresBetaOnlyModeTest(unittest.TestCase):
         self.assertNotEqual(response.status_code, 401)
         response.close()
 
-    @patch.dict(app.os.environ, {
-        'ADMIN_AUTH_MODE_EURES_BETA': 'magic_link',
-        'ADMIN_ALLOWED_EMAILS_EURES_BETA': 'eric.barthelemy@inclusion.gouv.fr,eric.barthelemy@me.com',
-    }, clear=False)
+    @patch.dict(
+        app.os.environ,
+        {
+            'ADMIN_AUTH_MODE_EURES_BETA': 'magic_link',
+            'ADMIN_ALLOWED_EMAILS_EURES_BETA': 'eric.barthelemy@inclusion.gouv.fr,eric.barthelemy@me.com',
+        },
+        clear=False,
+    )
     def test_magic_link_mode_redirects_admin_to_login(self):
         with patch.object(app, 'APP_MODE', 'eures-beta'):
             response = self.client.get('/admin/eures-beta/')
@@ -51,10 +59,14 @@ class EuresBetaOnlyModeTest(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn('/admin/eures-beta/login', response.headers['Location'])
 
-    @patch.dict(app.os.environ, {
-        'ADMIN_AUTH_MODE_EURES_BETA': 'magic_link',
-        'ADMIN_ALLOWED_EMAILS_EURES_BETA': 'eric.barthelemy@inclusion.gouv.fr,eric.barthelemy@me.com',
-    }, clear=False)
+    @patch.dict(
+        app.os.environ,
+        {
+            'ADMIN_AUTH_MODE_EURES_BETA': 'magic_link',
+            'ADMIN_ALLOWED_EMAILS_EURES_BETA': 'eric.barthelemy@inclusion.gouv.fr,eric.barthelemy@me.com',
+        },
+        clear=False,
+    )
     @patch.object(app.requests, 'post')
     def test_magic_link_request_rejects_unauthorized_email(self, requests_post):
         with patch.object(app, 'APP_MODE', 'eures-beta'):
@@ -68,13 +80,17 @@ class EuresBetaOnlyModeTest(unittest.TestCase):
         requests_post.assert_not_called()
         response.close()
 
-    @patch.dict(app.os.environ, {
-        'ADMIN_AUTH_MODE_EURES_BETA': 'magic_link',
-        'ADMIN_ALLOWED_EMAILS_EURES_BETA': 'eric.barthelemy@inclusion.gouv.fr,eric.barthelemy@me.com',
-        'BREVO_API_KEY': 'brevo-key',
-        'BREVO_FROM_EMAIL': 'eures@example.org',
-        'BREVO_FROM_NAME': 'EURES beta',
-    }, clear=False)
+    @patch.dict(
+        app.os.environ,
+        {
+            'ADMIN_AUTH_MODE_EURES_BETA': 'magic_link',
+            'ADMIN_ALLOWED_EMAILS_EURES_BETA': 'eric.barthelemy@inclusion.gouv.fr,eric.barthelemy@me.com',
+            'BREVO_API_KEY': 'brevo-key',
+            'BREVO_FROM_EMAIL': 'eures@example.org',
+            'BREVO_FROM_NAME': 'EURES beta',
+        },
+        clear=False,
+    )
     @patch.object(app.requests, 'post')
     def test_magic_link_request_sends_email_for_allowed_address(self, requests_post):
         requests_post.return_value.status_code = 201
@@ -92,21 +108,29 @@ class EuresBetaOnlyModeTest(unittest.TestCase):
         requests_post.assert_called_once()
         payload = requests_post.call_args.kwargs['json']
         self.assertEqual(payload['to'][0]['email'], 'eric.barthelemy@inclusion.gouv.fr')
-        self.assertEqual(payload['subject'], '[eures-beta] Votre lien de connexion admin')
+        self.assertEqual(
+            payload['subject'], '[eures-beta] Votre lien de connexion admin'
+        )
         response.close()
 
-    @patch.dict(app.os.environ, {
-        'ADMIN_AUTH_MODE_EURES_BETA': 'magic_link',
-        'ADMIN_ALLOWED_EMAILS_EURES_BETA': 'eric.barthelemy@inclusion.gouv.fr,eric.barthelemy@me.com',
-        'ADMIN_MAGIC_LINK_TTL_SECONDS_EURES_BETA': '900',
-        'SESSION_SECRET': 'test-secret',
-    }, clear=False)
+    @patch.dict(
+        app.os.environ,
+        {
+            'ADMIN_AUTH_MODE_EURES_BETA': 'magic_link',
+            'ADMIN_ALLOWED_EMAILS_EURES_BETA': 'eric.barthelemy@inclusion.gouv.fr,eric.barthelemy@me.com',
+            'ADMIN_MAGIC_LINK_TTL_SECONDS_EURES_BETA': '900',
+            'SESSION_SECRET': 'test-secret',
+        },
+        clear=False,
+    )
     def test_magic_link_token_authenticates_admin_session(self):
-        token = app.get_admin_magic_link_serializer('eures-beta').dumps({
-            'form_id': 'eures-beta',
-            'email': 'eric.barthelemy@inclusion.gouv.fr',
-            'jti': 'test-jti',
-        })
+        token = app.get_admin_magic_link_serializer('eures-beta').dumps(
+            {
+                'form_id': 'eures-beta',
+                'email': 'eric.barthelemy@inclusion.gouv.fr',
+                'jti': 'test-jti',
+            }
+        )
 
         with patch.object(app, 'APP_MODE', 'eures-beta'):
             login_response = self.client.get(f'/admin/eures-beta/magic?token={token}')
@@ -119,7 +143,9 @@ class EuresBetaOnlyModeTest(unittest.TestCase):
         admin_response.close()
 
     @patch.object(app, 'build_eures_public_stats')
-    def test_eures_public_stats_remains_available_in_isolated_mode(self, build_eures_public_stats):
+    def test_eures_public_stats_remains_available_in_isolated_mode(
+        self, build_eures_public_stats
+    ):
         build_eures_public_stats.return_value = {'ok': True}
 
         with patch.object(app, 'APP_MODE', 'eures-beta'):
@@ -152,11 +178,15 @@ class EuresBetaOnlyModeTest(unittest.TestCase):
         self.assertIn(b'data-page="privacy"', response.data)
         response.close()
 
-    @patch.dict(app.os.environ, {
-        'ADMIN_AUTH_MODE_EURES_BETA': 'basic',
-        'ADMIN_USERNAME_EURES_BETA': 'eures-admin',
-        'ADMIN_PASSWORD_EURES_BETA': 'eures-password',
-    }, clear=False)
+    @patch.dict(
+        app.os.environ,
+        {
+            'ADMIN_AUTH_MODE_EURES_BETA': 'basic',
+            'ADMIN_USERNAME_EURES_BETA': 'eures-admin',
+            'ADMIN_PASSWORD_EURES_BETA': 'eures-password',
+        },
+        clear=False,
+    )
     def test_retired_whatsapp_group_endpoint_is_unavailable(self):
         token = base64.b64encode(b'eures-admin:eures-password').decode('ascii')
         with patch.object(app, 'APP_MODE', 'eures-beta'):
@@ -179,7 +209,10 @@ class EuresBetaOnlyModeTest(unittest.TestCase):
     def test_retired_whatsapp_group_endpoint_does_not_write(self, update_record):
         response = self.client.post(
             '/api/forms/eures-beta/admin/matchings/42/whatsapp',
-            json={'candidate_consent_status': 'accepted', 'employer_consent_status': 'accepted'},
+            json={
+                'candidate_consent_status': 'accepted',
+                'employer_consent_status': 'accepted',
+            },
         )
         self.assertEqual(response.status_code, 404)
         update_record.assert_not_called()

@@ -1,4 +1,5 @@
 """Phase 1: explicit, read-only authorization. No route hooks or shared cache."""
+
 import json
 from dataclasses import dataclass
 
@@ -6,14 +7,33 @@ import requests
 
 GRIST_SERVER = 'https://grist.numerique.gouv.fr'
 GRIST_DOCUMENT = 'a9T1veaFas9u'
-KNOWN_PERMISSIONS = frozenset({
-    'candidats.read', 'candidats.write', 'candidats.delete', 'candidats.cv.read',
-    'employeurs.read', 'employeurs.write', 'employeurs.delete',
-    'matchings.read', 'matchings.write', 'invitations.read', 'invitations.write',
-    'communications.send', 'communications.test', 'suivi.read', 'suivi.write',
-    'documentation.read', 'documentation.write', 'reseau.read', 'reseau.write',
-    'statistiques.read', 'systeme.read', 'audit.read', 'admin.users',
-})
+KNOWN_PERMISSIONS = frozenset(
+    {
+        'candidats.read',
+        'candidats.write',
+        'candidats.delete',
+        'candidats.cv.read',
+        'employeurs.read',
+        'employeurs.write',
+        'employeurs.delete',
+        'matchings.read',
+        'matchings.write',
+        'invitations.read',
+        'invitations.write',
+        'communications.send',
+        'communications.test',
+        'suivi.read',
+        'suivi.write',
+        'documentation.read',
+        'documentation.write',
+        'reseau.read',
+        'reseau.write',
+        'statistiques.read',
+        'systeme.read',
+        'audit.read',
+        'admin.users',
+    }
+)
 
 
 def normalize_email(value):
@@ -28,8 +48,12 @@ class Authorization:
     role_code: str = ''
 
     def has_permission(self, permission):
-        return (self.reason == 'authorized' and isinstance(permission, str)
-                and permission in KNOWN_PERMISSIONS and permission in self.permissions)
+        return (
+            self.reason == 'authorized'
+            and isinstance(permission, str)
+            and permission in KNOWN_PERMISSIONS
+            and permission in self.permissions
+        )
 
 
 class PermissionDenied(Exception):
@@ -56,9 +80,12 @@ def _resolve_role(role_value, roles_raw):
     if type(role_value) is int and role_value > 0:
         matches = [record for record in roles_raw if record.get('id') == role_value]
     elif isinstance(role_value, str) and role_value.strip():
-        matches = [record for record in roles_raw
-                   if isinstance(record.get('fields'), dict)
-                   and record['fields'].get('Code') == role_value]
+        matches = [
+            record
+            for record in roles_raw
+            if isinstance(record.get('fields'), dict)
+            and record['fields'].get('Code') == role_value
+        ]
     else:
         return None, 'role_invalid'
     if len(matches) != 1:
@@ -69,8 +96,14 @@ def _resolve_role(role_value, roles_raw):
     code = role.get('Code')
     if not isinstance(code, str) or not code.strip():
         return None, 'role_invalid'
-    if sum(isinstance(record.get('fields'), dict)
-           and record['fields'].get('Code') == code for record in roles_raw) != 1:
+    if (
+        sum(
+            isinstance(record.get('fields'), dict)
+            and record['fields'].get('Code') == code
+            for record in roles_raw
+        )
+        != 1
+    ):
         return None, 'role_duplicate'
     return role, ''
 
@@ -81,6 +114,7 @@ class GristAuthorizationReader:
     Fixed document/tables, GET only, no redirects, no schema creation helpers.
     Configuration is resolved afresh on every call.
     """
+
     def __init__(self, config_provider, base_url_provider, get=None):
         self.config_provider = config_provider
         self.base_url_provider = base_url_provider
@@ -89,15 +123,19 @@ class GristAuthorizationReader:
     def __call__(self):
         try:
             config = self.config_provider()
-            if (self.base_url_provider().rstrip('/') != GRIST_SERVER
-                    or not config or not config.get('api_key')):
+            if (
+                self.base_url_provider().rstrip('/') != GRIST_SERVER
+                or not config
+                or not config.get('api_key')
+            ):
                 raise GristUnavailable()
             rows = []
             for table in ('Utilisateurs_Admin', 'Roles_Admin'):
                 response = self.get(
                     f'{GRIST_SERVER}/api/docs/{GRIST_DOCUMENT}/tables/{table}/records',
                     headers={'Authorization': 'Bearer ' + config['api_key']},
-                    timeout=10, allow_redirects=False,
+                    timeout=10,
+                    allow_redirects=False,
                 )
                 if response.status_code != 200:
                     raise GristUnavailable()
@@ -138,7 +176,10 @@ def resolve_authorization(personal_session, reader):
         return Authorization('user_id_invalid')
     if sum(u.get('Utilisateur_ID') == user_id for u in users) != 1:
         return Authorization('user_id_duplicate')
-    if type(user.get('Version_session')) is not int or user['Version_session'] != version:
+    if (
+        type(user.get('Version_session')) is not int
+        or user['Version_session'] != version
+    ):
         return Authorization('session_version_invalid')
     role, role_error = _resolve_role(user.get('Role'), roles_raw)
     if role_error:
@@ -146,7 +187,9 @@ def resolve_authorization(personal_session, reader):
     role_code = role['Code']
     try:
         permissions = json.loads(role['Permissions'])
-        if not isinstance(permissions, list) or any(not isinstance(p, str) for p in permissions):
+        if not isinstance(permissions, list) or any(
+            not isinstance(p, str) for p in permissions
+        ):
             return Authorization('permissions_invalid')
         if any('*' in p for p in permissions):
             return Authorization('wildcard_forbidden')
@@ -169,8 +212,11 @@ def require_permission(permission, personal_session, reader):
         raise PermissionDenied('permission_unknown')
     authorization = resolve_authorization(personal_session, reader)
     if not authorization.has_permission(permission):
-        raise PermissionDenied(authorization.reason if authorization.reason != 'authorized'
-                               else 'permission_denied')
+        raise PermissionDenied(
+            authorization.reason
+            if authorization.reason != 'authorized'
+            else 'permission_denied'
+        )
     return authorization
 
 
@@ -191,7 +237,8 @@ def issue_session_version(validated_email, reader):
             return None
         version = matches[0].get('Version_session')
         result = resolve_authorization(
-            {'email': email, 'Version_session': version}, lambda: snapshot)
+            {'email': email, 'Version_session': version}, lambda: snapshot
+        )
         return version if result.reason == 'authorized' else None
     except Exception:
         return None
